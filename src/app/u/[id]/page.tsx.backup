@@ -1,0 +1,86 @@
+/*'use client';
+
+import { useEffect, useState } from 'react';
+import ProfileDisplay from '@/components/profile/ProfileDisplay';
+import { UserProfile } from '@/types/profile';
+
+// TODO: Replace with actual API call
+const fetchPublicProfile = async (id: string): Promise<UserProfile> => {
+  // Simulated API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return {
+    id,
+    name: 'Jane Smith',
+    email: 'jane.smith@my.csun.edu',
+    major: 'Computer Science',
+    year: 'Junior',
+    bio: 'CSUN student passionate about technology!',
+    isPublic: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+export default function PublicProfilePage({ params }: { params: { id: string } }) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await fetchPublicProfile(params.id);
+        setProfile(data);
+      } catch (err) {
+        setError('Failed to load profile');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#D22030]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Profile not found</p>
+      </div>
+    );
+  }
+
+  // For public profiles, we respect privacy settings
+  const privacySettings = {
+    showEmail: profile.isPublic,
+    showMajor: true, // Always show major
+    showYear: true,  // Always show year
+    showBio: profile.isPublic,
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <ProfileDisplay 
+        profile={profile} 
+        isOwnProfile={false}
+        privacySettings={privacySettings}
+      />
+    </div>
+  );
+}*/
