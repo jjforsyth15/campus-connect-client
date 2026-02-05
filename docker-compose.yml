@@ -1,0 +1,75 @@
+services:
+  # Backend API
+  backend:
+    image: node:18-alpine
+    container_name: campusconnect-backend
+    working_dir: /app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    networks:
+      - campusconnect-network
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application
+  frontend:
+    image: node:20-alpine
+    container_name: campusconnect-frontend
+    working_dir: /app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+    networks:
+      - campusconnect-network
+    command: sh -c "npm install && npm run dev"
+
+  # Prisma Studio (optional - run with: docker compose --profile tools up)
+  prisma-studio:
+    image: node:18-alpine
+    container_name: campusconnect-prisma-studio
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    command: sh -c "npx prisma studio --port 5555 --browser none"
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./backend/.env
+    networks:
+      - campusconnect-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+networks:
+  campusconnect-network:
+    driver: bridge
+
+volumes:
+  backend_node_modules:
+  frontend_node_modules:
+  frontend_next:
