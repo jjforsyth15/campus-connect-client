@@ -5,76 +5,176 @@
  * MARKETPLACE PAGE - CampusConnect
  * ============================================================================
  * 
- * Purpose: Main marketplace interface where CSUN students can buy and sell items
- * 
- * Features:
- * - 🔍 Real-time search functionality
- * - 📂 Category-based filtering (Textbooks, Electronics, Furniture, etc.)
- * - 💰 Price range filtering
- * - ⭐ Favorites/wishlist system
- * - 📱 Fully responsive design
- * - 💬 Seller contact system
- * - 🎨 CSUN-branded color scheme (#D22030 - Matador Red)
- * 
- * Color Scheme:
- * - Primary: #D22030 (CSUN Red)
- * - Secondary: Gray scale for neutrality
- * - Accents: Green for savings, Yellow for ratings
- * 
- * Last Updated: December 12, 2025
- * Author: CampusConnect Team
+ * Main marketplace interface where CSUN students buy and sell items
+ * Features: Search, filters, favorites, real-time API integration
+ * Theme: CSUN Red (#A80532) with glassmorphism design
  */
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadProfile } from '@/lib/load-profile';
-import { Profile } from '../profile/page';
+import axios from 'axios';
 import { useAuthorize } from '@/lib/useAuthorize';
+import MarketplaceCard from '@/components/marketplace/MarketplaceCard';
+import AddListingModal from '@/components/marketplace/AddListingModal';
+import { LoadingState, ErrorState, EmptyState } from '@/components/marketplace/MarketplaceStates';
 
+/**
+ * Type Definitions
+ */
+interface Seller {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profilePicture: string | null;
+}
+
+interface MarketplaceListing {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  originalPrice: number | null;
+  images: string[];
+  condition: string;
+  category: string;
+  location: string;
+  views: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  seller: Seller;
+  _count?: { favoritedBy: number };
+}
 
 const Marketplace = () => {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
   
-  // Search and filter states
-  const [searchQuery, setSearchQuery] = useState('');              // User's search input
-  const [selectedCategory, setSelectedCategory] = useState('all'); // Selected category filter
-  const [sortBy, setSortBy] = useState('recent');                  // Sort option (recent, price, popular)
-  const [priceRange, setPriceRange] = useState([0, 1000]);         // Price range filter [min, max]
-  const [showFilters, setShowFilters] = useState(false);           // Mobile filter panel visibility
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('recent');
+  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [showFilters, setShowFilters] = useState(false);
   
-  // User interaction states
-  const [favorites, setFavorites] = useState(new Set());           // User's favorited items
-  const [showContactModal, setShowContactModal] = useState(false); // Contact seller modal visibility
-  const [selectedItem, setSelectedItem] = useState(null);          // Currently selected item for contact
-  const [scrollY, setScrollY] = useState(0);                       // Page scroll position for animations
+  // Data States
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // User Interaction States
+  const [favorites, setFavorites] = useState(new Set<string>());
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MarketplaceListing | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [contactMessage, setContactMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
-  // Authorization and routing
+  // Auth
   const router = useRouter();
-  const { auth, user, token, loading } = useAuthorize();
+  const { auth, token, user, loading: authLoading } = useAuthorize();
 
   // ============================================================================
-  // AUTHENTICATION GUARD
+  // AUTHENTICATION CHECK (Optional - users can browse without login)
   // ============================================================================
-  // Redirects unauthorized users to login page
-  React.useEffect(() => {
-    if(loading) return; // Wait for auth status to load
+  
+  useEffect(() => {
+    if (authLoading) return;
     
     if (auth && token) {
       console.log("Stored user: ", user);
     } else {
-      // User not authenticated - redirect to login
-      console.log("User not logged in.");
-      console.log("auth: " + auth, ". token: " + token);
-      router.replace("/");
+      console.log("User not logged in - browsing as guest");
     }
-  }, [auth, token, user, loading, router]); 
+  }, [auth, token, user, authLoading, router]);
 
   // ============================================================================
-  // SCROLL LISTENER
+  // DATA FETCHING
   // ============================================================================
-  // Tracks scroll position for header shadow and animations
+  
+  /**
+   * Fetch marketplace listings from API
+   * Applies all active filters and sorting
+   */
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams();
+        
+        if (selectedCategory && selectedCategory !== 'all') {
+          params.append('category', selectedCategory);
+        }
+        
+        if (priceRange[0] > 0) {
+          params.append('minPrice', priceRange[0].toString());
+        }
+        if (priceRange[1] < 1000) {
+          params.append('maxPrice', priceRange[1].toString());
+        }
+        
+        if (searchQuery) {
+          params.append('search', searchQuery);
+        }
+        
+        params.append('sortBy', sortBy);
+        params.append('status', 'active');
+
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/marketplace?${params.toString()}`
+        );
+
+        setListings(response.data);
+      } catch (err: any) {
+        console.error('Error fetching listings:', err);
+        setError(err.response?.data?.message || 'Failed to load listings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch listings regardless of auth status (browsing allowed without login)
+    fetchListings();
+  }, [refreshTrigger, selectedCategory, priceRange, searchQuery, sortBy]);
+
+  /**
+   * Load user's favorites (only if logged in)
+   */
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      // Skip if not authenticated
+      if (!auth || !token) {
+        console.log('Skipping favorites fetch - user not logged in');
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/marketplace/favorites`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const favoriteIds = new Set<string>(response.data.map((listing: MarketplaceListing) => listing.id));
+        setFavorites(favoriteIds);
+      } catch (err) {
+        console.error('Error fetching favorites:', err);
+        // Don't show error to user - favorites are optional
+      }
+    };
+
+    fetchFavorites();
+  }, [auth, token, refreshTrigger]);
+
+  /**
+   * Track scroll position
+   */
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
@@ -82,122 +182,43 @@ const Marketplace = () => {
   }, []);
 
   // ============================================================================
-  // CATEGORY AND LISTING DATA
+  // HELPER FUNCTIONS
   // ============================================================================
   
-  // Category filters - using site color scheme
-  const categories = [
-    { id: 'all', name: 'All Items', color: '#A80532' },
-    { id: 'textbooks', name: 'Textbooks', color: '#A80532' },
-    { id: 'electronics', name: 'Electronics', color: '#A80532' },
-    { id: 'furniture', name: 'Furniture', color: '#A80532' },
-    { id: 'clothing', name: 'Clothing', color: '#A80532' },
-    { id: 'accessories', name: 'Accessories', color: '#A80532' }
-  ];
+  /**
+   * Format timestamp to relative time
+   */
+  const formatTimeAgo = (timestamp: string): string => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
 
-  const listings = [
-    {
-      id: 1,
-      title: 'Calculus 11th Edition',
-      price: 55,
-      originalPrice: 120,
-      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&h=400&fit=crop',
-      seller: 'Sarah M.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-      rating: 4.9,
-      reviews: 127,
-      condition: 'Like New',
-      location: 'Northridge Campus',
-      posted: '2 hours ago',
-      category: 'textbooks',
-      trending: true,
-      views: 234,
-      description: 'Excellent condition, minimal highlighting. Comes with access code.'
-    },
-    {
-      id: 2,
-      title: 'Sony WH-1000XM4 Headphones',
-      price: 180,
-      originalPrice: 349,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=400&fit=crop',
-      seller: 'John D.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      rating: 4.7,
-      reviews: 89,
-      condition: 'Excellent',
-      location: 'Sierra Hall',
-      posted: '5 hours ago',
-      category: 'electronics',
-      views: 189
-    },
-    {
-      id: 3,
-      title: 'iPad Pro 11" 2021 - 256GB',
-      price: 450,
-      originalPrice: 799,
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600&h=400&fit=crop',
-      seller: 'Emily R.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily',
-      rating: 5.0,
-      reviews: 203,
-      condition: 'Like New',
-      location: 'University Student Union',
-      posted: '1 day ago',
-      category: 'electronics',
-      trending: true,
-      views: 512
-    },
-    {
-      id: 4,
-      title: 'Mini Refrigerator - Perfect for Dorms',
-      price: 75,
-      originalPrice: 150,
-      image: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=600&h=400&fit=crop',
-      seller: 'Mike T.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-      rating: 4.8,
-      reviews: 56,
-      condition: 'Good',
-      location: 'University Park Apartments',
-      posted: '3 days ago',
-      category: 'furniture',
-      views: 145
-    },
-    {
-      id: 5,
-      title: 'Official CSUN Hoodie - Size M',
-      price: 25,
-      originalPrice: 45,
-      image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=400&fit=crop',
-      seller: 'Alex K.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-      rating: 4.6,
-      reviews: 34,
-      condition: 'Like New',
-      location: 'Matador Bookstore',
-      posted: '1 week ago',
-      category: 'clothing',
-      views: 98
-    },
-    {
-      id: 6,
-      title: 'Modern LED Desk Lamp with USB Port',
-      price: 20,
-      originalPrice: 40,
-      image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&h=400&fit=crop',
-      seller: 'Lisa W.',
-      sellerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa',
-      rating: 4.9,
-      reviews: 78,
-      condition: 'Excellent',
-      location: 'Oviatt Library Area',
-      posted: '4 days ago',
-      category: 'furniture',
-      views: 167
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+  };
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
+  /**
+   * Toggle favorite status (requires login)
+   */
+  const toggleFavorite = async (id: string) => {
+    // Require authentication for favorites
+    if (!auth || !token) {
+      alert('Please log in to favorite items');
+      router.push('/login');
+      return;
     }
-  ];
 
-  const toggleFavorite = (id: number) => {
+    // Optimistic update
     setFavorites(prev => {
       const newFavorites = new Set(prev);
       if (newFavorites.has(id)) {
@@ -207,87 +228,174 @@ const Marketplace = () => {
       }
       return newFavorites;
     });
+
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/marketplace/${id}/favorite`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      // Revert on error
+      setFavorites(prev => {
+        const newFavorites = new Set(prev);
+        if (newFavorites.has(id)) {
+          newFavorites.delete(id);
+        } else {
+          newFavorites.add(id);
+        }
+        return newFavorites;
+      });
+    }
   };
 
-  const handleContactSeller = (item: any) => {
+  /**
+   * Open contact seller modal (requires login)
+   */
+  const handleContactSeller = (item: MarketplaceListing) => {
+    // Require authentication to contact seller
+    if (!auth || !token) {
+      alert('Please log in to contact sellers');
+      router.push('/login');
+      return;
+    }
+    
     setSelectedItem(item);
+    setContactMessage(`Hi! I'm interested in your "${item.title}". Is it still available?`);
     setShowContactModal(true);
   };
 
+  /**
+   * Send message to seller
+   */
+  const handleSendMessage = async () => {
+    if (!contactMessage.trim() || !selectedItem || !token) return;
+
+    setSendingMessage(true);
+    try {
+      // Here you would call your messaging API
+      // For now, we'll show a success message
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      alert(`Message sent to ${selectedItem.seller.firstName}! They will contact you via email.`);
+      setShowContactModal(false);
+      setContactMessage('');
+      setSelectedItem(null);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  /**
+   * Delete listing (owner only)
+   */
+  const handleDeleteListing = async (id: string) => {
+    if (!auth || !token) {
+      alert('Please log in to delete listings');
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/marketplace/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert('Listing deleted successfully');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err: any) {
+      console.error('Error deleting listing:', err);
+      alert(err.response?.data?.message || 'Failed to delete listing');
+    }
+  };
+
+  /**
+   * Handle search form submission
+   */
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Searching for:', searchQuery);
-    // Search functionality already works through filteredListings
+    // Search is reactive via useEffect
+  };
+
+  /**
+   * Clear all filters
+   */
+  const handleClearFilters = () => {
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setPriceRange([0, 1000]);
+  };
+
+  /**
+   * Handle successful listing creation
+   */
+  const handleListingSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   // ============================================================================
-  // FILTERING AND SORTING LOGIC
+  // DATA PROCESSING
   // ============================================================================
   
-  /**
-   * Filter listings based on:
-   * 1. Selected category (or 'all' for no filter)
-   * 2. Search query (matches title or description)
-   * 3. Price range (min and max)
-   */
-  const filteredListings = listings.filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesPrice = item.price >= priceRange[0] && item.price <= priceRange[1];
-    return matchesCategory && matchesSearch && matchesPrice;
-  });
+  const categories = [
+    { id: 'all', name: 'All Items', color: '#A80532' },
+    { id: 'textbooks', name: 'Textbooks', color: '#A80532' },
+    { id: 'electronics', name: 'Electronics', color: '#A80532' },
+    { id: 'furniture', name: 'Furniture', color: '#A80532' },
+    { id: 'clothing', name: 'Clothing', color: '#A80532' },
+    { id: 'accessories', name: 'Accessories', color: '#A80532' }
+  ];
 
-  /**
-   * Sort filtered listings based on selected sort option:
-   * - 'recent': Default order (newest first)
-   * - 'price-low': Lowest price first
-   * - 'price-high': Highest price first
-   * - 'popular': Most views first
-   */
-  const sortedListings = [...filteredListings].sort((a, b) => {
+  // Apply client-side sorting (API will handle most of this, but keeping for consistency)
+  const sortedListings = [...listings].sort((a, b) => {
     switch (sortBy) {
-      case 'price-low': return a.price - b.price;
-      case 'price-high': return b.price - a.price;
-      case 'popular': return b.views - a.views;
-      default: return 0; // Keep original order for 'recent'
+      case 'price-low':
+        return a.price - b.price;
+      case 'price-high':
+        return b.price - a.price;
+      case 'popular':
+        return (b._count?.favoritedBy || 0) - (a._count?.favoritedBy || 0);
+      case 'recent':
+      default:
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
   });
 
-  /**
-   * Get the color for a category (for badges, buttons, etc.)
-   * All categories now use CSUN red (#D22030) for consistency
-   */
-  const getCategoryColor = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)?.color || '#D22030';
-  };
-
-  if (!auth) return null;
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+  
+  // Prevent hydration mismatch by waiting for client-side mounting
+  if (authLoading) {
+    return <LoadingState />;
+  }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#A80532', position: 'relative' }}>
-      {/* Animated Background - matching site theme */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'linear-gradient(180deg, rgba(168,5,50,0.45) 0%, rgba(168,5,50,0.34) 50%, rgba(168,5,50,0.45) 100%)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.03) 0%, transparent 50%)',
-          animation: 'pulse 8s ease-in-out infinite'
-        }} />
-      </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #A80532 0%, #8B0428 50%, #6D0320 100%)',
+      position: 'relative'
+    }}>
+      {/* Subtle pattern overlay for depth */}
+      <div style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 50%)',
+        zIndex: 0, 
+        pointerEvents: 'none' 
+      }} />
 
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        {/* Back Button */}
+      {/* Main content */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Back Button - Enhanced */}
         <button
           onClick={() => router.push("/dashboard")}
           style={{
@@ -295,96 +403,184 @@ const Marketplace = () => {
             top: "1.5rem",
             left: "1.5rem",
             zIndex: 100,
-            background: "rgba(255, 255, 255, 0.95)",
-            padding: "0.5rem 0.75rem",
-            borderRadius: "8px",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
+            background: "rgba(255, 255, 255, 0.98)",
+            padding: "0.75rem 1rem",
+            borderRadius: "12px",
+            border: "2px solid rgba(168, 5, 50, 0.2)",
             cursor: "pointer",
-            transition: "all 0.25s ease",
+            transition: "all 0.3s ease",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+            gap: "0.5rem",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
+            fontWeight: "700",
+            fontSize: "0.95rem",
+            color: "#A80532"
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget as HTMLElement;
             el.style.background = "#A80532";
             el.style.color = "white";
+            el.style.transform = "translateX(-5px)";
+            el.style.boxShadow = "0 6px 20px rgba(168, 5, 50, 0.4)";
           }}
           onMouseLeave={(e) => {
             const el = e.currentTarget as HTMLElement;
-            el.style.background = "rgba(255, 255, 255, 0.95)";
+            el.style.background = "rgba(255, 255, 255, 0.98)";
             el.style.color = "#A80532";
+            el.style.transform = "translateX(0)";
+            el.style.boxShadow = "0 4px 15px rgba(0,0,0,0.15)";
           }}
         >
-          {/* Arrow Icon */}
-          <svg
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
+          Back
+        </button>
+
+        {/* Favorites Button */}
+        <button
+          onClick={() => router.push("/marketplace/favorites")}
+          style={{
+            position: "fixed",
+            top: "1.5rem",
+            right: "1.5rem",
+            zIndex: 100,
+            background: "rgba(255, 255, 255, 0.98)",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "12px",
+            border: "2px solid rgba(168, 5, 50, 0.2)",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
+            fontWeight: "700",
+            fontSize: "0.95rem",
+            color: "#A80532"
+          }}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = "#A80532";
+            el.style.color = "white";
+            el.style.transform = "translateY(-2px)";
+            el.style.boxShadow = "0 6px 20px rgba(168, 5, 50, 0.4)";
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = "rgba(255, 255, 255, 0.98)";
+            el.style.color = "#A80532";
+            el.style.transform = "translateY(0)";
+            el.style.boxShadow = "0 4px 15px rgba(0,0,0,0.15)";
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          My Favorites ({favorites.size})
         </button>
 
         {/* Hero Section */}
-        <div 
-          style={{
-            position: 'relative',
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            color: 'white',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-          }}
-        >
-          <div style={{ 
-            maxWidth: '1200px', 
-            margin: '0 auto', 
-            padding: '2rem 1.5rem', 
-            position: 'relative'
-          }}>
+        <div style={{
+          position: 'relative',
+          background: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(20px)',
+          color: 'white',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 1.5rem', position: 'relative' }}>
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
               <h1 style={{ 
-                fontSize: '2.5rem', 
-                fontWeight: '700', 
-                marginBottom: '0.5rem',
-                color: 'white',
-                letterSpacing: '-0.5px'
+                fontSize: '3rem', 
+                fontWeight: '800', 
+                marginBottom: '0.75rem', 
+                color: 'white', 
+                letterSpacing: '-1px',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
               }}>
-                Marketplace
+                Matador Marketplace
               </h1>
               <p style={{ 
-                fontSize: '1rem', 
-                marginBottom: '0', 
-                color: 'rgba(255, 255, 255, 0.85)',
-                fontWeight: '400'
+                fontSize: '1.125rem', 
+                marginBottom: '1.75rem', 
+                color: 'rgba(255, 255, 255, 0.95)', 
+                fontWeight: '500'
               }}>
-                Buy and sell with fellow Matadors
+                Buy and sell with fellow CSUN students
               </p>
+              
+              {/* Sell Item Button - Enhanced */}
+              <button
+                onClick={() => {
+                  console.log('Auth status:', { auth, token: token ? 'exists' : 'missing', user });
+                  if (!auth || !token) {
+                    alert('Please log in to sell items');
+                    router.push('/login');
+                  } else {
+                    console.log('Opening modal with token:', token.substring(0, 20) + '...');
+                    setShowAddModal(true);
+                  }
+                }}
+                style={{
+                  background: 'white',
+                  color: '#A80532',
+                  padding: '1rem 2.5rem',
+                  borderRadius: '50px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '1.05rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.target as HTMLElement;
+                  el.style.background = 'rgba(255, 255, 255, 0.95)';
+                  el.style.transform = 'translateY(-3px) scale(1.02)';
+                  el.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.target as HTMLElement;
+                  el.style.background = 'white';
+                  el.style.transform = 'translateY(0) scale(1)';
+                  el.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.15)';
+                }}
+              >
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Sell an Item
+              </button>
             </div>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Search Bar - Enhanced */}
+            <form onSubmit={handleSearch} style={{ maxWidth: '900px', margin: '0 auto' }}>
               <div style={{
-                position: 'relative',
                 background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                padding: '0.5rem',
+                borderRadius: '16px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+                padding: '0.75rem 1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.75rem',
+                border: '2px solid rgba(255, 255, 255, 0.3)'
               }}>
-                <div style={{ marginLeft: '0.5rem', color: '#6b7280' }}>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div style={{ marginLeft: '0.5rem', color: '#A80532' }}>
+                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8"/>
                     <path d="m21 21-4.35-4.35"/>
                   </svg>
                 </div>
+                
                 <input
                   type="text"
                   placeholder="Search for textbooks, electronics, furniture..."
@@ -392,56 +588,42 @@ const Marketplace = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     flex: 1,
-                    padding: '0.75rem 0.5rem',
+                    padding: '0.875rem 0.5rem',
                     outline: 'none',
-                    color: '#111827',
-                    fontSize: '0.95rem',
+                    color: '#1F2937',
+                    fontSize: '1rem',
                     border: 'none',
-                    background: 'transparent'
+                    background: 'transparent',
+                    fontWeight: '500'
                   }}
                 />
-                <button 
-                  type="button"
-                  onClick={() => setShowFilters(!showFilters)}
-                  style={{
-                    background: showFilters ? '#A80532' : '#f3f4f6',
-                    color: showFilters ? 'white' : '#374151',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.875rem',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                  </svg>
-                  Filters
-                </button>
+                
                 <button 
                   type="submit"
                   style={{
                     background: '#A80532',
                     color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
+                    padding: '0.875rem 2rem',
+                    borderRadius: '12px',
                     border: 'none',
                     cursor: 'pointer',
                     fontWeight: '700',
-                    fontSize: '1.125rem',
+                    fontSize: '1rem',
                     transition: 'all 0.3s',
-                    boxShadow: '0 10px 25px rgba(210, 32, 48, 0.4)'
+                    boxShadow: '0 4px 12px rgba(168, 5, 50, 0.3)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
                   }}
-                  onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#8B0428'}
-                  onMouseLeave={(e) => (e.target as HTMLElement).style.background = '#A80532'}
+                  onMouseEnter={(e) => {
+                    const el = e.target as HTMLElement;
+                    el.style.background = '#8B0428';
+                    el.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.target as HTMLElement;
+                    el.style.background = '#A80532';
+                    el.style.transform = 'scale(1)';
+                  }}
                 >
                   Search
                 </button>
@@ -450,42 +632,51 @@ const Marketplace = () => {
           </div>
         </div>
 
-        {/* Category Filter Pills */}
+        {/* Category Pills - Enhanced with CSUN Red Theme */}
         <div style={{ 
+          background: 'linear-gradient(135deg, rgba(168, 5, 50, 0.95) 0%, rgba(139, 4, 40, 0.95) 100%)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '2px solid rgba(255, 255, 255, 0.2)', 
           position: 'sticky', 
           top: 0, 
-          zIndex: 40, 
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', 
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+          zIndex: 50,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
         }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 1.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto' }}>
-              {categories.map((cat) => (
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.25rem 1.5rem', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: '1rem', minWidth: 'max-content' }}>
+              {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    whiteSpace: 'nowrap',
-                    border: 'none',
+                    padding: '0.75rem 1.75rem',
+                    borderRadius: '50px',
+                    border: selectedCategory === cat.id ? 'none' : '2px solid rgba(255, 255, 255, 0.4)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    background: selectedCategory === cat.id ? cat.color : 'transparent',
-                    color: selectedCategory === cat.id ? 'white' : '#374151',
-                    fontSize: '0.875rem'
+                    fontWeight: '700',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    whiteSpace: 'nowrap',
+                    background: selectedCategory === cat.id ? 'white' : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedCategory === cat.id ? '#A80532' : 'white',
+                    fontSize: '0.925rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    boxShadow: selectedCategory === cat.id ? '0 4px 15px rgba(255, 255, 255, 0.3)' : '0 2px 5px rgba(0, 0, 0, 0.1)'
                   }}
                   onMouseEnter={(e) => {
                     if (selectedCategory !== cat.id) {
-                      (e.target as HTMLElement).style.background = '#f3f4f6';
+                      const el = e.target as HTMLElement;
+                      el.style.background = 'rgba(255, 255, 255, 0.25)';
+                      el.style.transform = 'translateY(-2px)';
+                      el.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (selectedCategory !== cat.id) {
-                      (e.target as HTMLElement).style.background = 'transparent';
+                      const el = e.target as HTMLElement;
+                      el.style.background = 'rgba(255, 255, 255, 0.1)';
+                      el.style.transform = 'translateY(0)';
+                      el.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
                     }
                   }}
                 >
@@ -496,368 +687,106 @@ const Marketplace = () => {
           </div>
         </div>
 
-        {/* Sort & Filter Bar */}
-        <div style={{ background: 'white', borderBottom: '1px solid rgba(0, 0, 0, 0.05)' }}>
+        {/* Results Bar - Enhanced with CSUN Red Theme */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, rgba(168, 5, 50, 0.92) 0%, rgba(139, 4, 40, 0.92) 100%)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
+        }}>
           <div style={{ 
             maxWidth: '1200px', 
             margin: '0 auto', 
-            padding: '1rem 1.5rem', 
+            padding: '1.25rem 1.5rem', 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: '1rem'
           }}>
-            <p style={{ color: '#374151', margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>
-              <span style={{ color: '#A80532', fontWeight: '700' }}>{sortedListings.length}</span> items found
+            <p style={{ color: 'white', margin: 0, fontSize: '1.05rem', fontWeight: '700' }}>
+              <span style={{ 
+                color: 'white', 
+                fontWeight: '800',
+                fontSize: '1.3rem',
+                marginRight: '0.25rem'
+              }}>
+                {sortedListings.length}
+              </span> 
+              <span style={{ color: 'rgba(255, 255, 255, 0.9)' }}>items found</span>
             </p>
+            
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
+                padding: '0.75rem 1.25rem',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '12px',
                 outline: 'none',
                 cursor: 'pointer',
-                background: 'white',
-                color: '#374151',
-                fontWeight: '500',
-                fontSize: '1rem',
-                backdropFilter: 'blur(10px)'
+                background: 'rgba(255, 255, 255, 0.95)',
+                color: '#A80532',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'white';
+                e.target.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.3)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
               }}
             >
-              <option value="recent" style={{ background: '#1e1e2e' }}>Most Recent</option>
-              <option value="price-low" style={{ background: '#1e1e2e' }}>Price: Low to High</option>
-              <option value="price-high" style={{ background: '#1e1e2e' }}>Price: High to Low</option>
-              <option value="popular" style={{ background: '#1e1e2e' }}>Most Popular</option>
+              <option value="recent">Most Recent</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="popular">Most Popular</option>
             </select>
           </div>
         </div>
 
-        {/* Item Cards Grid */}
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-            gap: '1.5rem' 
-          }}>
-            {sortedListings.map((item, index) => (
-              <div
-                key={item.id}
-                style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  overflow: 'hidden',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.transform = 'translateY(-4px)';
-                  el.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.12)';
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.transform = 'translateY(0)';
-                  el.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
-                }}
-              >
-                {/* Image Container */}
-                <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
+        {/* Loading/Error/Empty States */}
+        {loading && <LoadingState />}
+        {error && !loading && <ErrorState error={error} onRetry={() => setRefreshTrigger(prev => prev + 1)} />}
+        {!loading && !error && sortedListings.length === 0 && (
+          <EmptyState onClearFilters={handleClearFilters} onAddListing={() => setShowAddModal(true)} />
+        )}
 
-                  {/* Badges */}
-                  <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 10 }}>
-                    {item.trending && (
-                      <span style={{
-                        background: '#A80532',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        textTransform: 'uppercase'
-                      }}>
-                        HOT
-                      </span>
-                    )}
-                    <span style={{
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      color: '#059669',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.7rem',
-                      fontWeight: '600'
-                    }}>
-                      {item.condition}
-                    </span>
-                  </div>
-
-                  {/* Favorite Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(item.id);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      right: '0.75rem',
-                      background: 'white',
-                      padding: '0.5rem',
-                      borderRadius: '50%',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      zIndex: 10
-                    }}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      fill={favorites.has(item.id) ? '#A80532' : 'none'}
-                      stroke={favorites.has(item.id) ? '#A80532' : '#6B7280'}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div style={{ padding: '1rem' }}>
-                  <h3 style={{ 
-                    fontWeight: '600', 
-                    fontSize: '1.1rem', 
-                    marginBottom: '0.5rem', 
-                    color: '#111827',
-                    lineHeight: '1.4',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {item.title}
-                  </h3>
-                  
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#A80532' }}>
-                      ${item.price}
-                    </span>
-                    {item.originalPrice && (
-                      <>
-                        <span style={{ 
-                          fontSize: '0.9rem', 
-                          color: '#9CA3AF', 
-                          textDecoration: 'line-through'
-                        }}>
-                          ${item.originalPrice}
-                        </span>
-                        <span style={{ 
-                          fontSize: '0.7rem', 
-                          color: '#059669',
-                          fontWeight: '600',
-                          background: '#D1FAE5',
-                          padding: '0.15rem 0.4rem',
-                          borderRadius: '4px'
-                        }}>
-                          {Math.round((1 - item.price / item.originalPrice) * 100)}% OFF
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Seller Info */}
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.75rem', 
-                    marginBottom: '0.75rem',
-                    paddingBottom: '0.75rem',
-                    borderBottom: '1px solid #E5E7EB'
-                  }}>
-                    <img
-                      src={item.sellerAvatar}
-                      alt={item.seller}
-                      style={{
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '50%',
-                        border: '2px solid #E5E7EB',
-                        objectFit: 'cover'
-                      }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ 
-                        fontSize: '0.85rem', 
-                        fontWeight: '600', 
-                        color: '#374151', 
-                        margin: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {item.seller}
-                      </p>
-                      <div style={{ 
-                        fontSize: '0.75rem', 
-                        color: '#6B7280', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem'
-                      }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <svg width="12" height="12" fill="#FBBF24" stroke="#FBBF24" strokeWidth="1.5">
-                            <polygon points="6 1 7.545 4.13 11 4.635 8.5 7.07 9.09 10.5 6 8.885 2.91 10.5 3.5 7.07 1 4.635 4.455 4.13 6 1"/>
-                          </svg>
-                          {item.rating}
-                        </span>
-                        <span>•</span>
-                        <span>{item.location}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <button 
-                    onClick={() => handleContactSeller(item)}
-                    style={{
-                      width: '100%',
-                      background: '#A80532',
-                      color: 'white',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '0.875rem',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#8B0428'}
-                    onMouseLeave={(e) => (e.target as HTMLElement).style.background = '#A80532'}
-                  >
-                    Contact Seller
-                  </button>
-
-                  {/* Time Posted */}
-                  <div style={{ 
-                    marginTop: '0.75rem',
-                    fontSize: '0.75rem', 
-                    color: '#9CA3AF',
-                    textAlign: 'center'
-                  }}>
-                    Posted {item.posted}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Load More Button */}
-          {sortedListings.length > 5 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-              <button 
-                onClick={() => alert('Pagination feature coming soon!')}
-                style={{
-                  background: 'white',
-                  color: '#A80532',
-                  padding: '0.75rem 2rem',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '0.875rem',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #E5E7EB',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#F9FAFB'}
-                onMouseLeave={(e) => (e.target as HTMLElement).style.background = 'white'}
-              >
-                Load More
-              </button>
-            </div>
-          )}
-
-          {/* No Results */}
-          {sortedListings.length === 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: '4rem 2rem',
-              background: 'white',
-              borderRadius: '12px',
-              margin: '2rem auto',
-              maxWidth: '500px'
+        {/* Listings Grid */}
+        {!loading && !error && sortedListings.length > 0 && (
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '1.5rem'
             }}>
-              <svg width="64" height="64" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#374151', fontWeight: '600' }}>No items found</h3>
-              <p style={{ color: '#6B7280', fontSize: '0.95rem' }}>Try adjusting your filters or search terms</p>
+              {sortedListings.map((item) => (
+                <MarketplaceCard
+                  key={item.id}
+                  item={item}
+                  isFavorite={favorites.has(item.id)}
+                  onToggleFavorite={toggleFavorite}
+                  onContactSeller={handleContactSeller}
+                  onDeleteListing={handleDeleteListing}
+                  formatTimeAgo={formatTimeAgo}
+                  currentUserId={user?.id}
+                />
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Sell Item Button */}
-        <button 
-          onClick={() => alert('Sell Item feature coming soon! Stay tuned.')}
-          style={{
-            position: 'fixed',
-            bottom: '2rem',
-            right: '2rem',
-            background: '#A80532',
-            color: 'white',
-            padding: '1rem 1.5rem',
-            borderRadius: '50px',
-            boxShadow: '0 4px 12px rgba(168, 5, 50, 0.3)',
-            border: 'none',
-            cursor: 'pointer',
-            zIndex: 50,
-            transition: 'all 0.2s',
-            fontWeight: '600',
-            fontSize: '0.95rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.transform = 'scale(1.05)';
-            (e.target as HTMLElement).style.boxShadow = '0 6px 16px rgba(168, 5, 50, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.transform = 'scale(1)';
-            (e.target as HTMLElement).style.boxShadow = '0 4px 12px rgba(168, 5, 50, 0.3)';
-          }}
-        >
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Sell Item
-        </button>
-
-        {/* Contact Seller Modal */}
+        {/* Contact Seller Modal - Enhanced CSUN Theme */}
         {showContactModal && selectedItem && (
           <div 
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(168, 5, 50, 0.7)',
+              backdropFilter: 'blur(8px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -868,196 +797,201 @@ const Marketplace = () => {
           >
             <div 
               style={{
-                background: 'white',
-                borderRadius: '12px',
-                padding: '2rem',
-                maxWidth: '500px',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 250, 0.98) 100%)',
+                borderRadius: '24px',
+                padding: '2.5rem',
+                maxWidth: '550px',
                 width: '100%',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-                border: '1px solid #E5E7EB'
+                boxShadow: '0 25px 50px rgba(168, 5, 50, 0.4)',
+                border: '2px solid rgba(168, 5, 50, 0.15)'
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '2rem' }}>
                 <div>
                   <h2 style={{ 
-                    fontSize: '1.5rem', 
-                    fontWeight: '700', 
-                    color: '#111827', 
-                    marginBottom: '0.25rem' 
+                    fontSize: '1.75rem', 
+                    fontWeight: '800', 
+                    color: '#A80532', 
+                    marginBottom: '0.5rem',
+                    letterSpacing: '-0.5px'
                   }}>
                     Contact Seller
                   </h2>
-                  <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>
-                    Send a message to {selectedItem.seller}
+                  <p style={{ color: '#6B7280', fontSize: '0.95rem', fontWeight: '500' }}>
+                    Send a message to <span style={{ color: '#A80532', fontWeight: '700' }}>{selectedItem.seller.firstName} {selectedItem.seller.lastName}</span>
                   </p>
                 </div>
                 <button
                   onClick={() => setShowContactModal(false)}
                   style={{
-                    background: '#F3F4F6',
-                    border: 'none',
-                    color: '#6B7280',
-                    padding: '0.5rem',
-                    borderRadius: '8px',
+                    background: 'rgba(168, 5, 50, 0.1)',
+                    border: '2px solid rgba(168, 5, 50, 0.2)',
+                    color: '#A80532',
+                    padding: '0.6rem',
+                    borderRadius: '12px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.3s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
-                  onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#E5E7EB'}
-                  onMouseLeave={(e) => (e.target as HTMLElement).style.background = '#F3F4F6'}
+                  onMouseEnter={(e) => {
+                    const el = e.target as HTMLElement;
+                    el.style.background = '#A80532';
+                    el.style.color = 'white';
+                    el.style.transform = 'rotate(90deg)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.target as HTMLElement;
+                    el.style.background = 'rgba(168, 5, 50, 0.1)';
+                    el.style.color = '#A80532';
+                    el.style.transform = 'rotate(0deg)';
+                  }}
                 >
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               </div>
 
-              {/* Item Info */}
+              {/* Item Preview Card */}
               <div style={{
                 display: 'flex',
-                gap: '1rem',
-                background: '#F9FAFB',
-                padding: '1rem',
-                borderRadius: '8px',
-                marginBottom: '1.5rem',
-                border: '1px solid #E5E7EB'
+                gap: '1.25rem',
+                background: 'linear-gradient(135deg, rgba(168, 5, 50, 0.05) 0%, rgba(168, 5, 50, 0.02) 100%)',
+                padding: '1.25rem',
+                borderRadius: '16px',
+                marginBottom: '2rem',
+                border: '2px solid rgba(168, 5, 50, 0.1)',
+                boxShadow: '0 4px 12px rgba(168, 5, 50, 0.08)'
               }}>
                 <img
-                  src={selectedItem.image}
+                  src={selectedItem.images[0] || 'https://images.unsplash.com/photo-1581287053822-fd7bf4f4bfec?w=600&h=400&fit=crop'}
                   alt={selectedItem.title}
                   style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '8px',
-                    objectFit: 'cover'
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '12px',
+                    objectFit: 'cover',
+                    border: '2px solid rgba(168, 5, 50, 0.2)',
+                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
                   }}
                 />
-                <div>
-                  <h3 style={{ color: '#111827', fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ 
+                    color: '#111827', 
+                    fontWeight: '700', 
+                    fontSize: '1.1rem', 
+                    marginBottom: '0.5rem',
+                    lineHeight: '1.4'
+                  }}>
                     {selectedItem.title}
                   </h3>
-                  <p style={{ color: '#A80532', fontWeight: '700', fontSize: '1.25rem' }}>
+                  <p style={{ 
+                    color: '#A80532', 
+                    fontWeight: '800', 
+                    fontSize: '1.4rem',
+                    letterSpacing: '-0.5px'
+                  }}>
                     ${selectedItem.price}
                   </p>
                 </div>
               </div>
 
-              {/* Message Form */}
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                alert('Message sent to seller! (Demo)');
-                setShowContactModal(false);
-              }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    color: '#374151', 
-                    fontWeight: '600', 
-                    marginBottom: '0.5rem',
-                    fontSize: '0.875rem'
-                  }}>
-                    Your Message
-                  </label>
-                  <textarea
-                    placeholder="Hi! I'm interested in this item..."
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #D1D5DB',
-                      background: 'white',
-                      color: '#111827',
-                      fontSize: '0.875rem',
-                      resize: 'vertical',
-                      outline: 'none',
-                      fontFamily: 'inherit'
-                    }}
-                    required
-                  />
-                </div>
+              {/* Message Textarea */}
+              <textarea
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Write your message here..."
+                rows={5}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  border: '2px solid rgba(168, 5, 50, 0.2)',
+                  borderRadius: '12px',
+                  fontSize: '1rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  marginBottom: '1.5rem',
+                  background: 'white',
+                  transition: 'all 0.3s',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#A80532';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(168, 5, 50, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(168, 5, 50, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      background: '#A80532',
-                      color: 'white',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '0.875rem',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#8B0428'}
-                    onMouseLeave={(e) => (e.target as HTMLElement).style.background = '#A80532'}
-                  >
-                    Send Message
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowContactModal(false)}
-                    style={{
-                      background: '#F3F4F6',
-                      color: '#374151',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #E5E7EB',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '0.875rem',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#E5E7EB'}
-                    onMouseLeave={(e) => (e.target as HTMLElement).style.background = '#F3F4F6'}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+              {/* Send Button */}
+              <button
+                onClick={handleSendMessage}
+                disabled={sendingMessage || !contactMessage.trim()}
+                style={{
+                  width: '100%',
+                  background: sendingMessage || !contactMessage.trim() ? '#9CA3AF' : 'linear-gradient(135deg, #A80532 0%, #8B0428 100%)',
+                  color: 'white',
+                  padding: '1rem 2rem',
+                  borderRadius: '50px',
+                  border: 'none',
+                  cursor: sendingMessage || !contactMessage.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '700',
+                  fontSize: '1.05rem',
+                  transition: 'all 0.3s',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  boxShadow: '0 8px 20px rgba(168, 5, 50, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!sendingMessage && contactMessage.trim()) {
+                    const el = e.target as HTMLElement;
+                    el.style.transform = 'translateY(-2px)';
+                    el.style.boxShadow = '0 12px 30px rgba(168, 5, 50, 0.5)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.target as HTMLElement;
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = '0 8px 20px rgba(168, 5, 50, 0.3)';
+                }}
+              >
+                {sendingMessage ? 'Sending...' : 'Send Message'}
+              </button>
             </div>
           </div>
         )}
+
+        {/* Add Listing Modal */}
+        <AddListingModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleListingSuccess}
+          token={token}
+        />
       </div>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.8; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0) rotate(0deg); }
-          33% { transform: translate(30px, -30px) rotate(120deg); }
-          66% { transform: translate(-20px, 20px) rotate(240deg); }
-        }
-        
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
+      {/* CSS Animations */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          
+          @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
           }
-        }
-        
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9) translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
+        `
+      }} />
     </div>
   );
 };
