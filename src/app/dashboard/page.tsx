@@ -111,7 +111,7 @@ const { auth, user, token, loading } = useAuthorize();
     saveLayout();
   };
 
-  const addWidget = (
+  const addWidget = async (
     id: string,
     x: number,
     y: number,
@@ -137,7 +137,7 @@ const { auth, user, token, loading } = useAuthorize();
     (grid as any).el.appendChild(el);
     grid.makeWidget(el as any);
 
-    const { createRoot } = require("react-dom/client");
+    const { createRoot } = await import("react-dom/client");
     const root = createRoot(inner);
     root.render(content);
 
