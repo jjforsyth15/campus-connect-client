@@ -1,5 +1,28 @@
 "use client";
 
+/*
+ * ============================================================================
+ * NOTES for BACKEND 
+ * ============================================================================
+ *
+ * PURPOSE
+ * - Allows the current user to search for another user and start a new DM.
+ * - This component is UI-only and does NOT perform any API calls directly.
+ *
+ * CURRENT IMPLEMENTATION (FRONTEND-ONLY)
+ * - Receives users as a full list (mocked or pre-fetched by parent).
+ * - Filters users client-side by:
+ *   - username
+ *   - displayName
+ * - Excludes users in blockedUserIds.
+ * - On selection:
+ *   - Calls onPickUserAction(userId)
+ *   - Parent is responsible for:
+ *       - finding existing thread OR
+ *       - creating a new thread
+ *
+ */
+
 import * as React from "react";
 import {
   Avatar,
@@ -24,7 +47,7 @@ type Props = {
   onCloseAction: () => void;
   users: User[];
   blockedUserIds: Set<string>;
-  onPickUser: (userId: ID) => void;
+  onPickUserAction: (userId: ID) => void;
 };
 
 export default function NewMessageDialog({
@@ -32,13 +55,13 @@ export default function NewMessageDialog({
   onCloseAction,
   users,
   blockedUserIds,
-  onPickUser,
+  onPickUserAction,
 }: Props) {
   const [q, setQ] = React.useState("");
 
   React.useEffect(() => {
     if (!open) setQ("");
-  }, [open, onCloseAction]);
+  }, [open]);
 
   const filtered = React.useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -46,17 +69,14 @@ export default function NewMessageDialog({
       .filter((u) => !blockedUserIds.has(u.id))
       .filter((u) => {
         if (!query) return true;
-        return (
-          u.username.toLowerCase().includes(query) ||
-          u.displayName.toLowerCase().includes(query)
-        );
+        return u.username.toLowerCase().includes(query) || u.displayName.toLowerCase().includes(query);
       })
       .slice(0, 30);
   }, [q, users, blockedUserIds]);
 
   return (
     <Dialog open={open} onClose={onCloseAction} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontWeight: 900 }}>
+      <DialogTitle sx={{ fontWeight: 1000 }}>
         New message
         <IconButton onClick={onCloseAction} sx={{ position: "absolute", right: 10, top: 10 }}>
           <CloseIcon />
@@ -64,7 +84,7 @@ export default function NewMessageDialog({
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 800, color: "rgba(0,0,0,0.55)", mb: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 900, color: "rgba(0,0,0,0.55)", mb: 1 }}>
           To
         </Typography>
 
@@ -74,6 +94,9 @@ export default function NewMessageDialog({
           placeholder="Search username or name"
           fullWidth
           size="small"
+          InputProps={{
+            sx: { bgcolor: "rgba(0,0,0,0.04)", borderRadius: 999 },
+          }}
         />
 
         <Divider sx={{ my: 1.5 }} />
@@ -83,7 +106,7 @@ export default function NewMessageDialog({
             <ListItemButton
               key={u.id}
               onClick={() => {
-                onPickUser(u.id);
+                onPickUserAction(u.id);
                 onCloseAction();
               }}
               sx={{ borderRadius: 2 }}

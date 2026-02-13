@@ -1,5 +1,38 @@
 "use client";
 
+/*
+ * ============================================================================
+ * NOTES for BACKEND 
+ * ============================================================================
+ *
+ * PURPOSE
+ * - Renders a horizontal "notes/status" strip (like stories) using Notes + Users,
+ * - Same style as DM status bars in apps like Instagram, Snapchat, etc.
+ *
+ * INPUTS (FROM PARENT / BACKEND LAYER)
+ * - meId: the current authenticated user id (string)
+ * - users: list of users (id, displayName, avatarUrl, etc.)
+ * - notes: list of notes/status items (id, userId, text, updatedAt)
+ *
+ * CURRENT BEHAVIOR
+ * - Notes are sorted by updatedAt DESC (most recent first).
+ * - Each note shows:
+ *   - avatar (border highlights current user)
+ *   - label: "Your note" for me, otherwise first name
+ *   - note text (truncated)
+ *
+ * USER ACTIONS (PARENT HANDLES)
+ * - onClickUserAction(userId):
+ *   - if userId === meId: open "edit my note"
+ *   - else: navigate/select DM thread with that user
+ *
+ * BACKEND INTEGRATION (FUTURE)
+ * - Parent will replace mock props with server data:
+ *   - GET /api/notes (or /api/users/:id/notes feed)
+ *   - POST/PATCH /api/notes/:id (create/update my note)
+ * - NotesBar should remain unchanged; treat props as the UI contract.
+ */
+
 import * as React from "react";
 import { Avatar, Box, Typography } from "@mui/material";
 import type { Note, User, ID } from "./types";

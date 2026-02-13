@@ -14,9 +14,9 @@ const dice = (seed: string) =>
 export const users: User[] = [
   {
     id: ME_ID,
-    username: "vramgh0",
-    displayName: "Vram",
-    avatarUrl: dice("vramgh0"), 
+    username: "Student1",
+    displayName: "Student1",
+    avatarUrl: dice("Student1"),
     lastActiveAt: mins(1),
   },
   { id: "u1", username: "Mark_S", displayName: "Mark", avatarUrl: dice("Mark"), lastActiveAt: mins(47) },
@@ -28,22 +28,27 @@ export const users: User[] = [
 ];
 
 export const notes: Note[] = [
-  { id: "n_me", userId: ME_ID, text: "Grinding CampusConnect ", updatedAt: mins(12) },
+  { id: "n_me", userId: ME_ID, text: "Grinding CampusConnect", updatedAt: mins(12) },
   { id: "n1", userId: "u5", text: "Study group @ USU?", updatedAt: mins(40) },
-  { id: "n2", userId: "u6", text: "Hack night 6pm ", updatedAt: mins(90) },
+  { id: "n2", userId: "u6", text: "Hack night 6pm", updatedAt: mins(90) },
   { id: "n3", userId: "u4", text: "Anyone going gym?", updatedAt: mins(25) },
 ];
 
 export const threads: Thread[] = [
-  { id: "t1", participantIds: [ME_ID, "u1"], updatedAt: mins(47) },
+  { id: "t1", participantIds: [ME_ID, "u1"], updatedAt: mins(10) },
   { id: "t2", participantIds: [ME_ID, "u2"], updatedAt: mins(180) },
   { id: "t3", participantIds: [ME_ID, "u3"], updatedAt: mins(25), isRequest: false },
-  { id: "t_req1", participantIds: [ME_ID, "u4"], updatedAt: mins(5), isRequest: true },
+  { id: "t_req1", participantIds: [ME_ID, "u4"], updatedAt: mins(2), isRequest: true },
 ];
 
 export const messages: Message[] = [
   { id: "m1", threadId: "t1", fromUserId: "u1", text: "yo are you going to the meeting?", createdAt: mins(47) },
-  { id: "m2", threadId: "t2", fromUserId: "u2", text: "Sent an attachment.", createdAt: mins(180) },
-  { id: "m3", threadId: "t3", fromUserId: "u3", text: "Active 25m ago", createdAt: mins(25) },
   { id: "m4", threadId: "t1", fromUserId: ME_ID, text: "Got it — what’s the plan?", createdAt: mins(10), seenByUserIds: ["u1"] },
+
+  { id: "m2", threadId: "t2", fromUserId: "u2", text: "Sent an attachment.", createdAt: mins(180) },
+
+  { id: "m3", threadId: "t3", fromUserId: "u3", text: "Wanna study later?", createdAt: mins(25) },
+
+  // request thread has unread msg (to show priority)
+  { id: "m_req", threadId: "t_req1", fromUserId: "u4", text: "hey can we connect?", createdAt: mins(2) },
 ];

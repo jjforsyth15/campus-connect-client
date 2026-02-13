@@ -1,11 +1,54 @@
 "use client";
 
+/*
+ * ============================================================================
+ * NOTES for BACKEND 
+ * ============================================================================
+ *
+ * PURPOSE
+ * - This page is a fully client-side messaging UI prototype built for layout/UX.
+ * - There is currently NO backend integration, NO database reads/writes, and NO real auth.
+ *
+ * CURRENT DATA MODEL (MOCKED)
+ * - Seeds come from ./mockData.ts:
+ *   - users, threads, messages, notes, ME_ID
+ * - All updates happen in React state only:
+ *   - threads/messages/notes are kept in useState and mutated locally.
+ * - Minimal persistence:
+ *   - localStorage: "tc_gif_favs" stores favorite GIF URLs.
+ *   - Attachments use URL.createObjectURL(file) (temporary, browser-only URLs).
+ *
+ * CLIENT-ONLY CONCERNS
+ * - This is a "use client" component and intentionally avoids SSR.
+ * - Sidebar is dynamically imported with ssr:false to prevent hydration mismatches.
+ * - Time-based labels (e.g., "Active 5m ago", "2h") are rendered only after nowMs is set on mount.
+ *
+ * WHAT BACKEND WILL EVENTUALLY REPLACE
+ * - Threads:
+ *   - list threads (inbox + requests), create thread, accept request, delete thread
+ * - Messages:
+ *   - list messages for a thread, send message, mark as seen/read
+ * - Notes:
+ *   - save/update note (status text)
+ * - Moderation:
+ *   - block user, report conversation
+ * - Attachments:
+ *   - upload + store files (images/audio/docs) and return permanent URLs
+ *
+ */
+
+
 import * as React from "react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+
 import {
   Avatar,
+  Badge,
   Box,
   Button,
   Chip,
+  CssBaseline,
   Dialog,
   DialogActions,
   DialogContent,
@@ -38,134 +81,42 @@ import GifBoxIcon from "@mui/icons-material/GifBox";
 import CloseIcon from "@mui/icons-material/Close";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReportIcon from "@mui/icons-material/Report";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 import type { Attachment, ID, Message, Note, Thread, User } from "./types";
-import { ME_ID, messages as seedMessages, notes as seedNotes, threads as seedThreads, users } from "./mockData";
+import {
+  ME_ID,
+  messages as seedMessages,
+  notes as seedNotes,
+  threads as seedThreads,
+  users,
+} from "./mockData";
 
+import NotesBar from "./NotesBar";
+
+
+const DashboardSidebar = dynamic(() => import("../../components/dashboard/sidebar"), {
+  ssr: false,
+  loading: () => (
+    <Box
+      sx={{
+        width: 220,
+        flexShrink: 0,
+        height: "100vh",
+        borderRight: "1px solid rgba(0,0,0,0.08)",
+        bgcolor: "white",
+      }}
+    />
+  ),
+});
+
+const drawerWidth = 220;
 const RED = "#A80532";
 
-function NotesRow({
-    meId,
-    notes,
-    users,
-    onClickUser,
-  }: {
-    meId: ID;
-    notes: Note[];
-    users: User[];
-    onClickUser: (userId: ID) => void;
-  }) {
-    const userById = React.useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
-  
-    const sorted = React.useMemo(
-      () => [...notes].sort((a, b) => b.updatedAt - a.updatedAt),
-      [notes]
-    );
-  
-    return (
-      <Box
-        sx={{
-          px: 2,
-          py: 1.25,
-          display: "flex",
-          gap: 2,
-          overflowX: "auto",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
-          borderBottom: "1px solid rgba(0,0,0,0.06)",
-          "&::-webkit-scrollbar": { height: 6 },
-          "&::-webkit-scrollbar-thumb": { background: "rgba(0,0,0,0.15)", borderRadius: 999 },
-        }}
-      >
-        {sorted.map((n) => {
-          const u = userById.get(n.userId);
-          if (!u) return null;
-  
-          const isMe = n.userId === meId;
-  
-          return (
-            <Box
-              key={n.id}
-              onClick={() => onClickUser(n.userId)}
-              sx={{
-                minWidth: 86,
-                cursor: "pointer",
-                userSelect: "none",
-                textAlign: "center",
-              }}
-            >
-              
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  mx: "auto",
-                  borderRadius: "50%",
-                  p: "2px",
-                  background: isMe
-                    ? `linear-gradient(135deg, ${RED}, #ff3b6b, #ffb703)`
-                    : "linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.06))",
-                  animation: isMe ? "notePulse 2.4s ease-in-out infinite" : "none",
-                  "@keyframes notePulse": {
-                    "0%": { transform: "translateY(0px)" },
-                    "50%": { transform: "translateY(-2px)" },
-                    "100%": { transform: "translateY(0px)" },
-                  },
-                }}
-              >
-                <Avatar
-                  src={u.avatarUrl}
-                  alt={u.displayName}
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    bgcolor: "white",
-                    border: "2px solid white",
-                  }}
-                />
-              </Box>
-  
-              <Typography sx={{ mt: 0.75, fontSize: 12, fontWeight: 800, color: "#111" }}>
-                {isMe ? "Your note" : u.displayName.split(" ")[0]}
-              </Typography>
-  
-              <Typography sx={{ fontSize: 11, color: "rgba(0,0,0,0.55)" }} noWrap>
-                {n.text}
-              </Typography>
-            </Box>
-          );
-        })}
-      </Box>
-    );
-  }
-
-  
-/** small helper */
 function makeId(prefix = "id") {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
-}
-
-function formatAgo(ms: number) {
-  const diff = Date.now() - ms;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
-
-function activityText(lastActiveAt: number) {
-  const diffM = Math.floor((Date.now() - lastActiveAt) / 60000);
-  if (diffM <= 2) return "Active now";
-  if (diffM < 60) return `Active ${diffM}m ago`;
-  const diffH = Math.floor(diffM / 60);
-  if (diffH < 24) return `Active ${diffH}h ago`;
-  return `Active ${Math.floor(diffH / 24)}d ago`;
 }
 
 function safeJsonParse<T>(s: string | null, fallback: T): T {
@@ -177,7 +128,89 @@ function safeJsonParse<T>(s: string | null, fallback: T): T {
   }
 }
 
-/** 30+ gifs (starter pack). Swap later with Tenor/Giphy search. */
+function formatAgo(nowMs: number, createdAt: number) {
+  const diff = nowMs - createdAt;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
+
+function activityText(nowMs: number, lastActiveAt: number) {
+  const diffM = Math.floor((nowMs - lastActiveAt) / 60000);
+  if (diffM <= 2) return "Active now";
+  if (diffM < 60) return `Active ${diffM}m ago`;
+  const diffH = Math.floor(diffM / 60);
+  if (diffH < 24) return `Active ${diffH}h ago`;
+  return `Active ${Math.floor(diffH / 24)}d ago`;
+}
+
+function getLastMessage(messages: Message[], threadId: ID) {
+  const ms = messages.filter((m) => m.threadId === threadId);
+  if (!ms.length) return null;
+  return ms.sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
+function isThreadUnreadForMe(messages: Message[], threadId: ID, meId: ID) {
+  const last = getLastMessage(messages, threadId);
+  if (!last) return false;
+  if (last.fromUserId === meId) return false;
+  const seen = new Set(last.seenByUserIds ?? []);
+  return !seen.has(meId);
+}
+
+type DraftState = { text: string; files: File[]; gifs: Attachment[] };
+const emptyDraft = (): DraftState => ({ text: "", files: [], gifs: [] });
+
+function buildConversationSearchText(
+  thread: Thread,
+  meId: ID,
+  userById: Map<ID, User>,
+  messages: Message[]
+) {
+  const otherId = thread.participantIds.find((id) => id !== meId);
+  const other = otherId ? userById.get(otherId) : null;
+
+  const who = other ? `${other.displayName} @${other.username}` : "";
+
+  const ms = messages
+    .filter((m) => m.threadId === thread.id)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 25);
+
+  const text = ms.map((m) => m.text).join(" ");
+  return `${who} ${text}`.toLowerCase();
+}
+
+const scrollBarSx = {
+  "&::-webkit-scrollbar": { width: 10, height: 10 },
+  "&::-webkit-scrollbar-track": { bgcolor: "rgba(0,0,0,0.05)", borderRadius: 8 },
+  "&::-webkit-scrollbar-thumb": {
+    bgcolor: "rgba(0,0,0,0.25)",
+    borderRadius: 8,
+    "&:hover": { bgcolor: "rgba(0,0,0,0.35)" },
+  },
+} as const;
+
+const panelScrollSx = {
+  overflowY: "auto",
+  overflowX: "hidden",
+  minHeight: 0,
+  overscrollBehavior: "contain",
+  scrollbarGutter: "stable",
+  WebkitOverflowScrolling: "touch",
+  ...scrollBarSx,
+} as const;
+
+const wheelIsolationProps = {
+  onWheel: (e: React.WheelEvent) => e.stopPropagation(),
+  onTouchMove: (e: React.TouchEvent) => e.stopPropagation(),
+} as const;
+
+// GIF's
 const GIFS: { url: string; title: string }[] = [
   { url: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif", title: "wow" },
   { url: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif", title: "lets go" },
@@ -214,18 +247,15 @@ const GIFS: { url: string; title: string }[] = [
 ];
 
 export default function MessagesPage() {
-  // ----------------------------
-  // data (mock now)
-  // ----------------------------
+  const router = useRouter();
+
   const [threads, setThreads] = React.useState<Thread[]>(seedThreads);
   const [messages, setMessages] = React.useState<Message[]>(seedMessages);
   const [notes, setNotes] = React.useState<Note[]>(seedNotes);
 
-  // ----------------------------
-  // UI state
-  // ----------------------------
-  const [activeTab, setActiveTab] = React.useState<"messages" | "requests" | "notes">("messages");
+  const [activeTab, setActiveTab] = React.useState<"messages" | "requests">("messages");
   const [threadSearch, setThreadSearch] = React.useState("");
+
   const [selectedThreadId, setSelectedThreadId] = React.useState<ID | null>(() => {
     const first = seedThreads.find((t) => !t.isRequest);
     return first?.id ?? null;
@@ -234,7 +264,6 @@ export default function MessagesPage() {
   const [blockedUserIds, setBlockedUserIds] = React.useState<Set<ID>>(new Set());
   const [reportedThreadIds, setReportedThreadIds] = React.useState<Set<ID>>(new Set());
 
-  // dialogs
   const [newMsgOpen, setNewMsgOpen] = React.useState(false);
   const [noteOpen, setNoteOpen] = React.useState(false);
   const [gifOpen, setGifOpen] = React.useState(false);
@@ -250,34 +279,50 @@ export default function MessagesPage() {
     name: "",
   });
 
-  // composer
-  const [draftText, setDraftText] = React.useState("");
-  const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
-  const [pendingGifs, setPendingGifs] = React.useState<Attachment[]>([]);
-
-  // voice recording
   const [recording, setRecording] = React.useState(false);
   const recorderRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<BlobPart[]>([]);
 
-  // menus
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
 
-  // gif favorites (local)
-  const [gifFavorites, setGifFavorites] = React.useState<string[]>(() =>
-    safeJsonParse<string[]>(typeof window !== "undefined" ? localStorage.getItem("tc_gif_favs") : null, [])
-  );
-
+  
+  const [gifFavorites, setGifFavorites] = React.useState<string[]>([]);
   React.useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("tc_gif_favs", JSON.stringify(gifFavorites));
+    const v = safeJsonParse<string[]>(localStorage.getItem("tc_gif_favs"), []);
+    setGifFavorites(v);
+  }, []);
+  React.useEffect(() => {
+    // only runs client-side
+    localStorage.setItem("tc_gif_favs", JSON.stringify(gifFavorites));
   }, [gifFavorites]);
 
   const userById = React.useMemo(() => new Map(users.map((u) => [u.id, u])), []);
   const me = userById.get(ME_ID)!;
 
-  // ----------------------------
-  // derived
-  // ----------------------------
+  
+  const [nowMs, setNowMs] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    setNowMs(Date.now());
+    const id = window.setInterval(() => setNowMs(Date.now()), 30000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  React.useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
+
   const selectedThread = React.useMemo(
     () => (selectedThreadId ? threads.find((t) => t.id === selectedThreadId) ?? null : null),
     [threads, selectedThreadId]
@@ -291,9 +336,7 @@ export default function MessagesPage() {
 
   const threadMessages = React.useMemo(() => {
     if (!selectedThread) return [];
-    return messages
-      .filter((m) => m.threadId === selectedThread.id)
-      .sort((a, b) => a.createdAt - b.createdAt);
+    return messages.filter((m) => m.threadId === selectedThread.id).sort((a, b) => a.createdAt - b.createdAt);
   }, [messages, selectedThread]);
 
   const myNoteObj = React.useMemo(() => notes.find((n) => n.userId === ME_ID) ?? null, [notes]);
@@ -301,34 +344,30 @@ export default function MessagesPage() {
 
   const requestsCount = React.useMemo(() => threads.filter((t) => t.isRequest).length, [threads]);
 
-  const visibleThreads = React.useMemo(() => {
-    const q = threadSearch.trim().toLowerCase();
+  const chatScrollerRef = React.useRef<HTMLDivElement | null>(null);
+  const chatBottomRef = React.useRef<HTMLDivElement | null>(null);
 
-    return threads
-      .filter((t) => {
-        if (activeTab === "requests") return !!t.isRequest;
-        if (activeTab === "messages") return !t.isRequest;
-        return !t.isRequest;
-      })
-      .filter((t) => !reportedThreadIds.has(t.id))
-      .filter((t) => {
-        const otherId = t.participantIds.find((id) => id !== ME_ID);
-        if (!otherId) return false;
-        if (blockedUserIds.has(otherId)) return false;
+  const scrollChatToBottom = React.useCallback((behavior: ScrollBehavior) => {
+    const scroller = chatScrollerRef.current;
+    const bottom = chatBottomRef.current;
+    if (!scroller || !bottom) return;
 
-        const other = userById.get(otherId);
-        if (!other) return false;
+    const targetTop = bottom.offsetTop;
+    scroller.scrollTo({ top: targetTop, behavior });
+  }, []);
 
-        if (!q) return true;
-        return other.username.toLowerCase().includes(q) || other.displayName.toLowerCase().includes(q);
-      })
-      .sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [threads, threadSearch, activeTab, blockedUserIds, reportedThreadIds, userById]);
-
-  // mark “seen” when opening a thread
   React.useEffect(() => {
-    if (!selectedThread || !otherUser) return;
+    if (!selectedThreadId) return;
+    requestAnimationFrame(() => scrollChatToBottom("auto"));
+  }, [selectedThreadId, scrollChatToBottom]);
 
+  React.useEffect(() => {
+    if (!selectedThreadId) return;
+    requestAnimationFrame(() => scrollChatToBottom("smooth"));
+  }, [threadMessages.length, selectedThreadId, scrollChatToBottom]);
+
+  React.useEffect(() => {
+    if (!selectedThread) return;
     const last = [...threadMessages].at(-1);
     if (!last) return;
 
@@ -342,24 +381,68 @@ export default function MessagesPage() {
         })
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedThreadId]);
 
-    // BACKEND TODO:
-    // when user opens a thread, tell server "I saw the latest message"
-    // POST /threads/:id/seen
-  }, [selectedThreadId]); // only when switching threads
+  const convoSearchRef = React.useRef<HTMLInputElement | null>(null);
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isFind = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f";
+      if (!isFind) return;
+      e.preventDefault();
+      convoSearchRef.current?.focus();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
-  // ----------------------------
-  // actions
-  // ----------------------------
+  const visibleThreads = React.useMemo(() => {
+    const q = threadSearch.trim().toLowerCase();
+
+    const base = threads
+      .filter((t) => (activeTab === "requests" ? !!t.isRequest : !t.isRequest))
+      .filter((t) => !reportedThreadIds.has(t.id))
+      .filter((t) => {
+        const otherId = t.participantIds.find((id) => id !== ME_ID);
+        if (!otherId) return false;
+        if (blockedUserIds.has(otherId)) return false;
+
+        if (!q) return true;
+        const hay = buildConversationSearchText(t, ME_ID, userById, messages);
+        return hay.includes(q);
+      });
+
+    return base.sort((a, b) => {
+      const aUnread = isThreadUnreadForMe(messages, a.id, ME_ID) ? 1 : 0;
+      const bUnread = isThreadUnreadForMe(messages, b.id, ME_ID) ? 1 : 0;
+      if (aUnread !== bUnread) return bUnread - aUnread;
+      return b.updatedAt - a.updatedAt;
+    });
+  }, [threads, activeTab, reportedThreadIds, blockedUserIds, threadSearch, userById, messages]);
+
+  const [draftByThreadId, setDraftByThreadId] = React.useState<Record<ID, DraftState>>({});
+  const selectedDraft = React.useMemo(() => {
+    if (!selectedThreadId) return emptyDraft();
+    return draftByThreadId[selectedThreadId] ?? emptyDraft();
+  }, [draftByThreadId, selectedThreadId]);
+
+  function setDraftForSelected(updater: (prev: DraftState) => DraftState) {
+    if (!selectedThreadId) return;
+    setDraftByThreadId((prev) => ({
+      ...prev,
+      [selectedThreadId]: updater(prev[selectedThreadId] ?? emptyDraft()),
+    }));
+  }
+
   function addFiles(files: FileList | File[]) {
     const arr = Array.from(files);
     if (!arr.length) return;
-    setPendingFiles((prev) => [...prev, ...arr].slice(0, 12));
+    setDraftForSelected((prev) => ({ ...prev, files: [...prev.files, ...arr].slice(0, 12) }));
   }
 
   function addGif(url: string) {
     const att: Attachment = { id: makeId("gif"), type: "image", name: "GIF", url };
-    setPendingGifs((prev) => [...prev, att].slice(0, 12));
+    setDraftForSelected((prev) => ({ ...prev, gifs: [...prev.gifs, att].slice(0, 12) }));
   }
 
   function toggleGifFav(url: string) {
@@ -395,31 +478,25 @@ export default function MessagesPage() {
     setThreads((prev) => [newThread, ...prev]);
     setSelectedThreadId(newThread.id);
     setActiveTab("messages");
-
-    // BACKEND TODO:
-    // "Start chat" button should create or reuse a thread.
-    // POST /threads { participantIds: [meId, userId] }
-    // server can return an existing thread if it already exists
   }
 
   function acceptRequestThread(threadId: ID) {
-    setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, isRequest: false, updatedAt: Date.now() } : t)));
+    setThreads((prev) =>
+      prev.map((t) => (t.id === threadId ? { ...t, isRequest: false, updatedAt: Date.now() } : t))
+    );
     setActiveTab("messages");
     setSelectedThreadId(threadId);
-
-    // BACKEND TODO:
-    // when user clicks Respond on a request, flip it to normal messages
-    // POST /threads/:id/accept
   }
 
   function deleteThread(threadId: ID) {
     setThreads((prev) => prev.filter((t) => t.id !== threadId));
     setMessages((prev) => prev.filter((m) => m.threadId !== threadId));
+    setDraftByThreadId((prev) => {
+      const copy = { ...prev };
+      delete copy[threadId];
+      return copy;
+    });
     if (selectedThreadId === threadId) setSelectedThreadId(null);
-
-    // BACKEND TODO:
-    // delete the conversation for this user
-    // DELETE /threads/:id
   }
 
   function openReport() {
@@ -431,14 +508,9 @@ export default function MessagesPage() {
 
   function submitReport() {
     if (!selectedThread) return;
-
     setReportedThreadIds((prev) => new Set([...prev, selectedThread.id]));
     setSelectedThreadId(null);
     setReportOpen(false);
-
-    // BACKEND TODO:
-    // send report to server
-    // POST /report { threadId, reason, details }
   }
 
   function handleBlock() {
@@ -446,20 +518,15 @@ export default function MessagesPage() {
     setBlockedUserIds((prev) => new Set([...prev, otherUser.id]));
     setSelectedThreadId(null);
     setMenuAnchor(null);
-
-    // BACKEND TODO:
-    // block a user so they cannot message you
-    // POST /block { userId }
   }
 
   async function handleSend() {
-    if (!selectedThread || !otherUser) return;
+    if (!selectedThread || !otherUser || !selectedThreadId) return;
 
-    const text = draftText.trim();
-    if (!text && pendingFiles.length === 0 && pendingGifs.length === 0) return;
+    const text = selectedDraft.text.trim();
+    if (!text && selectedDraft.files.length === 0 && selectedDraft.gifs.length === 0) return;
 
-    // create local attachments for preview (object URLs for files)
-    const fileAttachments: Attachment[] = pendingFiles.map((f) => {
+    const fileAttachments: Attachment[] = selectedDraft.files.map((f) => {
       const url = URL.createObjectURL(f);
       const isImg = f.type.startsWith("image/");
       const isAudio = f.type.startsWith("audio/");
@@ -472,7 +539,7 @@ export default function MessagesPage() {
       };
     });
 
-    const attachments: Attachment[] = [...fileAttachments, ...pendingGifs];
+    const attachments: Attachment[] = [...fileAttachments, ...selectedDraft.gifs];
 
     const newMsg: Message = {
       id: makeId("m"),
@@ -486,15 +553,7 @@ export default function MessagesPage() {
 
     setMessages((prev) => [...prev, newMsg]);
     setThreads((prev) => prev.map((t) => (t.id === selectedThread.id ? { ...t, updatedAt: Date.now() } : t)));
-
-    setDraftText("");
-    setPendingFiles([]);
-    setPendingGifs([]);
-
-    // BACKEND TODO:
-    // 1) upload any files first, get real URLs back
-    // 2) send message with text + attachment URLs
-    // POST /threads/:id/messages { text, attachments:[...] }
+    setDraftByThreadId((prev) => ({ ...prev, [selectedThreadId]: emptyDraft() }));
   }
 
   async function startRecording() {
@@ -502,7 +561,6 @@ export default function MessagesPage() {
       if (!navigator.mediaDevices?.getUserMedia) return;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Safari fix: try mp4 first, fallback to webm
       const preferredTypes = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
       const mimeType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t));
       const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -540,9 +598,6 @@ export default function MessagesPage() {
     setRecording(false);
   }
 
-  // ----------------------------
-  // dialogs: new message
-  // ----------------------------
   const [newMsgQuery, setNewMsgQuery] = React.useState("");
   const filteredUsers = React.useMemo(() => {
     const q = newMsgQuery.trim().toLowerCase();
@@ -556,411 +611,286 @@ export default function MessagesPage() {
       .slice(0, 30);
   }, [newMsgQuery, blockedUserIds]);
 
-  // ----------------------------
-  // gifs
-  // ----------------------------
   const gifList = React.useMemo(() => {
     const q = gifQuery.trim().toLowerCase();
-    const all = GIFS;
     const favSet = new Set(gifFavorites);
 
     const favFirst = [
-      ...gifFavorites.map((u) => all.find((g) => g.url === u)).filter(Boolean) as { url: string; title: string }[],
-      ...all.filter((g) => !favSet.has(g.url)),
+      ...gifFavorites.map((u) => GIFS.find((g) => g.url === u)).filter(Boolean) as { url: string; title: string }[],
+      ...GIFS.filter((g) => !favSet.has(g.url)),
     ];
 
     if (!q) return favFirst;
     return favFirst.filter((g) => g.title.toLowerCase().includes(q) || g.url.toLowerCase().includes(q));
   }, [gifQuery, gifFavorites]);
 
-  // ----------------------------
-  // layout
-  // ----------------------------
   const showRequestActions = !!selectedThread?.isRequest;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: `linear-gradient(180deg, ${RED} 0%, #7b001c 50%, #2a0010 100%)`,
-        px: { xs: 1.5, md: 3 },
-        py: { xs: 2, md: 3 },
-      }}
-    >
-      <Paper
-        elevation={0}
+    <Box sx={{ display: "flex", bgcolor: "#fafafb", height: "100vh", overflow: "hidden" }}>
+      <CssBaseline />
+
+      <DashboardSidebar drawerWidth={drawerWidth} onLogout={() => router.push("/")} />
+
+      <Box
+        component="main"
         sx={{
-          maxWidth: 1180,
-          mx: "auto",
-          borderRadius: 4,
+          flexGrow: 1,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          p: 3,
+          height: "100vh",
           overflow: "hidden",
-          bgcolor: "white",
-          border: "1px solid rgba(0,0,0,0.10)",
-          height: { xs: "calc(100vh - 32px)", md: "calc(100vh - 48px)" },
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "380px 1fr" },
+          display: "flex",
+          minWidth: 0,
+          minHeight: 0,
         }}
       >
-        {/* LEFT */}
-        <Box sx={{ borderRight: { md: "1px solid rgba(0,0,0,0.08)" }, display: "flex", flexDirection: "column" }}>
-          
-        <Box
-        sx={{
-            px: 2,
-            py: 1.6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1,
-            overflow: "hidden",       
-        }}
-        >
-        {/* LEFT side content */}
-        <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1.2}
-            sx={{
-            flex: 1,                
-            minWidth: 0,            
-            overflow: "hidden",
-            }}
-        >
-            <Box
-        sx={{
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            p: "3px",
-            background: `linear-gradient(135deg, ${RED}, #ff3b6b, #ffb703)`,
-            boxShadow: "0 10px 24px rgba(168,5,50,0.28)",
-            flexShrink: 0,
-        }}
-        >
-        <Avatar
-            src="/ToroConnectLogoCircle.png"
-            sx={{
+        <Paper
+          elevation={0}
+          sx={{
             width: "100%",
             height: "100%",
+            minHeight: 0,
+            minWidth: 0,
+            borderRadius: 3,
+            overflow: "hidden",
             bgcolor: "white",
-            border: "2px solid white",
-            }}
-        />
-        </Box>
-
-
-            {/* Profile + username + note bubble */}
-            <Box
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                minWidth: 0,            
-                flexWrap: "wrap",     
-            }}
-            >
-            <Avatar
-                src={me.avatarUrl}
-                sx={{
-                width: 34,
-                height: 34,
-                bgcolor: "white",
-                border: "1px solid rgba(0,0,0,0.12)",
-                flexShrink: 0,
-                }}
-            />
-
-            <Typography
-                sx={{
-                fontWeight: 1000,
-                fontSize: 18,
-                letterSpacing: -0.2,
-                maxWidth: 140,         
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                }}
-            >
-                {me.username}
-            </Typography>
-
-            {/* Note bubble */}
-            <Box
-                onClick={() => setNoteOpen(true)}
-                sx={{
-                cursor: "pointer",
-                position: "relative",
-                display: "inline-flex",
-                alignItems: "center",
-                maxWidth: "100%",      
-                minWidth: 0,
-                px: 1.2,
-                py: 0.6,
-                borderRadius: 999,
-                bgcolor: "rgba(0,0,0,0.04)",
-                border: "1px solid rgba(0,0,0,0.10)",
-                animation: "tcFloat 2.6s ease-in-out infinite",
-                "@keyframes tcFloat": {
-                    "0%": { transform: "translateY(0px)" },
-                    "50%": { transform: "translateY(-2px)" },
-                    "100%": { transform: "translateY(0px)" },
-                },
-                "&:hover": { bgcolor: "rgba(0,0,0,0.06)" },
-                }}
-            >
-                {/* tail */}
-                <Box
-                sx={{
-                    position: "absolute",
-                    left: -6,
-                    bottom: 10,
-                    width: 10,
-                    height: 10,
-                    transform: "rotate(45deg)",
-                    bgcolor: "rgba(0,0,0,0.04)",
-                    borderLeft: "1px solid rgba(0,0,0,0.10)",
-                    borderBottom: "1px solid rgba(0,0,0,0.10)",
-                }}
-                />
-
-                <Typography
-                sx={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: "#111",
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: 180,        
-                }}
-                >
-                {myNote ? myNote : "Add note"}
-                </Typography>
-            </Box>
-            </Box>
-        </Stack>
-
-        {/* RIGHT side icons */}
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-            <Tooltip title="Edit note">
-            <IconButton onClick={() => setNoteOpen(true)} sx={{ borderRadius: 2 }}>
-                <EditIcon />
-            </IconButton>
-            </Tooltip>
-            <Tooltip title="New message">
-            <IconButton onClick={() => setNewMsgOpen(true)} sx={{ borderRadius: 2 }}>
-                <ChatIcon />
-            </IconButton>
-            </Tooltip>
-        </Stack>
-        </Box>
-
-
-
-          {/* Search */}
-          <Box sx={{ px: 2, pb: 1.25 }}>
-            <TextField
-              value={threadSearch}
-              onChange={(e) => setThreadSearch(e.target.value)}
-              placeholder="Search"
-              fullWidth
-              size="small"
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: "rgba(0,0,0,0.45)" }} />,
-                sx: { bgcolor: "rgba(0,0,0,0.04)", borderRadius: 999 },
-              }}
-            />
-          </Box>
-          {/* IG-style notes row */}
-            <NotesRow
-            meId={ME_ID}
-            notes={notes}
-            users={users}
-            onClickUser={(id) => {
-                if (id === ME_ID) setNoteOpen(true);      // click your note opens note editor
-                else handlePickUser(id);                 // click friend note opens chat
-            }}
-            />
-
-
-          <Divider />
-
-          {/* Tabs */}
-          <Box sx={{ px: 2, pt: 0.5 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, v) => setActiveTab(v)}
-              variant="fullWidth"
-              sx={{
-                "& .MuiTab-root": { textTransform: "none", fontWeight: 900, minHeight: 44 },
-                "& .MuiTabs-indicator": { bgcolor: RED, height: 3, borderRadius: 999 },
-              }}
-            >
-              <Tab value="messages" label="Messages" />
-              <Tab value="requests" label={`Requests (${requestsCount})`} />
-              <Tab value="notes" label="Notes" />
-            </Tabs>
-          </Box>
-
-          {/* Thread list */}
-          <Box sx={{ flex: 1, overflow: "auto" }}>
-            <List sx={{ px: 1.2, py: 1 }}>
-              {visibleThreads.map((t) => {
-                const otherId = t.participantIds.find((id) => id !== ME_ID);
-                const other = otherId ? userById.get(otherId) ?? null : null;
-                if (!other) return null;
-
-                const last = getLastMessage(messages, t.id);
-                const lastText =
-                  last?.text || (last?.attachments?.length ? "Sent an attachment" : "Say hi 👋");
-
-                const isSelected = selectedThreadId === t.id;
-                const showRequestButtons = activeTab === "requests" || !!t.isRequest;
-
-                return (
-                  <Box key={t.id} sx={{ mb: 0.7 }}>
-                    <ListItemButton
-                      selected={isSelected}
-                      onClick={() => setSelectedThreadId(t.id)}
-                      sx={{
-                        borderRadius: 2.5,
-                        "&.Mui-selected": { bgcolor: "rgba(168,5,50,0.08)" },
-                        "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
-                      }}
-                    >
-                      <Box
-                sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    p: "2px",
-                    background: "linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.06))",
-                    animation: "avatarFloat 3.1s ease-in-out infinite",
-                    "@keyframes avatarFloat": {
-                    "0%": { transform: "translateY(0px)" },
-                    "50%": { transform: "translateY(-1.5px)" },
-                    "100%": { transform: "translateY(0px)" },
-                    },
-                    flexShrink: 0,
-                }}
-                >
-                <Avatar
-                    src={other.avatarUrl}
-                    sx={{ width: "100%", height: "100%", bgcolor: "white", border: "2px solid white" }}
-                />
-                </Box>
-
-                      
-                    </ListItemButton>
-
-                    {/* Requests: Respond / Delete / Report row */}
-                    {showRequestButtons && t.isRequest && (
-                      <Stack direction="row" spacing={1} sx={{ mt: 0.8, px: 1.2 }}>
-                        <Button
-                          startIcon={<CheckCircleIcon />}
-                          onClick={() => acceptRequestThread(t.id)}
-                          variant="contained"
-                          sx={{
-                            flex: 1,
-                            bgcolor: RED,
-                            fontWeight: 900,
-                            textTransform: "none",
-                            borderRadius: 999,
-                            "&:hover": { bgcolor: "#810326" },
-                          }}
-                        >
-                          Respond
-                        </Button>
-
-                        <Button
-                          startIcon={<DeleteIcon />}
-                          onClick={() => deleteThread(t.id)}
-                          variant="outlined"
-                          sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
-                        >
-                          Delete
-                        </Button>
-
-                        <Button
-                          startIcon={<ReportIcon />}
-                          onClick={() => {
-                            setSelectedThreadId(t.id);
-                            openReport();
-                          }}
-                          variant="outlined"
-                          sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
-                        >
-                          Report
-                        </Button>
-                      </Stack>
-                    )}
-                  </Box>
-                );
-              })}
-
-              {!visibleThreads.length && (
-                <Box sx={{ p: 3, textAlign: "center" }}>
-                  <Typography sx={{ fontWeight: 900 }}>No conversations</Typography>
-                  <Typography sx={{ color: "rgba(0,0,0,0.6)" }}>
-                    Try creating a new message.
-                  </Typography>
-                  <Button
-                    onClick={() => setNewMsgOpen(true)}
-                    variant="contained"
-                    sx={{ mt: 1.5, bgcolor: RED, fontWeight: 900, borderRadius: 999, "&:hover": { bgcolor: "#810326" } }}
-                  >
-                    New message
-                  </Button>
-                </Box>
-              )}
-            </List>
-          </Box>
-        </Box>
-
-        {/* RIGHT */}
-        <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {/* header */}
+            border: "1px solid rgba(0,0,0,0.08)",
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "420px 1fr" },
+          }}
+        >
+          {/* LEFT */}
           <Box
             sx={{
-              px: 2,
-              py: 1.4,
+              borderRight: "1px solid rgba(0,0,0,0.08)",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid rgba(0,0,0,0.08)",
-              minHeight: 64,
+              flexDirection: "column",
+              minHeight: 0,
+              minWidth: 0,
+              bgcolor: "white",
             }}
           >
-            <Stack direction="row" alignItems="center" spacing={1.2}>
-              <IconButton
-                onClick={() => setSelectedThreadId(null)}
-                sx={{ display: { xs: "inline-flex", md: "none" } }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-
-              {otherUser ? (
-                <>
-                  <Avatar src={otherUser.avatarUrl} sx={{ bgcolor: "white" }} />
-                  <Box>
-                    <Typography sx={{ fontWeight: 1000, fontSize: 18 }}>{otherUser.displayName}</Typography>
-                    <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
-                      {activityText(otherUser.lastActiveAt)}
-                    </Typography>
-                  </Box>
-                </>
-              ) : (
-                <Box>
-                  <Typography sx={{ fontWeight: 1000, fontSize: 18 }}>Your messages</Typography>
-                  <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
-                    Send private messages to students.
+            <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Stack direction="row" alignItems="center" spacing={1.2} sx={{ minWidth: 0 }}>
+                <Avatar
+                  src={me.avatarUrl}
+                  sx={{ width: 34, height: 34, bgcolor: "white", border: "1px solid rgba(0,0,0,0.12)" }}
+                />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 1000, fontSize: 16 }} noWrap>
+                    {me.username}
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }} noWrap>
+                    
                   </Typography>
                 </Box>
-              )}
-            </Stack>
+              </Stack>
 
-            <Stack direction="row" alignItems="center" spacing={1}>
+              <Tooltip title="New message">
+                <IconButton onClick={() => setNewMsgOpen(true)} sx={{ borderRadius: 2 }}>
+                  <ChatIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Box sx={{ px: 2, pb: 1 }}>
+              <TextField
+                value={threadSearch}
+                onChange={(e) => setThreadSearch(e.target.value)}
+                placeholder="Search conversations"
+                fullWidth
+                size="small"
+                inputRef={convoSearchRef}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: "rgba(0,0,0,0.45)" }} />,
+                  sx: { bgcolor: "rgba(0,0,0,0.04)", borderRadius: 999 },
+                }}
+              />
+            </Box>
+
+            <NotesBar
+              meId={ME_ID}
+              notes={notes}
+              users={users}
+              onClickUserAction={(id) => {
+                if (id === ME_ID) setNoteOpen(true);
+                else handlePickUser(id);
+              }}
+            />
+
+            <Box sx={{ px: 2, pt: 0.25 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, v) => setActiveTab(v)}
+                variant="fullWidth"
+                sx={{
+                  "& .MuiTab-root": { textTransform: "none", fontWeight: 900, minHeight: 40, fontSize: 13 },
+                  "& .MuiTabs-indicator": { bgcolor: RED, height: 3, borderRadius: 999 },
+                }}
+              >
+                <Tab value="messages" label="Messages" />
+                <Tab value="requests" label={`Requests (${requestsCount})`} />
+              </Tabs>
+            </Box>
+
+            <Divider />
+
+            <Box sx={{ flex: 1, ...panelScrollSx }} {...wheelIsolationProps}>
+              <List sx={{ px: 1.2, py: 1 }}>
+                {visibleThreads.map((t) => {
+                  const otherId = t.participantIds.find((id) => id !== ME_ID);
+                  const other = otherId ? userById.get(otherId) ?? null : null;
+                  if (!other) return null;
+
+                  const last = getLastMessage(messages, t.id);
+                  const lastText = last?.text || (last?.attachments?.length ? "Sent an attachment" : "Say hi");
+
+                  const unread = isThreadUnreadForMe(messages, t.id, ME_ID);
+                  const isSelected = selectedThreadId === t.id;
+
+                  return (
+                    <Box key={t.id} sx={{ mb: 0.4 }}>
+                      <ListItemButton
+                        selected={isSelected}
+                        onClick={() => setSelectedThreadId(t.id)}
+                        sx={{
+                          borderRadius: 2.5,
+                          py: 1.0,
+                          "&.Mui-selected": { bgcolor: "rgba(0,0,0,0.06)" },
+                          "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
+                        }}
+                      >
+                        <Badge
+                          variant="dot"
+                          invisible={!unread}
+                          overlap="circular"
+                          sx={{
+                            mr: 1.5,
+                            "& .MuiBadge-badge": {
+                              bgcolor: "#1d4ed8",
+                              width: 10,
+                              height: 10,
+                              borderRadius: 999,
+                              border: "2px solid white",
+                            },
+                          }}
+                        >
+                          <Avatar src={other.avatarUrl} sx={{ width: 44, height: 44, bgcolor: "white" }} />
+                        </Badge>
+
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                            <Typography sx={{ fontWeight: unread ? 1000 : 900 }} noWrap>
+                              {other.displayName}
+                            </Typography>
+                            <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>
+                              {nowMs && last ? formatAgo(nowMs, last.createdAt) : ""}
+                            </Typography>
+                          </Stack>
+
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                            <Typography
+                              sx={{
+                                fontSize: 13,
+                                color: unread ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0.60)",
+                                fontWeight: unread ? 900 : 700,
+                              }}
+                              noWrap
+                            >
+                              {lastText}
+                            </Typography>
+
+                            <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.45)", flexShrink: 0 }}>
+                              {"-"} {nowMs ? activityText(nowMs, other.lastActiveAt) : ""}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </ListItemButton>
+
+                      {t.isRequest && activeTab === "requests" && (
+                        <Stack direction="row" spacing={1} sx={{ mt: 0.8, px: 1.2 }}>
+                          <Button
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => acceptRequestThread(t.id)}
+                            variant="contained"
+                            sx={{
+                              flex: 1,
+                              bgcolor: RED,
+                              fontWeight: 900,
+                              textTransform: "none",
+                              borderRadius: 999,
+                              "&:hover": { bgcolor: "#810326" },
+                            }}
+                          >
+                            Respond
+                          </Button>
+
+                          <Button
+                            startIcon={<DeleteIcon />}
+                            onClick={() => deleteThread(t.id)}
+                            variant="outlined"
+                            sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
+                          >
+                            Delete
+                          </Button>
+
+                          <Button
+                            startIcon={<ReportIcon />}
+                            onClick={() => {
+                              setSelectedThreadId(t.id);
+                              openReport();
+                            }}
+                            variant="outlined"
+                            sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
+                          >
+                            Report
+                          </Button>
+                        </Stack>
+                      )}
+                    </Box>
+                  );
+                })}
+              </List>
+            </Box>
+          </Box>
+
+          {/* RIGHT */}
+          <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, bgcolor: "white" }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.25,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                minHeight: 58,
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1.2}>
+                <IconButton onClick={() => setSelectedThreadId(null)} sx={{ display: { xs: "inline-flex", md: "none" } }}>
+                  <ArrowBackIcon />
+                </IconButton>
+
+                {otherUser ? (
+                  <>
+                    <Avatar src={otherUser.avatarUrl} sx={{ bgcolor: "white" }} />
+                    <Box>
+                      <Typography sx={{ fontWeight: 1000, fontSize: 16 }}>{otherUser.displayName}</Typography>
+                      <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
+                        {nowMs ? activityText(nowMs, otherUser.lastActiveAt) : ""}
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <Box>
+                    <Typography sx={{ fontWeight: 1000, fontSize: 16 }}>Your messages</Typography>
+                    <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }}>Select a conversation.</Typography>
+                  </Box>
+                )}
+              </Stack>
+
               {otherUser && (
                 <>
                   <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)}>
@@ -974,267 +904,239 @@ export default function MessagesPage() {
                   </Menu>
                 </>
               )}
-            </Stack>
-          </Box>
+            </Box>
 
-          {/* chat area (scrolls), composer stays visible */}
-          <Box
-            sx={{
-              flex: 1,
-              minHeight: 0,
-              overflow: "auto",
-              px: { xs: 1.5, md: 2.5 },
-              py: 2,
-              bgcolor: "white",
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (!selectedThread) return;
-              addFiles(e.dataTransfer.files);
-            }}
-          >
-            {!selectedThread || !otherUser ? (
-              <Box sx={{ height: "100%", display: "grid", placeItems: "center", textAlign: "center", px: 2 }}>
-                <Box>
-                  <Box
-                    sx={{
-                      width: 92,
-                      height: 92,
-                      borderRadius: "50%",
-                      border: "2px solid rgba(0,0,0,0.18)",
-                      display: "grid",
-                      placeItems: "center",
-                      mx: "auto",
-                      mb: 2,
-                    }}
-                  >
-                    <SendIcon sx={{ fontSize: 42, color: "rgba(0,0,0,0.55)" }} />
+            <Box
+              ref={chatScrollerRef}
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                minWidth: 0,
+                overflowY: "auto",
+                overflowX: "hidden",
+                overscrollBehavior: "contain",
+                scrollbarGutter: "stable",
+                WebkitOverflowScrolling: "touch",
+                px: 2.5,
+                py: 2,
+                bgcolor: "white",
+                ...scrollBarSx,
+              }}
+              {...wheelIsolationProps}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!selectedThread) return;
+                addFiles(e.dataTransfer.files);
+              }}
+            >
+              {!selectedThread || !otherUser ? (
+                <Box sx={{ height: "100%", display: "grid", placeItems: "center", textAlign: "center", px: 2 }}>
+                  <Box>
+                    <Box
+                      sx={{
+                        width: 84,
+                        height: 84,
+                        borderRadius: "50%",
+                        border: "2px solid rgba(0,0,0,0.18)",
+                        display: "grid",
+                        placeItems: "center",
+                        mx: "auto",
+                        mb: 2,
+                      }}
+                    >
+                      <SendIcon sx={{ fontSize: 38, color: "rgba(0,0,0,0.55)" }} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 1000, fontSize: 20 }}>Your messages</Typography>
+                    <Typography sx={{ color: "rgba(0,0,0,0.60)", mt: 0.7 }}>Send a message to start a chat.</Typography>
                   </Box>
-                  <Typography sx={{ fontWeight: 1000, fontSize: 22 }}>Your messages</Typography>
-                  <Typography sx={{ color: "rgba(0,0,0,0.60)", mt: 0.7 }}>
-                    Send a message to start a chat.
-                  </Typography>
                 </Box>
-              </Box>
-            ) : (
-              <Box>
-                {/* if request thread, show banner */}
-                {showRequestActions && (
-                  <Box
-                    sx={{
-                      mb: 2,
-                      p: 1.4,
-                      borderRadius: 2,
-                      bgcolor: "rgba(168,5,50,0.07)",
-                      border: "1px solid rgba(168,5,50,0.18)",
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 1000 }}>Message request</Typography>
-                    <Typography sx={{ color: "rgba(0,0,0,0.65)", fontSize: 13 }}>
-                      You can respond, delete, or report this request.
-                    </Typography>
-                    <Stack direction="row" spacing={1} sx={{ mt: 1.2 }}>
-                      <Button
-                        onClick={() => acceptRequestThread(selectedThread.id)}
-                        variant="contained"
-                        sx={{
-                          bgcolor: RED,
-                          fontWeight: 900,
-                          textTransform: "none",
-                          borderRadius: 999,
-                          "&:hover": { bgcolor: "#810326" },
-                        }}
-                      >
-                        Respond
-                      </Button>
-                      <Button
-                        onClick={() => deleteThread(selectedThread.id)}
-                        variant="outlined"
-                        sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
-                      >
-                        Delete
-                      </Button>
-                      <Button
-                        onClick={openReport}
-                        variant="outlined"
-                        sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999 }}
-                      >
-                        Report
-                      </Button>
-                    </Stack>
-                  </Box>
-                )}
-
-                <Stack spacing={1.25}>
-                  {threadMessages.map((m) => {
-                    const mine = m.fromUserId === ME_ID;
-                    return (
-                      <Box key={m.id} sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
-                        <Box
-                          sx={{
-                            maxWidth: "78%",
-                            px: 1.6,
-                            py: 1.1,
-                            borderRadius: 3,
-                            bgcolor: mine ? "rgba(168,5,50,0.10)" : "rgba(0,0,0,0.04)",
-                            border: "1px solid rgba(0,0,0,0.06)",
-                            whiteSpace: "pre-wrap",
-                            fontSize: 14,
-                          }}
-                        >
-                          {!!m.text && <Box>{m.text}</Box>}
-
-                          {!!m.attachments?.length && (
-                            <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
-                              {m.attachments.map((a) => (
-                                <Box key={a.id}>
-                                  {a.type === "image" ? (
-                                    <Box
-                                      component="img"
-                                      src={a.url}
-                                      alt={a.name}
-                                      onClick={() => setImgView({ open: true, url: a.url, name: a.name })}
-                                      sx={{
-                                        width: 220,
-                                        maxWidth: "100%",
-                                        borderRadius: 2,
-                                        border: "1px solid rgba(0,0,0,0.10)",
-                                        cursor: "zoom-in",
-                                      }}
-                                    />
-                                  ) : a.type === "audio" ? (
-                                    <audio controls src={a.url} />
-                                  ) : (
-                                    <Chip label={a.name} icon={<AttachFileIcon />} variant="outlined" sx={{ fontWeight: 800 }} />
-                                  )}
-                                </Box>
-                              ))}
-                            </Stack>
-                          )}
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </Box>
-            )}
-          </Box>
-
-          {/* sticky composer (fixes the “going down” issue) */}
-          <Box
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              borderTop: "1px solid rgba(0,0,0,0.08)",
-              px: 2,
-              py: 1.4,
-              bgcolor: "white",
-              zIndex: 5,
-            }}
-          >
-            {!!pendingFiles.length && (
-              <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
-                {pendingFiles.map((f, idx) => (
-                  <Chip
-                    key={`${f.name}-${idx}`}
-                    label={f.name}
-                    onDelete={() => setPendingFiles((p) => p.filter((_, i) => i !== idx))}
-                    sx={{ fontWeight: 800 }}
-                  />
-                ))}
-              </Stack>
-            )}
-
-            {!!pendingGifs.length && (
-              <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
-                {pendingGifs.map((g, idx) => (
-                  <Chip
-                    key={`${g.id}-${idx}`}
-                    label="GIF"
-                    onDelete={() => setPendingGifs((p) => p.filter((_, i) => i !== idx))}
-                    sx={{ fontWeight: 900 }}
-                  />
-                ))}
-              </Stack>
-            )}
-
-            <Stack direction="row" spacing={1} alignItems="center">
-              <IconButton component="label" disabled={!selectedThread} title="Attach file">
-                <AttachFileIcon />
-                <input
-                  hidden
-                  type="file"
-                  multiple
-                  accept="image/*,audio/*,application/pdf"
-                  onChange={(e) => {
-                    if (!e.target.files) return;
-                    addFiles(e.target.files);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </IconButton>
-
-              <IconButton disabled={!selectedThread} onClick={() => setGifOpen(true)} title="GIFs">
-                <GifBoxIcon />
-              </IconButton>
-
-              <TextField
-                value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
-                placeholder={selectedThread ? "Message..." : "Select a conversation to message"}
-                fullWidth
-                size="small"
-                disabled={!selectedThread}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                InputProps={{
-                  sx: {
-                    borderRadius: 999,
-                    bgcolor: "rgba(0,0,0,0.03)",
-                    "& fieldset": { borderColor: "rgba(0,0,0,0.10)" },
-                  },
-                }}
-              />
-
-              {!recording ? (
-                <IconButton onClick={startRecording} disabled={!selectedThread} title="Record voice message">
-                  <MicIcon />
-                </IconButton>
               ) : (
-                <IconButton onClick={stopRecording} title="Stop recording">
-                  <StopIcon sx={{ color: "#b91c1c" }} />
-                </IconButton>
+                <Box>
+                  {showRequestActions && (
+                    <Box
+                      sx={{
+                        mb: 2,
+                        p: 1.4,
+                        borderRadius: 2,
+                        bgcolor: "rgba(168,5,50,0.07)",
+                        border: "1px solid rgba(168,5,50,0.18)",
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 1000 }}>Message request</Typography>
+                      <Typography sx={{ color: "rgba(0,0,0,0.65)", fontSize: 13 }}>
+                        You can respond, delete, or report this request.
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Stack spacing={1.25}>
+                    {threadMessages.map((m) => {
+                      const mine = m.fromUserId === ME_ID;
+                      return (
+                        <Box key={m.id} sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                          <Box
+                            sx={{
+                              maxWidth: "78%",
+                              px: 1.6,
+                              py: 1.1,
+                              borderRadius: 3,
+                              bgcolor: mine ? "rgba(168,5,50,0.10)" : "rgba(0,0,0,0.04)",
+                              border: "1px solid rgba(0,0,0,0.06)",
+                              whiteSpace: "pre-wrap",
+                              fontSize: 14,
+                            }}
+                          >
+                            {!!m.text && <Box>{m.text}</Box>}
+
+                            {!!m.attachments?.length && (
+                              <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
+                                {m.attachments.map((a) => (
+                                  <Box key={a.id}>
+                                    {a.type === "image" ? (
+                                      <Box
+                                        component="img"
+                                        src={a.url}
+                                        alt={a.name}
+                                        onClick={() => setImgView({ open: true, url: a.url, name: a.name })}
+                                        sx={{
+                                          width: 220,
+                                          maxWidth: "100%",
+                                          borderRadius: 2,
+                                          border: "1px solid rgba(0,0,0,0.10)",
+                                          cursor: "zoom-in",
+                                        }}
+                                      />
+                                    ) : a.type === "audio" ? (
+                                      <audio controls src={a.url} />
+                                    ) : (
+                                      <Chip
+                                        label={a.name}
+                                        icon={<AttachFileIcon />}
+                                        variant="outlined"
+                                        sx={{ fontWeight: 800 }}
+                                      />
+                                    )}
+                                  </Box>
+                                ))}
+                              </Stack>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                    <Box ref={chatBottomRef} />
+                  </Stack>
+                </Box>
+              )}
+            </Box>
+
+            <Box sx={{ borderTop: "1px solid rgba(0,0,0,0.08)", px: 2, py: 1.25, bgcolor: "white" }}>
+              {!!selectedDraft.files.length && (
+                <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
+                  {selectedDraft.files.map((f, idx) => (
+                    <Chip
+                      key={`${f.name}-${idx}`}
+                      label={f.name}
+                      onDelete={() =>
+                        setDraftForSelected((prev) => ({ ...prev, files: prev.files.filter((_, i) => i !== idx) }))
+                      }
+                      sx={{ fontWeight: 800 }}
+                    />
+                  ))}
+                </Stack>
               )}
 
-              <IconButton onClick={handleSend} disabled={!selectedThread} title="Send">
-                <SendIcon sx={{ color: selectedThread ? RED : "rgba(0,0,0,0.25)" }} />
-              </IconButton>
-            </Stack>
+              {!!selectedDraft.gifs.length && (
+                <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
+                  {selectedDraft.gifs.map((g, idx) => (
+                    <Chip
+                      key={`${g.id}-${idx}`}
+                      label="GIF"
+                      onDelete={() =>
+                        setDraftForSelected((prev) => ({ ...prev, gifs: prev.gifs.filter((_, i) => i !== idx) }))
+                      }
+                      sx={{ fontWeight: 900 }}
+                    />
+                  ))}
+                </Stack>
+              )}
 
-            <Typography sx={{ mt: 0.8, fontSize: 11, color: "rgba(0,0,0,0.45)" }}>
-              Tip: drag & drop files anywhere in the chat area to attach.
-            </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <IconButton component="label" disabled={!selectedThread} title="Attach file">
+                  <AttachFileIcon />
+                  <input
+                    hidden
+                    type="file"
+                    multiple
+                    accept="image/*,audio/*,application/pdf"
+                    onChange={(e) => {
+                      if (!e.target.files) return;
+                      addFiles(e.target.files);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                </IconButton>
+
+                <IconButton disabled={!selectedThread} onClick={() => setGifOpen(true)} title="GIFs">
+                  <GifBoxIcon />
+                </IconButton>
+
+                <TextField
+                  value={selectedDraft.text}
+                  onChange={(e) => setDraftForSelected((prev) => ({ ...prev, text: e.target.value }))}
+                  placeholder={selectedThread ? "Message..." : "Select a conversation to message"}
+                  fullWidth
+                  size="small"
+                  disabled={!selectedThread}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  InputProps={{
+                    sx: {
+                      borderRadius: 999,
+                      bgcolor: "rgba(0,0,0,0.03)",
+                      "& fieldset": { borderColor: "rgba(0,0,0,0.10)" },
+                    },
+                  }}
+                />
+
+                {!recording ? (
+                  <IconButton onClick={startRecording} disabled={!selectedThread} title="Record voice message">
+                    <MicIcon />
+                  </IconButton>
+                ) : (
+                  <IconButton onClick={stopRecording} title="Stop recording">
+                    <StopIcon sx={{ color: "#b91c1c" }} />
+                  </IconButton>
+                )}
+
+                <IconButton onClick={handleSend} disabled={!selectedThread} title="Send">
+                  <SendIcon sx={{ color: selectedThread ? RED : "rgba(0,0,0,0.25)" }} />
+                </IconButton>
+              </Stack>
+
+              <Typography sx={{ mt: 0.7, fontSize: 11, color: "rgba(0,0,0,0.45)" }}>
+                Tip: drag and drop files into the chat area to attach.
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
 
-      {/* ---------------- dialogs ---------------- */}
-
-      {/* New message */}
+      {/* DIALOGS */}
       <Dialog open={newMsgOpen} onClose={() => setNewMsgOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 900 }}>
+        <DialogTitle sx={{ fontWeight: 1000 }}>
           New message
           <IconButton onClick={() => setNewMsgOpen(false)} sx={{ position: "absolute", right: 10, top: 10 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 800, color: "rgba(0,0,0,0.55)", mb: 1 }}>To</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 900, color: "rgba(0,0,0,0.55)", mb: 1 }}>To</Typography>
           <TextField
             value={newMsgQuery}
             onChange={(e) => setNewMsgQuery(e.target.value)}
@@ -1243,7 +1145,7 @@ export default function MessagesPage() {
             size="small"
           />
           <Divider sx={{ my: 1.5 }} />
-          <List sx={{ p: 0, maxHeight: 380, overflow: "auto" }}>
+          <List sx={{ p: 0, maxHeight: 380, overflowY: "auto", ...scrollBarSx }}>
             {filteredUsers.map((u) => (
               <ListItemButton
                 key={u.id}
@@ -1283,16 +1185,15 @@ export default function MessagesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Note editor */}
       <Dialog open={noteOpen} onClose={() => setNoteOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 900 }}>
-          Add a note
+        <DialogTitle sx={{ fontWeight: 1000 }}>
+          Create a note
           <IconButton onClick={() => setNoteOpen(false)} sx={{ position: "absolute", right: 10, top: 10 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 800, color: "rgba(0,0,0,0.55)", mb: 1 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 900, color: "rgba(0,0,0,0.55)", mb: 1 }}>
             Keep it short (60 chars)
           </Typography>
           <TextField
@@ -1316,27 +1217,36 @@ export default function MessagesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Image viewer */}
       <Dialog open={imgView.open} onClose={() => setImgView({ open: false, url: "", name: "" })} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>
+        <DialogTitle sx={{ fontWeight: 1000 }}>
           {imgView.name || "Image"}
-          <IconButton onClick={() => setImgView({ open: false, url: "", name: "" })} sx={{ position: "absolute", right: 10, top: 10 }}>
+          <IconButton
+            onClick={() => setImgView({ open: false, url: "", name: "" })}
+            sx={{ position: "absolute", right: 10, top: 10 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ display: "grid", placeItems: "center" }}>
-          <Box
+        {imgView.url && (
+        <Box
             component="img"
             src={imgView.url}
-            alt={imgView.name}
-            sx={{ width: "100%", maxWidth: 900, borderRadius: 2, border: "1px solid rgba(0,0,0,0.10)" }}
-          />
+            alt={imgView.name || "Image"}
+            sx={{
+            width: "100%",
+            maxWidth: 900,
+            borderRadius: 2,
+            border: "1px solid rgba(0,0,0,0.10)",
+            }}
+        />
+        )}
+
         </DialogContent>
       </Dialog>
 
-      {/* GIF picker */}
       <Dialog open={gifOpen} onClose={() => setGifOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 900 }}>
+        <DialogTitle sx={{ fontWeight: 1000 }}>
           GIFs
           <IconButton onClick={() => setGifOpen(false)} sx={{ position: "absolute", right: 10, top: 10 }}>
             <CloseIcon />
@@ -1344,46 +1254,8 @@ export default function MessagesPage() {
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1 }}>
-          <TextField
-            value={gifQuery}
-            onChange={(e) => setGifQuery(e.target.value)}
-            placeholder="Search"
-            fullWidth
-            size="small"
-          />
-
-          <Typography sx={{ mt: 1.5, mb: 1, fontWeight: 900, fontSize: 13 }}>Favorites</Typography>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
-            {!gifFavorites.length ? (
-              <Typography sx={{ color: "rgba(0,0,0,0.6)" }}>No favorites yet. Star a GIF.</Typography>
-            ) : (
-              gifFavorites.slice(0, 12).map((url) => (
-                <Box
-                  key={url}
-                  component="img"
-                  src={url}
-                  alt="gif"
-                  onClick={() => {
-                    if (!selectedThreadId) return;
-                    addGif(url);
-                    setGifOpen(false);
-                  }}
-                  sx={{
-                    width: 120,
-                    height: 80,
-                    objectFit: "cover",
-                    borderRadius: 2,
-                    border: "1px solid rgba(0,0,0,0.10)",
-                    cursor: "pointer",
-                  }}
-                />
-              ))
-            )}
-          </Box>
-
-          <Divider />
-
-          <Typography sx={{ mt: 1.5, mb: 1, fontWeight: 900, fontSize: 13 }}>Browse</Typography>
+          <TextField value={gifQuery} onChange={(e) => setGifQuery(e.target.value)} placeholder="Search" fullWidth size="small" />
+          <Divider sx={{ my: 1.5 }} />
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1.25 }}>
             {gifList.slice(0, 45).map((g) => {
               const isFav = gifFavorites.includes(g.url);
@@ -1429,10 +1301,6 @@ export default function MessagesPage() {
               );
             })}
           </Box>
-
-          <Typography sx={{ mt: 2, fontSize: 11, color: "rgba(0,0,0,0.55)" }}>
-            BACKEND NOTE: replace this list with Tenor/Giphy search later, and store favorites per user.
-          </Typography>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -1442,9 +1310,8 @@ export default function MessagesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Report dialog */}
       <Dialog open={reportOpen} onClose={() => setReportOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 900 }}>
+        <DialogTitle sx={{ fontWeight: 1000 }}>
           Report
           <IconButton onClick={() => setReportOpen(false)} sx={{ position: "absolute", right: 10, top: 10 }}>
             <CloseIcon />
@@ -1452,21 +1319,15 @@ export default function MessagesPage() {
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 900, mb: 1 }}>
-            Why are you reporting this conversation?
-          </Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 1000, mb: 1 }}>Why are you reporting this conversation?</Typography>
 
           {["Spam", "Harassment", "Hate", "Scam", "Other"].map((r) => (
             <ListItemButton
               key={r}
               onClick={() => setReportReason(r)}
-              sx={{
-                borderRadius: 2,
-                mb: 0.5,
-                bgcolor: reportReason === r ? "rgba(168,5,50,0.08)" : "transparent",
-              }}
+              sx={{ borderRadius: 2, mb: 0.5, bgcolor: reportReason === r ? "rgba(168,5,50,0.08)" : "transparent" }}
             >
-              <ListItemText primary={<Typography sx={{ fontWeight: 800 }}>{r}</Typography>} />
+              <ListItemText primary={<Typography sx={{ fontWeight: 900 }}>{r}</Typography>} />
             </ListItemButton>
           ))}
 
@@ -1480,10 +1341,6 @@ export default function MessagesPage() {
             minRows={3}
             sx={{ mt: 1 }}
           />
-
-          <Typography sx={{ mt: 1.2, fontSize: 11, color: "rgba(0,0,0,0.55)" }}>
-            BACKEND NOTE: save reason + details with the report so admins can review it.
-          </Typography>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -1509,10 +1366,3 @@ export default function MessagesPage() {
     </Box>
   );
 }
-
-function getLastMessage(messages: Message[], threadId: ID) {
-  const ms = messages.filter((m) => m.threadId === threadId);
-  if (!ms.length) return null;
-  return ms.sort((a, b) => b.createdAt - a.createdAt)[0];
-}
-

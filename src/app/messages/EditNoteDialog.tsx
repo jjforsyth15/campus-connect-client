@@ -1,5 +1,25 @@
 "use client";
 
+/*
+ * ============================================================================
+ * NOTES for BACKEND 
+ * ============================================================================
+ *
+ * PURPOSE
+ * - Allows the current user to create or update their short profile note/status.
+ * - This component is PRESENTATIONAL ONLY.
+ * - It does NOT call APIs directly.
+ *
+ * CURRENT IMPLEMENTATION (FRONTEND-ONLY)
+ * - Receives:
+ *     - initialText (string) -> current note value
+ *     - onSaveAction(text)   -> parent handles persistence
+ * - Enforces:
+ *     - max length: 60 characters
+ *     - cannot save empty (after trim)
+ * - Resets local state when dialog opens.
+ *
+ */
 import * as React from "react";
 import {
   Button,
@@ -17,30 +37,30 @@ type Props = {
   open: boolean;
   onCloseAction: () => void;
   initialText: string;
-  onSave: (text: string) => void;
+  onSaveAction: (text: string) => void;
 };
 
-export default function EditNoteDialog({ open, onCloseAction, initialText, onSave }: Props) {
+export default function EditNoteDialog({ open, onCloseAction, initialText, onSaveAction }: Props) {
   const [text, setText] = React.useState(initialText ?? "");
 
   React.useEffect(() => {
     if (open) setText(initialText ?? "");
-  }, [open, initialText, onCloseAction]);
+  }, [open, initialText]);
 
   const trimmed = text.trim();
 
   return (
     <Dialog open={open} onClose={onCloseAction} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontWeight: 900 }}>
-        Add a note
+      <DialogTitle sx={{ fontWeight: 1000 }}>
+        Create a note
         <IconButton onClick={onCloseAction} sx={{ position: "absolute", right: 10, top: 10 }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 800, color: "rgba(0,0,0,0.55)", mb: 1 }}>
-          Share a short update (up to 60 chars)
+        <Typography sx={{ fontSize: 12, fontWeight: 900, color: "rgba(0,0,0,0.55)", mb: 1 }}>
+          Keep it short (up to 60 chars)
         </Typography>
         <TextField
           value={text}
@@ -57,7 +77,7 @@ export default function EditNoteDialog({ open, onCloseAction, initialText, onSav
         </Button>
         <Button
           onClick={() => {
-            onSave(trimmed);
+            onSaveAction(trimmed);
             onCloseAction();
           }}
           disabled={!trimmed}
