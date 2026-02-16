@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-import ClubsUI from "./ClubsUI";
-import { CLUBS } from "./clubs.data";
-=======
 "use client";
 
 import { Suspense } from "react";
@@ -47,12 +43,8 @@ function ClubsContent() {
       </div>
     );
   }
->>>>>>> Stashed changes
 
   return <ClubsUI clubs={CLUBS} mode="hub" />;
-<<<<<<< Updated upstream
-}
-=======
 }
 
 export default function ClubsPage() {
@@ -62,4 +54,3 @@ export default function ClubsPage() {
     </Suspense>
   );
 }
->>>>>>> Stashed changes
