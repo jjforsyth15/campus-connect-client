@@ -43,7 +43,7 @@ export default function RecommendUI({ clubs }: { clubs: Club[] }) {
   
   const clubNameBySlug = useMemo(() => {
     const map = new Map<string, string>();
-    for (const c of clubs) map.set(c.slug, c.name);
+    for (const c of clubs) map.set(c.slug ?? c.id, c.name);
     return map;
   }, [clubs]);
 
@@ -148,7 +148,7 @@ export default function RecommendUI({ clubs }: { clubs: Club[] }) {
             </Typography>
 
             <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button component={Link} href={`/clubs/${resultSlug}`} sx={btnView}>
+              <Button component={Link} href={`/clubs?slug=${resultSlug}`} sx={btnView}>
                 View club
               </Button>
 

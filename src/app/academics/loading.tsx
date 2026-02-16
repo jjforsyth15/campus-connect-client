@@ -1,3 +1,7 @@
 export default function Loading() {
-  return null;
+  return (
+    <div style={{ padding: 24, color: "white", fontWeight: 800 }}>
+      Loading Academics…
+    </div>
+  );
 }

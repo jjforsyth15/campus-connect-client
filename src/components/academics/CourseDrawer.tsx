@@ -65,7 +65,7 @@ export default function CourseDrawer({
   noteBody: string;
   setNoteAuthor: (v: string) => void;
   setNoteTopic: (v: string) => void;
-  setNoteBodyAction: (v: string) => void;
+  setNoteBody: (v: string) => void;
   onPostNote: () => void;
 
   searchQuery: string;

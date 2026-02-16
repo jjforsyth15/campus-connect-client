@@ -50,15 +50,20 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
     "About" | "Profile" | "Members" | "Roles" | "Posts" | "Apply" | "Applications"
   >("About");
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    clubs.forEach((c) => { if (c.category) set.add(c.category); });
+    return Array.from(set).sort();
+  }, [clubs]);
+
   const filtered = useMemo(() => {
     const query = safeLower(q);
     return clubs.filter((c) => {
       const matchesQ =
         !query ||
         safeLower(c.name).includes(query) ||
-        safeLower(c.tagline).includes(query) ||
-        safeLower(c.category).includes(query);
-
+        safeLower(c.tagline ?? c.description ?? "").includes(query) ||
+        safeLower(c.category ?? "").includes(query);
       const matchesCat = cat === "All" || c.category === cat;
       return matchesQ && matchesCat;
     });
@@ -131,7 +136,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
             </Box>
 
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button component={Link} href="/clubs/recommend" sx={btnPrimary}>
+              <Button component={Link} href="/clubs?view=recommend" sx={btnPrimary}>
                 Get Recommendations →
               </Button>
             </Box>
@@ -166,11 +171,9 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
 
               <Select value={cat} onChange={(e) => setCat(String(e.target.value))} fullWidth sx={selectSx}>
                 <MenuItem value="All">All categories</MenuItem>
-                <MenuItem value="Engineering">Engineering</MenuItem>
-                <MenuItem value="Academic">Academic</MenuItem>
-                <MenuItem value="Cultural">Cultural</MenuItem>
-                <MenuItem value="Sports">Sports</MenuItem>
-                <MenuItem value="Service">Service</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
               </Select>
 
               <Button
@@ -189,9 +192,11 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
         </Box>
 
         <Box id="clubs-grid" sx={{ mt: 2, display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
-          {filtered.map((c) => (
+          {filtered.map((c) => {
+            const clubSlug = c.slug ?? c.id;
+            return (
             <Card
-              key={c.slug}
+              key={clubSlug}
               sx={{
                 textDecoration: "none",
                 borderRadius: 4,
@@ -203,15 +208,15 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 "&:hover": { transform: "translateY(-3px)", boxShadow: "0 22px 70px rgba(0,0,0,0.40)" },
               }}
             >
-              <CardActionArea component={Link} href={`/clubs/${c.slug}`} sx={{ borderRadius: 4, display: "block" }}>
+              <CardActionArea component={Link} href={`/clubs?slug=${clubSlug}`} sx={{ borderRadius: 4, display: "block" }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: MAROON }}>
-                        {c.category.toUpperCase()}
+                        {(c.category ?? "").toUpperCase()}
                       </Typography>
                       <Typography sx={{ fontSize: 26, fontWeight: 900, mt: 0.5 }}>{c.name}</Typography>
-                      <Typography sx={{ mt: 1, color: "rgba(42,0,16,0.70)" }}>{c.tagline}</Typography>
+                      <Typography sx={{ mt: 1, color: "rgba(42,0,16,0.70)" }}>{c.tagline ?? c.description ?? ""}</Typography>
                       {c.contact?.email && (
                         <Typography sx={{ mt: 0.8, color: "rgba(42,0,16,0.60)", fontSize: 14 }}>
                           {c.contact.email}
@@ -235,7 +240,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
               </CardActionArea>
 
               <Box sx={{ px: 3, pb: 3, pt: 0.5, display: "flex", gap: 1.2, flexWrap: "wrap" }}>
-                <Button sx={btnMaroon} onClick={() => router.push(`/clubs/${c.slug}`)}>
+                <Button sx={btnMaroon} onClick={() => router.push(`/clubs?slug=${clubSlug}`)}>
                   View Club
                 </Button>
                 <Button sx={btnBlack} onClick={() => alert("Join flow next (DB + roles)")}>
@@ -246,7 +251,8 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 </Button>
               </Box>
             </Card>
-          ))}
+            );
+          })}
         </Box>
       </Shell>
     );
@@ -263,13 +269,13 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: "rgba(255,255,255,0.75)" }}>
-              {club.category.toUpperCase()}
+              {(club.category ?? "").toUpperCase()}
             </Typography>
             <Typography sx={{ color: "white", fontSize: 40, fontWeight: 900, mt: 0.5 }}>
               {club.name}
             </Typography>
             <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 1, maxWidth: 760 }}>
-              {club.tagline}
+              {club.tagline ?? club.description ?? ""}
             </Typography>
 
             <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -295,11 +301,11 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
           {tab === "About" && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
               <WhiteCard title="Our story">
-                <Typography sx={{ color: "rgba(42,0,16,0.75)", lineHeight: 1.7 }}>{club.story}</Typography>
+                <Typography sx={{ color: "rgba(42,0,16,0.75)", lineHeight: 1.7 }}>{club.story ?? club.description ?? "No story added yet."}</Typography>
 
                 <Typography sx={{ mt: 3, fontWeight: 900, color: MAROON }}>Why join</Typography>
                 <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
-                  {club.whyJoin.map((w) => (
+                  {(club.whyJoin ?? []).map((w) => (
                     <Box key={w} sx={{ display: "flex", gap: 1.2, alignItems: "flex-start" }}>
                       <Typography sx={{ color: MAROON, fontWeight: 900 }}>•</Typography>
                       <Typography sx={{ color: "rgba(42,0,16,0.75)" }}>{w}</Typography>
@@ -309,9 +315,9 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
               </WhiteCard>
 
               <WhiteCard title="Contact">
-                <ContactRow label="Email" value={club.contact.email} />
-                <ContactRow label="Instagram" value={club.contact.instagram} />
-                <ContactRow label="Website" value={club.contact.website} />
+                <ContactRow label="Email" value={club.contact?.email} />
+                <ContactRow label="Instagram" value={club.contact?.instagram} />
+                <ContactRow label="Website" value={club.contact?.website} />
               </WhiteCard>
             </Box>
           )}
