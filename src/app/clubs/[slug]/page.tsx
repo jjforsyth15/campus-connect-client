@@ -1,5 +1,5 @@
-import ClubsUI from "../ClubsUI";
-import { CLUBS } from "../clubs.data";
+import ClubsUI from "@/components/clubs/ClubsUI";
+import { CLUBS } from "@/components/clubs/clubs.data";
 
 const SLUG_ALIASES: Record<string, string> = {
   "ieee-csun": "ieee",
@@ -7,14 +7,8 @@ const SLUG_ALIASES: Record<string, string> = {
   "acm-csun": "acm",
 };
 
-export default async function ClubPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug: rawSlug } = await params;
-
-
+export default function ClubPage({ params }: { params: { slug: string } }) {
+  const rawSlug = params.slug;
   const slug = SLUG_ALIASES[rawSlug] ?? rawSlug;
 
   const club = CLUBS.find((c) => c.slug === slug);

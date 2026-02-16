@@ -19,10 +19,24 @@ import {
   Typography,
 } from "@mui/material";
 
-type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
+import {
+  MAROON,
+  MAROON_DARK,
+  chipActive,
+  chipGhost,
+  chipLight,
+  btnGhost,
+  btnPrimary,
+  btnPrimaryWide,
+  btnMaroon,
+  btnBlack,
+  btnOutline,
+  inputSx,
+  selectSx,
+  safeLower,
+} from "./ClubsStates";
 
-const MAROON = "#7b001c";
-const MAROON_DARK = "#2a0010";
+type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
 
 export default function ClubsUI({ clubs, mode, club }: Props) {
   const router = useRouter();
@@ -37,13 +51,13 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
   >("About");
 
   const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
+    const query = safeLower(q);
     return clubs.filter((c) => {
       const matchesQ =
         !query ||
-        c.name.toLowerCase().includes(query) ||
-        c.tagline.toLowerCase().includes(query) ||
-        c.category.toLowerCase().includes(query);
+        safeLower(c.name).includes(query) ||
+        safeLower(c.tagline).includes(query) ||
+        safeLower(c.category).includes(query);
 
       const matchesCat = cat === "All" || c.category === cat;
       return matchesQ && matchesCat;
@@ -95,27 +109,18 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
     </Card>
   );
 
-  // ---------------- HUB ----------------
+  
   if (mode === "hub") {
     return (
       <Shell>
         <GlassPanel>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 2,
-              flexWrap: "wrap",
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
             <Box>
               <Typography sx={{ color: "white", fontSize: { xs: 36, md: 46 }, fontWeight: 900 }}>
                 Clubs Hub
               </Typography>
               <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 1, maxWidth: 700 }}>
-                Discover CSUN communities — join clubs, find events, connect with members, and build
-                your network.
+                Discover CSUN communities — join clubs, find events, connect with members, and build your network.
               </Typography>
 
               <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -135,18 +140,9 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
 
         <Box sx={{ mt: 3 }}>
           <GlassPanel>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 2,
-                flexWrap: "wrap",
-              }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
               <Box>
-                <Typography sx={{ color: "white", fontSize: 26, fontWeight: 900 }}>
-                  Find a Club
-                </Typography>
+                <Typography sx={{ color: "white", fontSize: 26, fontWeight: 900 }}>Find a Club</Typography>
                 <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 0.5 }}>
                   Search by name, category, or vibe (workshops, mentorship, etc.)
                 </Typography>
@@ -159,15 +155,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
               </Box>
             </Box>
 
-            <Box
-              sx={{
-                mt: 2.5,
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 170px" },
-                gap: 1.5,
-                alignItems: "center",
-              }}
-            >
+            <Box sx={{ mt: 2.5, display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 170px" }, gap: 1.5, alignItems: "center" }}>
               <TextField
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -187,9 +175,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
 
               <Button
                 sx={btnPrimaryWide}
-                onClick={() =>
-                  document.getElementById("clubs-grid")?.scrollIntoView({ behavior: "smooth" })
-                }
+                onClick={() => document.getElementById("clubs-grid")?.scrollIntoView({ behavior: "smooth" })}
               >
                 Browse →
               </Button>
@@ -197,27 +183,12 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
           </GlassPanel>
         </Box>
 
-        <Box
-          sx={{
-            mt: 4,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography sx={{ color: "white", fontWeight: 900, fontSize: 24 }}>Clubs</Typography>
           <Chip label={`${filtered.length} results`} sx={chipGhost} />
         </Box>
 
-        <Box
-          id="clubs-grid"
-          sx={{
-            mt: 2,
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
-            gap: 2,
-          }}
-        >
+        <Box id="clubs-grid" sx={{ mt: 2, display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
           {filtered.map((c) => (
             <Card
               key={c.slug}
@@ -229,10 +200,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
                 transition: "transform 0.18s ease, box-shadow 0.18s ease",
                 cursor: "pointer",
-                "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: "0 22px 70px rgba(0,0,0,0.40)",
-                },
+                "&:hover": { transform: "translateY(-3px)", boxShadow: "0 22px 70px rgba(0,0,0,0.40)" },
               }}
             >
               <CardActionArea component={Link} href={`/clubs/${c.slug}`} sx={{ borderRadius: 4, display: "block" }}>
@@ -270,11 +238,9 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 <Button sx={btnMaroon} onClick={() => router.push(`/clubs/${c.slug}`)}>
                   View Club
                 </Button>
-
                 <Button sx={btnBlack} onClick={() => alert("Join flow next (DB + roles)")}>
                   Join
                 </Button>
-
                 <Button sx={btnOutline} onClick={() => alert("Contact flow next")}>
                   Contact
                 </Button>
@@ -286,7 +252,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
     );
   }
 
-  // ---------------- CLUB PAGE ----------------
+  // club page 
   if (!club) return null;
 
   const tabs = ["About", "Profile", "Members", "Roles", "Posts", "Apply", "Applications"] as const;
@@ -296,14 +262,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
       <GlassPanel>
         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
           <Box>
-            <Typography
-              sx={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 2,
-                color: "rgba(255,255,255,0.75)",
-              }}
-            >
+            <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: "rgba(255,255,255,0.75)" }}>
               {club.category.toUpperCase()}
             </Typography>
             <Typography sx={{ color: "white", fontSize: 40, fontWeight: 900, mt: 0.5 }}>
@@ -324,9 +283,6 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
             <Button component={Link} href="/clubs" sx={btnGhost}>
               ← Back
             </Button>
-
-            {/* Chatbot removed */}
-
             <Button sx={btnPrimary} onClick={() => alert("Next: Join flow")}>
               Join
             </Button>
@@ -363,8 +319,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
           {tab === "Profile" && (
             <WhiteCard title="Club Profile">
               <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Profile foundation for clubs to manage their public info (bio, links, meetings). Backend + permissions
-                next.
+                Profile foundation for clubs to manage their public info (bio, links, meetings). Backend + permissions next.
               </Typography>
             </WhiteCard>
           )}
@@ -439,92 +394,3 @@ function ContactRow({ label, value }: { label: string; value?: string }) {
     </Box>
   );
 }
-
-/** SX presets */
-const chipGhost = {
-  bgcolor: "rgba(255,255,255,0.10)",
-  border: "1px solid rgba(255,255,255,0.18)",
-  color: "rgba(255,255,255,0.92)",
-  fontWeight: 700,
-};
-
-const chipActive = {
-  bgcolor: "rgba(255,255,255,0.92)",
-  color: "#7b001c",
-  fontWeight: 900,
-};
-
-const chipLight = {
-  bgcolor: "rgba(0,0,0,0.04)",
-  border: "1px solid rgba(0,0,0,0.10)",
-  fontWeight: 700,
-};
-
-const btnGhost = {
-  borderRadius: 3,
-  px: 2,
-  py: 1,
-  color: "white",
-  border: "1px solid rgba(255,255,255,0.20)",
-  bgcolor: "rgba(255,255,255,0.10)",
-  fontWeight: 800,
-  "&:hover": { bgcolor: "rgba(255,255,255,0.14)" },
-};
-
-const btnPrimary = {
-  borderRadius: 3,
-  px: 2.2,
-  py: 1,
-  bgcolor: "rgba(255,255,255,0.92)",
-  color: "#7b001c",
-  fontWeight: 900,
-  "&:hover": { bgcolor: "rgba(255,255,255,0.96)" },
-};
-
-const btnPrimaryWide = { ...btnPrimary, py: 1.35 };
-
-const btnMaroon = {
-  borderRadius: 3,
-  bgcolor: MAROON,
-  color: "white",
-  fontWeight: 900,
-  px: 2.2,
-  "&:hover": { bgcolor: "#650016" },
-};
-
-const btnBlack = {
-  borderRadius: 3,
-  bgcolor: "black",
-  color: "white",
-  fontWeight: 900,
-  px: 2.2,
-  "&:hover": { bgcolor: "rgba(0,0,0,0.85)" },
-};
-
-const btnOutline = {
-  borderRadius: 3,
-  bgcolor: "white",
-  color: MAROON_DARK,
-  fontWeight: 900,
-  px: 2.2,
-  border: "1px solid rgba(0,0,0,0.12)",
-  "&:hover": { bgcolor: "rgba(255,255,255,0.92)" },
-};
-
-const inputSx = {
-  borderRadius: 3,
-  bgcolor: "rgba(255,255,255,0.10)",
-  color: "white",
-  "& input::placeholder": { color: "rgba(255,255,255,0.55)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.18)" },
-  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.28)" },
-};
-
-const selectSx = {
-  borderRadius: 3,
-  bgcolor: "rgba(255,255,255,0.10)",
-  color: "white",
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.18)" },
-  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.28)" },
-  "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.85)" },
-};
