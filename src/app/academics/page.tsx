@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 /**
  * ============================================================================
  * ACADEMICS PAGE - CampusConnect
@@ -1076,6 +1077,14 @@ export default function AcademicsPage() {
       </Container>
     </Box>
   );
+=======
+"use client";
+
+import AcademicsView from "@/components/academics/AcademicsView";
+
+export default function AcademicsPage() {
+  return <AcademicsView />;
+>>>>>>> Stashed changes
 }
 
 /* --------------------------- */
