@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { api } from "../../../lib/axios";
-import DarkVeil from "@/components/Homepage/DarkVeil";
+import DarkVeil from "@/components/Landingpage/DarkVeil";
 import { z } from "zod";
 
 // Email validation schema

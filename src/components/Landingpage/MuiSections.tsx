@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Box, Typography, Button } from '@mui/material';
 import { motion, type MotionValue } from 'framer-motion';
 import { keyframes } from '@mui/system';
-import GlassPanel from '@/components/Homepage/GlassPanels';
+import GlassPanel from '@/components/Landingpage/GlassPanels';
 
 const crimson = Crimson_Text({
   subsets: ['latin'],
@@ -14,7 +14,7 @@ const crimson = Crimson_Text({
 
 });
 // text / generic scroll fade
-import { ScrollFadeIn } from '@/components/Homepage/ScrollAnimations';
+import { ScrollFadeIn } from '@/components/Landingpage/ScrollAnimations';
 // media components
 import {
   CsunSignParallax,
@@ -22,7 +22,7 @@ import {
   ToroHeroVideo,
   AnimatedFeatureCarousel,
   AnimatedImageStripGrid,
-} from '@/components/Homepage/MediaAnimations';
+} from '@/components/Landingpage/MediaAnimations';
 import { Crimson_Text } from 'next/font/google';
 
 const featureCards = [
@@ -593,14 +593,16 @@ export const TeamSection: React.FC = () => (
           <TeamColumn
             role="Frontend and Scrum"
             members={[
-              'Sarah - Frontend and Scrum master',
-              'Vram - Frontend',
-              'Elijah - Frontend',
+              'Sarah - Frontend Designer and Scrum master',
+              'Vram - Frontend Designer',
             ]}
           />
           <TeamColumn
             role="Full Stack"
-            members={['Joseph - Full stack development']}
+            members={[
+              'Joseph - Full stack development',
+              'Elijah - Full stack development',
+            ]}
           />
           <TeamColumn
             role="Backend"

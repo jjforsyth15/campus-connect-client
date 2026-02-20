@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../lib/axios";
-import DarkVeil from "@/components/Homepage/DarkVeil";
+import DarkVeil from "@/components/Landingpage/DarkVeil";
 import PasswordField from "@/components/authTools/ViewFilter";
 import { PublicUser } from "@/types/profile";
 import { loginSchema, LoginInput } from "@/lib/validators/auth.validators";

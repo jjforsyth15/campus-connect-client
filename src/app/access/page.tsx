@@ -1,7 +1,7 @@
 "use client";
 import React, {useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import DarkVeil from "@/components/Homepage/DarkVeil"; 
+import DarkVeil from "@/components/Landingpage/DarkVeil"; 
 import { Crimson_Text } from 'next/font/google';
 
 

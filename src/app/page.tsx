@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Box, Container } from '@mui/material';
 import { useScroll, useTransform } from 'framer-motion';
-import DarkVeil from '../components/Homepage/DarkVeil'; 
+import DarkVeil from '../components/Landingpage/DarkVeil'; 
 
 import {
   HeroSection,
@@ -14,8 +14,8 @@ import {
   FeaturesSection,
   MatadorStaircaseSection,
   TeamSection,
-} from '@/components/Homepage/MuiSections';
-import { CsunSignParallax } from '@/components/Homepage/MediaAnimations';
+} from '@/components/Landingpage/MuiSections';
+import { CsunSignParallax } from '@/components/Landingpage/MediaAnimations';
 
 export default function LandingPage() {
   const { scrollY } = useScroll();

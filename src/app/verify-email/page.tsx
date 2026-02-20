@@ -3,7 +3,7 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "../../lib/axios";
-import DarkVeil from "@/components/Homepage/DarkVeil";
+import DarkVeil from "@/components/Landingpage/DarkVeil";
 
 type Status = "verifying" | "verified" | "error";
 
