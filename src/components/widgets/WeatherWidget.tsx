@@ -87,7 +87,7 @@ export const WeatherWidget: React.FC<{ onDelete?: () => void }> = ({
       setError(null);
 
       try {
-        // 1) Get NWS gridpoint info for CSUN
+        // 1) Get NWS gridpoint info for CSUN (need to move to backend in future to avoid CORS issues and hide API )
         const pointsRes = await fetch(
           `https://api.weather.gov/points/${CSUN_COORDS.latitude},${CSUN_COORDS.longitude}`,
           {
