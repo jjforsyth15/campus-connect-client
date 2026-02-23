@@ -5,8 +5,9 @@ export const metadata = {
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
+import { CsunChatbotWidget } from "@/components/widgets/CsunChatbotWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="relative overflow-visible">
+        {children}
+        <CsunChatbotWidget />
+      </body>
     </html>
   )
 }
