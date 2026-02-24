@@ -2,13 +2,25 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Profile } from "@/app/profile/page";
 import { loadProfile } from "@/lib/load-profile";
 
-import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
-  Avatar, Stack, Button, IconButton, Typography,
+import {
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Avatar,
+  Stack,
+  Button,
+  IconButton,
+  Typography,
 } from "@mui/material";
-
 
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
@@ -37,7 +49,7 @@ const SRCIcon: React.ReactNode = (
       height: 40,
       objectFit: "contain",
       display: "block",
-      ml: -0.8, // horizontal align parameter
+      ml: -0.8,
     }}
   />
 );
@@ -45,19 +57,20 @@ const SRCIcon: React.ReactNode = (
 const navItems: { label: string; icon: React.ReactNode; href?: string }[] = [
   { label: "Home", icon: <HomeIcon />, href: "/" },
   { label: "Social", icon: <GroupsIcon />, href: "/social" },
-  { label: "Messages", icon: <MailOutlineIcon /> },
+  { label: "Messages", icon: <MailOutlineIcon />, href: "/messages" },
   { label: "Events", icon: <EventIcon />, href: "/events" },
-  { label: "Clubs", icon: <Diversity3Icon /> },
+  { label: "Clubs", icon: <Diversity3Icon />, href: "/clubs" },
   { label: "Academics", icon: <SchoolIcon />, href: "/academics" },
   { label: "Marketplace", icon: <StorefrontIcon />, href: "/marketplace" },
   { label: "SRC", icon: SRCIcon, href: "/ToroSRC" },
 ];
 
 const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => {
+  const pathname = usePathname();
+  const [profile] = React.useState<Profile>(loadProfile());
 
-  const [profile, setProfile] = React.useState<Profile>(loadProfile());
+  const name = `${profile?.first ?? ""} ${profile?.last ?? ""}`.trim();
 
-  const name = profile?.first + " " + profile?.last;
   return (
     <Drawer
       variant="permanent"
@@ -73,6 +86,9 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
           display: "flex",
           flexDirection: "column",
           position: "relative",
+          
+          zIndex: 1400,
+          pointerEvents: "auto",
         },
       }}
     >
@@ -87,9 +103,7 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
           p: 0.75,
           color: "#fff",
           bgcolor: "transparent",
-          "&:hover": {
-            bgcolor: "rgba(255,255,255,0.12)",
-          },
+          "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
         }}
       >
         <LogoutIcon />
@@ -107,9 +121,7 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
           p: 0.75,
           color: "#fff",
           bgcolor: "transparent",
-          "&:hover": {
-            bgcolor: "rgba(255,255,255,0.12)",
-          },
+          "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
         }}
       >
         <SettingsIcon />
@@ -136,46 +148,58 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mb: 1 }} />
 
       {/* Nav items */}
-        <List sx={{ px: 0, mt: 1 }}>
-        {navItems.map((item, idx) => (
+      <List sx={{ px: 0, mt: 1 }}>
+        {navItems.map((item) => {
+          const active =
+            !!item.href &&
+            (pathname === item.href || pathname.startsWith(item.href + "/"));
+
+          return (
             <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
+              <ListItemButton
                 component={item.href ? Link : "button"}
                 href={item.href as any}
+                onClick={
+                  item.href
+                    ? undefined
+                    : () => {
+                        // placeholder for non-routed items (Messages)
+                        alert("Coming soon");
+                      }
+                }
                 sx={{
-                mx: 1,             
-                borderRadius: 2,        
-                px: 2,                  
-                "&.Mui-selected": {
-                    bgcolor: "rgba(99,102,241,0.15)",
+                  mx: 1,
+                  borderRadius: 2,
+                  px: 2,
+                  "&.Mui-selected": {
+                    bgcolor: "rgba(255,255,255,0.12)",
                     color: "#fff",
-                },
-                "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.06)",
-                },
+                  },
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
                 }}
-                selected={idx === 0}
-            >
+                selected={active}
+              >
                 <ListItemIcon
-                sx={{
+                  sx={{
                     color: "inherit",
                     minWidth: 36,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                }}
+                  }}
                 >
-                {item.icon}
+                  {item.icon}
                 </ListItemIcon>
-                <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{ fontWeight: 600 }}
-                />
-            </ListItemButton>
-            </ListItem>
-        ))}
-        </List>
 
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ fontWeight: 600 }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
 
       <Box sx={{ flexGrow: 1 }} />
 
@@ -203,7 +227,7 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
         >
           <Box textAlign="left">
             <Typography variant="body2" fontWeight={700}>
-              {name}
+              {name || "Profile"}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.75 }}>
               View Profile
