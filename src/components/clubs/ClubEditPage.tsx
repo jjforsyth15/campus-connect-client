@@ -374,7 +374,7 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
 
               <div style={sectionStyle}>
                 <SectionTitle>Banner Image</SectionTitle>
-                <p style={{ color: '#777', fontSize: 12, marginBottom: 12 }}>Recommended: 1280×320px (YouTube/Twitter banner dimensions)</p>
+                <p style={{ color: '#777', fontSize: 12, marginBottom: 12 }}>Recommended: 1280×320px </p>
                 <div style={{ width: '100%', height: 140, borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid #333', marginBottom: 14 }}>
                   {form.bannerUrl && <img src={form.bannerUrl} alt="banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 </div>
