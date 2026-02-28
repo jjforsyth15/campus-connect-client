@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Club, ClubMember } from '@/components/clubs/ClubPage';
+import { Club, ClubMember } from '@/components/clubs/ClubProfilePage';
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const BackIcon = () => (

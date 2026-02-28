@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ClubEditPage from '@/components/clubs/ClubEditPage';
-import { MOCK_CLUB, MOCK_MEMBERS } from '@/components/clubs/ClubPage';
+import { MOCK_CLUB, MOCK_MEMBERS } from '@/components/clubs/ClubProfilePage';
 
 export default function Page() {
   const router = useRouter();
