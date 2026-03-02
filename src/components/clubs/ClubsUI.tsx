@@ -128,11 +128,6 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 Discover CSUN communities — join clubs, find events, connect with members, and build your network.
               </Typography>
 
-              <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Chip label="Discover" sx={chipActive} />
-                <Chip label="Featured" sx={chipGhost} />
-                <Chip label="My Clubs (soon)" sx={chipGhost} />
-              </Box>
             </Box>
 
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -153,11 +148,7 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Chip label="Filters" sx={chipGhost} />
-                <Chip label="Sort" sx={chipGhost} />
-                <Chip label="Save" sx={chipGhost} />
-              </Box>
+              
             </Box>
 
             <Box sx={{ mt: 2.5, display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 170px" }, gap: 1.5, alignItems: "center" }}>
