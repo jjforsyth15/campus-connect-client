@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Club } from "./clubs.data";
 import { CLUB_CATEGORIES } from "./clubs.data";
 import { Box, Button, Chip, Divider, TextField, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { btnGhost, btnPrimary } from "./ClubsStates";
 import FlipClubCard from "./FlipClubCard";
 import GlassPanel from "./GlassPanels";
 import AuroraBackground from "./AuroraBackground";
+import PanelImageGallery from "./PanelImageGallery";
 
 type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
 
@@ -56,17 +59,14 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ClubsUI({ clubs, mode, club }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<"discover" | "mine">("discover");
   const [search, setSearch] = useState("");
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
 
-  // BACKEND: Replace with authenticated user's club memberships.
   // Example:
-  //   const { data: rows } = await supabase
-  //     .from('club_members').select('club_id').eq('user_id', session.user.id)
-  //   const myClubIds = new Set(rows?.map(r => r.club_id))
+  // BACKEND: SELECT club_id FROM club_members WHERE user_id = :userId
   const myClubIds = useMemo(() => new Set<string>(["club-001", "club-002"]), []);
 
   function toggleCategory(cat: string) {
@@ -101,8 +101,50 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
   return (
     <AuroraBackground>
       <Box sx={{ position: "relative", minHeight: "100vh" }}>
+        {/* ── BACK BUTTON ───────────────────────────────────────────────────── */}
+        <Box sx={{ px: { xs: 3, md: 8, lg: 14 }, pt: 3, position: "relative", zIndex: 1 }}>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              color: "white",
+              bgcolor: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              borderRadius: 999,
+              px: 2.2,
+              py: 0.8,
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: 0.3,
+              textTransform: "none",
+              backdropFilter: "blur(10px)",
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: "rgba(255,255,255,0.22)",
+                borderColor: "rgba(255,255,255,0.50)",
+                transform: "translateX(-2px)",
+              },
+            }}
+          >
+            Back to Dashboard
+          </Button>
+        </Box>
+
         {/* ── HERO ──────────────────────────────────────────────────────────── */}
-        <Box sx={{ px: { xs: 3, md: 8, lg: 14 }, pt: { xs: 5, md: 7 }, pb: 3, textAlign: "center", position: "relative", zIndex: 1 }}>
+        <Box
+          sx={{
+            px: { xs: 3, md: 6, lg: 10 },
+            pt: { xs: 3, md: 4 },
+            pb: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {/* Title */}
           <Typography
             sx={{
               color: "white",
@@ -116,11 +158,25 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
           >
             Club Connect
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.60)", mt: 2, fontSize: { xs: 15, md: 18 }, maxWidth: 540, mx: "auto", fontWeight: 400 }}>
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.60)",
+              mt: 2,
+              fontSize: { xs: 15, md: 18 },
+              maxWidth: 520,
+              fontWeight: 400,
+            }}
+          >
             Discover communities, join clubs, find events, and build your network.
           </Typography>
 
-          <Box sx={{ display: "flex", gap: 1.2, mt: 3.5, justifyContent: "center" }}>
+          {/* Gallery — full width, centered below title */}
+          <Box sx={{ width: "100%", mt: 4 }}>
+            <PanelImageGallery height={420} />
+          </Box>
+
+          {/* Tabs — below gallery */}
+          <Box sx={{ display: "flex", gap: 1.2, mt: 3 }}>
             <Button onClick={() => setTab("discover")} sx={tab === "discover" ? { ...btnPrimary, px: 2.8 } : { ...btnGhost, px: 2.8 }}>
               Discover
             </Button>
@@ -147,9 +203,9 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
                     color: "white",
                     px: 1.2,
                     "& input::placeholder": { color: "rgba(255,255,255,0.45)", opacity: 1 },
-                    "& fieldset": { borderColor: "rgba(255, 255, 255, 0.89)" },
-                    "&:hover fieldset": { borderColor: "rgb(255, 255, 255)" },
-                    "&.Mui-focused fieldset": { borderColor: "rgba(220,20,40,0.70)" },
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.45)" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.95)", boxShadow: "0 0 0 3px rgba(255,255,255,0.12), 0 0 16px rgba(255,255,255,0.10)" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,1)", boxShadow: "0 0 0 3px rgba(255,255,255,0.15), 0 0 20px rgba(255,255,255,0.12)" },
                   },
                 }}
               />

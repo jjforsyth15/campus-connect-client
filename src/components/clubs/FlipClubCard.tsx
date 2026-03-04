@@ -6,16 +6,6 @@ import { Box, Button, Chip, Typography } from "@mui/material";
 import type { Club } from "./clubs.data";
 import { btnMaroon } from "./ClubsStates";
 
-/**
- * FlipClubCard
- * Front: banner + logo avatar + name + tagline + category
- * Back:  headline + blurb + chips + "View club" CTA
- *
- * BACKEND:
- *   - club.bannerUrl / club.logoUrl → Supabase Storage URLs
- *   - club.card fields → editable by leadership via ClubEditPage
- *   - club.href → computed server-side as `/clubs/${club.id}`
- */
 export default function FlipClubCard({ club }: { club: Club }) {
   const [flipped, setFlipped] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
@@ -30,7 +20,6 @@ export default function FlipClubCard({ club }: { club: Club }) {
 
   const href = club.href ?? `/clubs/${club.id}`;
 
-  // Category label background (subtle accent per category)
   const categoryColor: Record<string, string> = {
     STEM: "rgba(59,130,246,0.85)",
     Business: "rgba(16,185,129,0.85)",
@@ -39,8 +28,21 @@ export default function FlipClubCard({ club }: { club: Club }) {
     Sports: "rgba(239,68,68,0.85)",
     Literature: "rgba(139,92,246,0.85)",
     Fraternity: "rgba(20,184,166,0.85)",
+    Sorority: "rgba(244,114,182,0.85)",
   };
   const catColor = categoryColor[club.category ?? ""] ?? "rgba(100,100,100,0.75)";
+
+  const bannerGradient: Record<string, string> = {
+    STEM:        "linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)",
+    Business:    "linear-gradient(135deg,#064e3b 0%,#10b981 100%)",
+    Arts:        "linear-gradient(135deg,#831843 0%,#ec4899 100%)",
+    Cultural:    "linear-gradient(135deg,#78350f 0%,#f59e0b 100%)",
+    Sports:      "linear-gradient(135deg,#7f1d1d 0%,#ef4444 100%)",
+    Literature:  "linear-gradient(135deg,#4c1d95 0%,#8b5cf6 100%)",
+    Fraternity:  "linear-gradient(135deg,#134e4a 0%,#14b8a6 100%)",
+    Sorority:    "linear-gradient(135deg,#831843 0%,#f472b6 100%)",
+  };
+  const fallbackBanner = bannerGradient[club.category ?? ""] ?? "linear-gradient(135deg,#b4002e 0%,#7a0018 100%)";
 
   return (
     <Box
@@ -69,7 +71,6 @@ export default function FlipClubCard({ club }: { club: Club }) {
             : "0 10px 35px rgba(0,0,0,0.35)",
         }}
       >
-        {/* ── FRONT ─────────────────────────────────────────────────────────── */}
         <Box
           sx={{
             position: "absolute",
@@ -85,10 +86,9 @@ export default function FlipClubCard({ club }: { club: Club }) {
           <Box
             sx={{
               height: 120,
-              backgroundImage: club.bannerUrl ? `url(${club.bannerUrl})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              bgcolor: club.bannerUrl ? undefined : "rgba(180,0,46,0.3)",
+              ...(club.bannerUrl
+                ? { backgroundImage: `url(${club.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                : { background: fallbackBanner }),
               position: "relative",
               filter: "saturate(110%) contrast(105%)",
             }}
@@ -137,7 +137,7 @@ export default function FlipClubCard({ club }: { club: Club }) {
             </Box>
           </Box>
 
-          {/* Avatar — raised z-index so it always sits above banner */}
+          {/* Avatar */}
           <Box
             sx={{
               position: "absolute",
@@ -149,7 +149,7 @@ export default function FlipClubCard({ club }: { club: Club }) {
               border: "3px solid white",
               boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
               overflow: "hidden",
-              bgcolor: "rgba(160,20,28,0.85)",
+              bgcolor: catColor,
               display: "grid",
               placeItems: "center",
               zIndex: 10,
@@ -161,9 +161,10 @@ export default function FlipClubCard({ club }: { club: Club }) {
                 src={club.logoUrl}
                 alt={`${club.name} logo`}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             ) : (
-              <Typography sx={{ color: "white", fontWeight: 900, fontSize: 18 }}>
+              <Typography sx={{ color: "white", fontWeight: 900, fontSize: 18, lineHeight: 1, userSelect: "none" }}>
                 {initials}
               </Typography>
             )}
@@ -201,7 +202,6 @@ export default function FlipClubCard({ club }: { club: Club }) {
           </Box>
         </Box>
 
-        {/* ── BACK ──────────────────────────────────────────────────────────── */}
         <Box
           sx={{
             position: "absolute",

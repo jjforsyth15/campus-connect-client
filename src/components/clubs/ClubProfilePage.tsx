@@ -1,46 +1,25 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ClubProfilePage — individual club page (/clubs/[id])
-// ═══════════════════════════════════════════════════════════════════════════════
-//
-// 🔄 TO SWITCH TO SUPABASE — find each "BACKEND:" comment and replace the mock
-//    data lookup with the corresponding Supabase query.
-//
-// Posting: Any club member can post (enforced by Supabase RLS on club_posts).
-// Editing: Only leadership roles (President, VP, Officer) can edit club info
-//          (enforced by Supabase RLS + checked in ClubEditPage).
-//
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import React, { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import ClubEditPage from '@/components/clubs/ClubEditPage';
 import type { ClubDetail, ClubMember, ClubPost, ClubEvent } from './clubs.data';
 
-// BACKEND: Replace these mock imports with Supabase queries (see each usage below)
-import {
-  MOCK_CLUB_DETAILS,
-  MOCK_MEMBERS,
-  MOCK_POSTS,
-  MOCK_EVENTS,
-} from './mockData';
+// BACKEND: Replace with Supabase queries — see each usage below
+import { MOCK_CLUB_DETAILS, MOCK_MEMBERS, MOCK_POSTS, MOCK_EVENTS } from './mockData';
 
-// Re-export types for convenience (ClubEditPage imports from here)
 export type { ClubDetail as Club, ClubMember, ClubPost, ClubEvent };
 
-// ─── BACKGROUND COLOR PRESETS ─────────────────────────────────────────────────
-// BACKEND: Store in user_preferences table or localStorage per user+club combo
+// BACKEND: Persist bg_color in Supabase user_preferences: { user_id, club_id, bg_color }
 const BG_PRESETS = [
-  { label: 'Midnight',  value: '#0d0d0d', swatch: 'linear-gradient(135deg,#0d0d0d,#1a1a1a)' },
-  { label: 'Obsidian',  value: '#111827', swatch: 'linear-gradient(135deg,#111827,#1f2937)' },
-  { label: 'Crimson',   value: '#12000a', swatch: 'linear-gradient(135deg,#12000a,#2a0018)' },
-  { label: 'Navy',      value: '#050d1a', swatch: 'linear-gradient(135deg,#050d1a,#0a1f3e)' },
-  { label: 'Forest',    value: '#030f08', swatch: 'linear-gradient(135deg,#030f08,#071a10)' },
-  { label: 'Slate',     value: '#0c0e12', swatch: 'linear-gradient(135deg,#0c0e12,#1c2030)' },
+  { label: 'Midnight', value: '#0d0d0d', swatch: 'linear-gradient(135deg,#0d0d0d,#1a1a1a)' },
+  { label: 'Obsidian', value: '#111827', swatch: 'linear-gradient(135deg,#111827,#1f2937)' },
+  { label: 'Crimson',  value: '#12000a', swatch: 'linear-gradient(135deg,#12000a,#2a0018)' },
+  { label: 'Navy',     value: '#050d1a', swatch: 'linear-gradient(135deg,#050d1a,#0a1f3e)' },
+  { label: 'Forest',   value: '#030f08', swatch: 'linear-gradient(135deg,#030f08,#071a10)' },
+  { label: 'Slate',    value: '#0c0e12', swatch: 'linear-gradient(135deg,#0c0e12,#1c2030)' },
 ];
 
-// ─── UTILITIES ────────────────────────────────────────────────────────────────
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -56,24 +35,22 @@ const timeAgo = (iso: string) => {
 const roleColor = (role: ClubMember['role']) => {
   switch (role) {
     case 'President': return '#FFD700';
-    case 'VP': return '#C0C0C0';
-    case 'Officer': return '#D22030';
-    default: return '#6b7280';
+    case 'VP':        return '#C0C0C0';
+    case 'Officer':   return '#D22030';
+    default:          return '#6b7280';
   }
 };
 
-// ─── ICONS ────────────────────────────────────────────────────────────────────
-const FeedIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
-const EventIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-const ApplyIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+const FeedIcon    = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+const EventIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const ApplyIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
 const DiscordIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>;
 const MembersIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const HeartIcon = ({ filled }: { filled: boolean }) => <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#D22030' : 'none'} stroke={filled ? '#D22030' : 'currentColor'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
-const CloseIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const EditIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const HeartIcon   = ({ filled }: { filled: boolean }) => <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#D22030' : 'none'} stroke={filled ? '#D22030' : 'currentColor'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+const CloseIcon   = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const EditIcon    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const PaletteIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.1 0 2-.9 2-2v-1.5c0-.55.45-1 1-1h1.5c2.49 0 4.5-2.01 4.5-4.5C21 6.96 17.02 2 12 2z"/><circle cx="6.5" cy="11.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="17.5" cy="11.5" r="1.5" fill="currentColor" stroke="none"/></svg>;
 
-// ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
@@ -89,12 +66,12 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
   );
 }
 
-// ─── INTRO MODAL ─────────────────────────────────────────────────────────────
 function IntroModal({ club, open, onClose }: { club: ClubDetail; open: boolean; onClose: () => void }) {
   return (
     <Modal open={open} onClose={onClose}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', margin: '0 auto 16px', border: `3px solid ${club.accentColor}`, background: '#222' }}>
+          {/* BACKEND: Supabase Storage — clubs.logo_url */}
           {club.logoUrl && <img src={club.logoUrl} alt={club.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         </div>
         <h2 style={{ color: '#fff', fontFamily: "'Georgia', serif", fontSize: 22, marginBottom: 6 }}>{club.name}</h2>
@@ -113,7 +90,6 @@ function IntroModal({ club, open, onClose }: { club: ClubDetail; open: boolean; 
   );
 }
 
-// ─── MEMBERS MODAL ────────────────────────────────────────────────────────────
 function MembersModal({ open, onClose, members }: { open: boolean; onClose: () => void; members: ClubMember[] }) {
   const [search, setSearch] = useState('');
   const filtered = members.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
@@ -125,6 +101,7 @@ function MembersModal({ open, onClose, members }: { open: boolean; onClose: () =
         {filtered.map(m => (
           <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#252525', borderRadius: 10, border: '1px solid #333' }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+              {/* BACKEND: Supabase Storage — club_members.avatar_url */}
               {m.avatar ? <img src={m.avatar} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>{m.name[0]}</div>}
             </div>
@@ -140,7 +117,6 @@ function MembersModal({ open, onClose, members }: { open: boolean; onClose: () =
   );
 }
 
-// ─── BG COLOR PICKER MODAL ────────────────────────────────────────────────────
 function BgPickerModal({ open, onClose, current, onChange }: { open: boolean; onClose: () => void; current: string; onChange: (v: string) => void }) {
   return (
     <Modal open={open} onClose={onClose} title="Page Background">
@@ -168,14 +144,13 @@ function BgPickerModal({ open, onClose, current, onChange }: { open: boolean; on
   );
 }
 
-// ─── SOCIAL FEED ─────────────────────────────────────────────────────────────
 function SocialFeed({ posts, accentColor }: { posts: ClubPost[]; accentColor: string }) {
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   const toggleLike = (id: string) => {
-    // BACKEND: POST /api/clubs/:clubId/posts/:postId/like — toggle like for current user
+    // BACKEND: POST /api/clubs/:clubId/posts/:postId/like
     setLocalPosts(p => p.map(post => post.id === id ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 } : post));
   };
 
@@ -193,6 +168,7 @@ function SocialFeed({ posts, accentColor }: { posts: ClubPost[]; accentColor: st
         <div key={post.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#333' }}>
+              {/* BACKEND: Supabase Storage — users.avatar_url */}
               {post.authorAvatar && <img src={post.authorAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
             </div>
             <div>
@@ -231,11 +207,10 @@ function SocialFeed({ posts, accentColor }: { posts: ClubPost[]; accentColor: st
   );
 }
 
-// ─── EVENTS TAB ───────────────────────────────────────────────────────────────
 function EventsTab({ events, accentColor }: { events: ClubEvent[]; accentColor: string }) {
   const [localEvents, setLocalEvents] = useState(events);
   const toggleRsvp = (id: string) => {
-    // BACKEND: POST /api/clubs/:clubId/events/:eventId/rsvp — toggle RSVP for current user
+    // BACKEND: POST /api/clubs/:clubId/events/:eventId/rsvp
     setLocalEvents(e => e.map(ev => ev.id === id ? { ...ev, rsvped: !ev.rsvped, rsvpCount: ev.rsvped ? ev.rsvpCount - 1 : ev.rsvpCount + 1 } : ev));
   };
   return (
@@ -263,7 +238,6 @@ function EventsTab({ events, accentColor }: { events: ClubEvent[]; accentColor: 
   );
 }
 
-// ─── APPLICATION TAB ──────────────────────────────────────────────────────────
 function ApplicationTab({ club }: { club: ClubDetail }) {
   const [form, setForm] = useState({ name: '', email: '', major: '', year: '', why: '', experience: '' });
   const [submitted, setSubmitted] = useState(false);
@@ -281,8 +255,7 @@ function ApplicationTab({ club }: { club: ClubDetail }) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    // BACKEND: POST /api/clubs/:clubId/applications — body: form data
-    // Supabase: supabase.from('club_applications').insert({ club_id: club.id, ...form })
+    // BACKEND: supabase.from('club_applications').insert({ club_id: club.id, ...form })
     setSubmitted(true);
   };
 
@@ -347,23 +320,21 @@ function ApplicationTab({ club }: { club: ClubDetail }) {
   );
 }
 
-// ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
 export default function ClubPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const clubId = params?.id ?? 'club-001';
 
-  // BACKEND: const { data: clubData } = await supabase.from('clubs').select('*').eq('id', clubId).single()
-  const [club, setClub] = useState<ClubDetail>(
-    MOCK_CLUB_DETAILS[clubId] ?? MOCK_CLUB_DETAILS['club-001']
-  );
+  // BACKEND: supabase.from('clubs').select('*').eq('id', clubId).single()
+  const [club, setClub] = useState<ClubDetail>(MOCK_CLUB_DETAILS[clubId] ?? MOCK_CLUB_DETAILS['club-001']);
 
-  // BACKEND: const { data: members } = await supabase.from('club_members').select('*').eq('club_id', clubId).order('role')
+  // BACKEND: supabase.from('club_members').select('*').eq('club_id', clubId).order('role')
   const members = MOCK_MEMBERS[clubId] ?? [];
 
-  // BACKEND: const { data: posts } = await supabase.from('club_posts').select('*').eq('club_id', clubId).order('created_at', { ascending: false })
+  // BACKEND: supabase.from('club_posts').select('*').eq('club_id', clubId).order('created_at', { ascending: false })
   const posts = MOCK_POSTS[clubId] ?? [];
 
-  // BACKEND: const { data: events } = await supabase.from('club_events').select('*').eq('club_id', clubId).order('date')
+  // BACKEND: supabase.from('club_events').select('*').eq('club_id', clubId).order('date')
   const events = MOCK_EVENTS[clubId] ?? [];
 
   const [activeTab, setActiveTab] = useState<'feed' | 'events' | 'apply'>('feed');
@@ -372,12 +343,9 @@ export default function ClubPage() {
   const [showEditPage, setShowEditPage] = useState(false);
   const [showBgPicker, setShowBgPicker] = useState(false);
 
-  // Background color — persisted per club in localStorage
-  // BACKEND: Optionally store in Supabase user_preferences: { user_id, club_id, bg_color }
+  // BACKEND: Persist in Supabase user_preferences: { user_id, club_id, bg_color }
   const [bgColor, setBgColor] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(`club_bg_${clubId}`) ?? '#0d0d0d';
-    }
+    if (typeof window !== 'undefined') return localStorage.getItem(`club_bg_${clubId}`) ?? '#0d0d0d';
     return '#0d0d0d';
   });
 
@@ -387,7 +355,7 @@ export default function ClubPage() {
   };
 
   // BACKEND: const isLeader = ['President','VP','Officer'].includes(membership?.role)
-  const isLeader = true; // mock — set false to hide Manage Club button
+  const isLeader = true;
 
   if (showEditPage) {
     return (
@@ -402,30 +370,34 @@ export default function ClubPage() {
 
   const accent = club.accentColor;
   const tabs = [
-    { id: 'feed' as const, label: 'Social Feed', icon: <FeedIcon /> },
-    { id: 'events' as const, label: 'Events', icon: <EventIcon /> },
-    { id: 'apply' as const, label: 'Apply', icon: <ApplyIcon /> },
+    { id: 'feed'   as const, label: 'Social Feed', icon: <FeedIcon /> },
+    { id: 'events' as const, label: 'Events',      icon: <EventIcon /> },
+    { id: 'apply'  as const, label: 'Apply',       icon: <ApplyIcon /> },
   ];
 
-  // Banner gradient fades into the current bg color
   const bannerOverlay = `linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 35%, ${bgColor} 100%)`;
 
   return (
     <div style={{ minHeight: '100vh', background: bgColor, color: '#fff', fontFamily: "'Segoe UI', system-ui, sans-serif", transition: 'background 0.35s ease' }}>
-      <IntroModal club={club} open={showIntro} onClose={() => setShowIntro(false)} />
+      <IntroModal  club={club} open={showIntro}   onClose={() => setShowIntro(false)} />
       <MembersModal open={showMembers} onClose={() => setShowMembers(false)} members={members} />
       <BgPickerModal open={showBgPicker} onClose={() => setShowBgPicker(false)} current={bgColor} onChange={handleBgChange} />
 
-      {/* ── BANNER — overflow: visible so logo can poke out the bottom ── */}
+      {/* Banner — overflow visible so logo can overlap the bottom edge */}
       <div style={{ position: 'relative', width: '100%', height: 280, background: '#222', overflow: 'visible' }}>
-        {club.bannerUrl && (
-          <img src={club.bannerUrl} alt="banner"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '0 0 0 0' }} />
-        )}
-        {/* Gradient overlay fades into page bg */}
+        {/* BACKEND: Supabase Storage — clubs.banner_url */}
+        {club.bannerUrl && <img src={club.bannerUrl} alt="banner" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
         <div style={{ position: 'absolute', inset: 0, background: bannerOverlay, pointerEvents: 'none' }} />
 
-        {/* ── TOP-RIGHT ACTIONS (no members button here anymore) ── */}
+        {/* Top-left: back to clubs listing */}
+        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 30 }}>
+          <button onClick={() => router.push('/clubs')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, color: '#fff', padding: '8px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 600, letterSpacing: 0.3 }}>
+            ← All Clubs
+          </button>
+        </div>
+
+        {/* Top-right: theme picker, about, manage club */}
         <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 10, zIndex: 30 }}>
           <button onClick={() => setShowBgPicker(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, color: '#fff', padding: '8px 13px', cursor: 'pointer', fontSize: 12, fontWeight: 600, letterSpacing: 0.3 }}>
@@ -444,22 +416,10 @@ export default function ClubPage() {
           )}
         </div>
 
-        {/* ── LOGO — centered, overlapping banner bottom, highest z-index ── */}
-        <div style={{
-          position: 'absolute',
-          bottom: -60,              // pokes 60px below the banner
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 40,              // above everything including banner overlay
-          width: 120,
-          height: 120,
-          borderRadius: '50%',
-          padding: 4,
-          background: bgColor,     // matches page bg so ring looks clean
-          boxShadow: `0 0 0 4px ${accent}, 0 12px 40px rgba(0,0,0,0.7)`,
-          transition: 'background 0.35s ease',
-        }}>
+        {/* Logo — centered, overlaps banner bottom */}
+        <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)', zIndex: 40, width: 120, height: 120, borderRadius: '50%', padding: 4, background: bgColor, boxShadow: `0 0 0 4px ${accent}, 0 12px 40px rgba(0,0,0,0.7)`, transition: 'background 0.35s ease' }}>
           <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#1a1a1a' }}>
+            {/* BACKEND: Supabase Storage — clubs.logo_url */}
             {club.logoUrl
               ? <img src={club.logoUrl} alt={club.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, fontWeight: 900, color: accent }}>{club.name[0]}</div>}
@@ -467,12 +427,9 @@ export default function ClubPage() {
         </div>
       </div>
 
-      {/* ── CLUB INFO — centered layout ── */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px' }}>
-        {/* Space for the logo overhang */}
         <div style={{ height: 76 }} />
 
-        {/* Name, category, tagline — all centered */}
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, fontFamily: "'Georgia', serif", color: '#fff', letterSpacing: -0.5 }}>{club.name}</h1>
@@ -480,7 +437,6 @@ export default function ClubPage() {
           </div>
           <p style={{ color: '#aaa', fontSize: 14, margin: '0 0 14px', fontStyle: 'italic' }}>{club.tagline}</p>
 
-          {/* Meta row — centered. Members count IS the clickable button (no duplicate in top-right) */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
             <button onClick={() => setShowMembers(true)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 20, padding: '5px 14px', color: '#ddd', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
@@ -498,12 +454,10 @@ export default function ClubPage() {
           </div>
         </div>
 
-        {/* Description card */}
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 22px', marginBottom: 24 }}>
           <p style={{ color: '#ccc', fontSize: 14, lineHeight: 1.8, margin: 0 }}>{club.description}</p>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.09)', marginBottom: 24, gap: 2 }}>
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -514,9 +468,9 @@ export default function ClubPage() {
         </div>
 
         <div style={{ paddingBottom: 60 }}>
-          {activeTab === 'feed' && <SocialFeed posts={posts} accentColor={accent} />}
+          {activeTab === 'feed'   && <SocialFeed posts={posts} accentColor={accent} />}
           {activeTab === 'events' && <EventsTab events={events} accentColor={accent} />}
-          {activeTab === 'apply' && <ApplicationTab club={club} />}
+          {activeTab === 'apply'  && <ApplicationTab club={club} />}
         </div>
       </div>
     </div>

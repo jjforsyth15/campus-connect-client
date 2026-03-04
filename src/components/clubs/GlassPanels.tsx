@@ -42,10 +42,8 @@ const GlassPanel: React.FC<GlassPanelProps> = ({ children, className = '' }) => 
           position: absolute;
           inset: -40%;
           background:
-            radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.40), transparent 55%),
-            radial-gradient(circle at 85% 15%, rgba(255, 80, 110, 0.18), transparent 55%),
-            radial-gradient(circle at 70% 85%, rgba(255, 140, 160, 0.12), transparent 60%);
-          opacity: 0.55;
+            radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.22), transparent 55%);
+          opacity: 0.45;
           pointer-events: none;
         }
 

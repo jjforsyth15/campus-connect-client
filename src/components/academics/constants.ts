@@ -6,7 +6,7 @@ export const CS_PLAN_URL =
 export const BG = `radial-gradient(1200px 600px at 20% 0%, rgba(255,255,255,0.10), transparent 55%),
 linear-gradient(180deg, rgba(168,5,50,1) 0%, rgba(120,0,35,0.98) 55%, rgba(168,5,50,1) 100%)`;
 
-export const LS_KEY = "academics.degreePlanner.v1";
+export const LS_KEY = "academics.degreePlanner.v2";
 
 export type ToastType = "info" | "success" | "warning" | "error";
 
@@ -16,6 +16,8 @@ export type LectureNote = {
   topicTitle: string;
   body: string;
   createdAt: string;
+  isPublic: boolean;
+  attachments?: ResourceItem[];
 };
 
 export type ResourceItem = {
@@ -23,7 +25,9 @@ export type ResourceItem = {
   label: string;
   url?: string;
   fileName?: string;
+  fileType?: string;
   createdAt: string;
+  isPublic: boolean;
 };
 
 export type CourseItem = {
@@ -34,8 +38,32 @@ export type CourseItem = {
   professor?: string;
   description?: string;
   prerequisitesText?: string;
+  units?: number;
+  days?: string[];
+  startTime?: string;
+  endTime?: string;
+  semester?: string;
+  isOnline?: boolean;
   notes: LectureNote[];
   resources: ResourceItem[];
+  assignments?: Assignment[];
+  exams?: ExamItem[];
+};
+
+export type Assignment = {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+  priority: "low" | "medium" | "high";
+};
+
+export type ExamItem = {
+  id: string;
+  title: string;
+  date: string;
+  type: "exam" | "quiz" | "midterm" | "final";
+  location?: string;
 };
 
 export type SemesterBucket = {
@@ -49,6 +77,56 @@ export type MajorPlan = {
   plan_type?: string;
   academic_groups_id?: string;
   academic_groups_title?: string;
+};
+
+// Study Groups
+export type StudyGroupMember = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+export type StudyGroup = {
+  id: string;
+  courseSubject: string;
+  courseNumber: string;
+  topic: string;
+  dateTime: string;
+  location: string;
+  isVirtual: boolean;
+  meetingLink?: string;
+  members: StudyGroupMember[];
+  createdBy: string;
+  createdAt: string;
+  maxMembers?: number;
+  notes?: string;
+};
+
+// UniCart (class matching)
+export type UniCartClass = {
+  id: string;
+  subject: string;
+  number: string;
+  title: string;
+  professor: string;
+  units: number;
+  semester: string;
+  isOnline: boolean;
+  days: string[];
+  startTime: string;
+  endTime: string;
+  section: string;
+  seats?: number;
+  seatsAvailable?: number;
+};
+
+export type UniCartProfile = {
+  id: string;
+  name: string;
+  avatar?: string;
+  major: string;
+  year: string;
+  classes: UniCartClass[];
 };
 
 export const btnPrimary: SxProps<Theme> = {
@@ -122,4 +200,15 @@ export const selectSx: SxProps<Theme> = {
   "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.32)" },
   "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.55)" },
   "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.85)" },
+};
+
+// Light field variant for modals/white backgrounds
+export const fieldSxLight: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "rgba(0,0,0,0.03)",
+    borderRadius: 2,
+    "& fieldset": { borderColor: "rgba(0,0,0,0.18)" },
+    "&:hover fieldset": { borderColor: "rgba(0,0,0,0.32)" },
+    "&.Mui-focused fieldset": { borderColor: "#A80532" },
+  },
 };

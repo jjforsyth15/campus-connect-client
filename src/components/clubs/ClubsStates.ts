@@ -1,7 +1,3 @@
-// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
-// Centralised style constants for the Clubs hub.
-// BACKEND: Colors can be fetched from a `site_config` Supabase table if needed.
-
 export const MAROON = "#B4002E";
 export const MAROON_DARK = "#2A0010";
 export const ORANGE_GLOW = "#FF4500";
@@ -10,8 +6,6 @@ export const RED_HOT = "#FF1A1A";
 export function safeLower(s: string) {
   return (s ?? "").trim().toLowerCase();
 }
-
-// ─── CHIP VARIANTS ────────────────────────────────────────────────────────────
 
 export const chipGhost = {
   bgcolor: "rgba(255,255,255,0.10)",
@@ -34,9 +28,6 @@ export const chipLight = {
   border: "1px solid rgba(0,0,0,0.10)",
   fontWeight: 800,
 };
-
-// ─── BUTTON VARIANTS ──────────────────────────────────────────────────────────
-// All buttons share animated hover/active states.
 
 const btnBase = {
   borderRadius: 999,
@@ -118,8 +109,6 @@ export const btnOutline = {
     transform: "translateY(-2px)",
   },
 };
-
-// ─── INPUT STYLES ─────────────────────────────────────────────────────────────
 
 export const inputSx = {
   borderRadius: 999,

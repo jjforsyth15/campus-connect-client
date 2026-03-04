@@ -3,36 +3,12 @@
 import React, { useState } from 'react';
 import { Club, ClubMember } from '@/components/clubs/ClubProfilePage';
 
-// ─── ICONS ────────────────────────────────────────────────────────────────────
-const BackIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>
-);
-const TrashIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-    <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-  </svg>
-);
-const BanIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-  </svg>
-);
-const AddIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-const SaveIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-    <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
-  </svg>
-);
+const BackIcon  = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>;
+const TrashIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>;
+const BanIcon   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>;
+const AddIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const SaveIcon  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>;
 
-// ─── SHARED STYLES ────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   width: '100%', background: '#1e1e1e', border: '1px solid #3a3a3a', borderRadius: 10,
   padding: '10px 14px', color: '#fff', fontSize: 14, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
@@ -60,7 +36,6 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
   );
 }
 
-// ─── NEW EVENT FORM ───────────────────────────────────────────────────────────
 type NewEvent = { title: string; description: string; date: string; time: string; location: string };
 
 function NewEventForm({ accentColor, onAdd }: { accentColor: string; onAdd: (e: NewEvent) => void }) {
@@ -117,28 +92,27 @@ function NewEventForm({ accentColor, onAdd }: { accentColor: string; onAdd: (e: 
   );
 }
 
-// ─── MEMBER ROW ───────────────────────────────────────────────────────────────
 const roleColor = (role: ClubMember['role']) => {
   switch (role) {
     case 'President': return '#FFD700';
-    case 'VP': return '#C0C0C0';
-    case 'Officer': return '#D22030';
-    default: return '#6b7280';
+    case 'VP':        return '#C0C0C0';
+    case 'Officer':   return '#D22030';
+    default:          return '#6b7280';
   }
 };
 
-function MemberRow({ member, onKick, onBlock, onRoleChange, accentColor }: {
+function MemberRow({ member, onKick, onBlock, onRoleChange }: {
   member: ClubMember;
   onKick: (id: string) => void;
   onBlock: (id: string) => void;
   onRoleChange: (id: string, role: ClubMember['role']) => void;
-  accentColor: string;
 }) {
   const [confirm, setConfirm] = useState<'kick' | 'block' | null>(null);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+        {/* BACKEND: Supabase Storage — club_members.avatar_url */}
         {member.avatar
           ? <img src={member.avatar} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff' }}>{member.name[0]}</div>}
@@ -185,7 +159,6 @@ function MemberRow({ member, onKick, onBlock, onRoleChange, accentColor }: {
   );
 }
 
-// ─── PROPS ────────────────────────────────────────────────────────────────────
 interface ClubEditPageProps {
   club: Club;
   members: ClubMember[];
@@ -193,7 +166,6 @@ interface ClubEditPageProps {
   onBack: () => void;
 }
 
-// ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
 export default function ClubEditPage({ club, members: initialMembers, onSave, onBack }: ClubEditPageProps) {
   const [form, setForm] = useState<Club>({ ...club });
   const [memberList, setMemberList] = useState<ClubMember[]>(initialMembers);
@@ -240,9 +212,9 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
   const filteredMembers = memberList.filter(m => m.name.toLowerCase().includes(memberSearch.toLowerCase()));
 
   const navItems = [
-    { id: 'info', label: '📝 Club Info' },
-    { id: 'media', label: '🖼️ Media' },
-    { id: 'events', label: '📅 Events' },
+    { id: 'info',    label: '📝 Club Info' },
+    { id: 'media',   label: '🖼️ Media' },
+    { id: 'events',  label: '📅 Events' },
     { id: 'members', label: '👥 Members' },
   ] as const;
 
@@ -250,7 +222,6 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
     <div style={{ minHeight: '100vh', background: '#111', color: '#fff', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
 
-      {/* ── HEADER ── */}
       <div style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 16, position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
         <button onClick={onBack}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#ccc', padding: '7px 14px', cursor: 'pointer', fontSize: 13 }}>
@@ -268,29 +239,17 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
 
       <div style={{ display: 'flex', maxWidth: 960, margin: '0 auto', padding: '24px 16px', gap: 24, alignItems: 'flex-start' }}>
 
-        {/* ── SIDEBAR ── */}
         <div style={{ width: 180, flexShrink: 0, position: 'sticky', top: 80 }}>
           {navItems.map(n => (
             <button key={n.id} onClick={() => setActiveSection(n.id)}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                background: activeSection === n.id ? accentColor + '22' : 'none',
-                border: activeSection === n.id ? `1px solid ${accentColor}44` : '1px solid transparent',
-                borderRadius: 9, padding: '10px 14px',
-                color: activeSection === n.id ? accentColor : '#888',
-                cursor: 'pointer', fontSize: 14,
-                fontWeight: activeSection === n.id ? 700 : 400,
-                marginBottom: 4, transition: 'all 0.15s',
-              }}>
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: activeSection === n.id ? accentColor + '22' : 'none', border: activeSection === n.id ? `1px solid ${accentColor}44` : '1px solid transparent', borderRadius: 9, padding: '10px 14px', color: activeSection === n.id ? accentColor : '#888', cursor: 'pointer', fontSize: 14, fontWeight: activeSection === n.id ? 700 : 400, marginBottom: 4, transition: 'all 0.15s' }}>
               {n.label}
             </button>
           ))}
         </div>
 
-        {/* ── CONTENT ── */}
         <div style={{ flex: 1 }}>
 
-          {/* INFO */}
           {activeSection === 'info' && (
             <div>
               <div style={sectionStyle}>
@@ -346,13 +305,13 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
             </div>
           )}
 
-          {/* MEDIA */}
           {activeSection === 'media' && (
             <div>
               <div style={sectionStyle}>
                 <SectionTitle>Club Logo / Profile Picture</SectionTitle>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
                   <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', background: '#222', border: `3px solid ${accentColor}`, flexShrink: 0 }}>
+                    {/* BACKEND: Supabase Storage — clubs.logo_url */}
                     {form.logoUrl && <img src={form.logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   </div>
                   <div style={{ flex: 1 }}>
@@ -363,7 +322,7 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
                       📎 Upload from device
                       <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={e => {
-                          // BACKEND: POST /api/clubs/:clubId/upload — send file, receive { logoUrl }
+                          // BACKEND: POST /api/clubs/:clubId/upload — send file, receive { logoUrl } from Supabase Storage
                           const file = e.target.files?.[0];
                           if (file) { const r = new FileReader(); r.onload = () => setForm(f => ({ ...f, logoUrl: r.result as string })); r.readAsDataURL(file); }
                         }} />
@@ -374,8 +333,9 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
 
               <div style={sectionStyle}>
                 <SectionTitle>Banner Image</SectionTitle>
-                <p style={{ color: '#777', fontSize: 12, marginBottom: 12 }}>Recommended: 1280×320px </p>
+                <p style={{ color: '#777', fontSize: 12, marginBottom: 12 }}>Recommended: 1280×320px</p>
                 <div style={{ width: '100%', height: 140, borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid #333', marginBottom: 14 }}>
+                  {/* BACKEND: Supabase Storage — clubs.banner_url */}
                   {form.bannerUrl && <img src={form.bannerUrl} alt="banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 </div>
                 <label style={labelStyle}>Banner URL</label>
@@ -385,7 +345,7 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
                   📎 Upload banner image
                   <input type="file" accept="image/*" style={{ display: 'none' }}
                     onChange={e => {
-                      // BACKEND: POST /api/clubs/:clubId/upload — send file, receive { bannerUrl }
+                      // BACKEND: POST /api/clubs/:clubId/upload — send file, receive { bannerUrl } from Supabase Storage
                       const file = e.target.files?.[0];
                       if (file) { const r = new FileReader(); r.onload = () => setForm(f => ({ ...f, bannerUrl: r.result as string })); r.readAsDataURL(file); }
                     }} />
@@ -394,7 +354,6 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
             </div>
           )}
 
-          {/* EVENTS */}
           {activeSection === 'events' && (
             <div style={sectionStyle}>
               <SectionTitle>Manage Events</SectionTitle>
@@ -420,7 +379,6 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
             </div>
           )}
 
-          {/* MEMBERS */}
           {activeSection === 'members' && (
             <div style={sectionStyle}>
               <SectionTitle>Member Management ({memberList.length})</SectionTitle>
@@ -434,9 +392,9 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
                 onChange={e => setMemberSearch(e.target.value)}
                 style={{ ...inputStyle, marginBottom: 14 }}
               />
-              {/* BACKEND: GET /api/clubs/:clubId/members — returns member list with roles */}
+              {/* BACKEND: GET /api/clubs/:clubId/members */}
               {filteredMembers.map(m => (
-                <MemberRow key={m.id} member={m} onKick={kickMember} onBlock={blockMember} onRoleChange={changeRole} accentColor={accentColor} />
+                <MemberRow key={m.id} member={m} onKick={kickMember} onBlock={blockMember} onRoleChange={changeRole} />
               ))}
             </div>
           )}
