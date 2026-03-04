@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Club } from "./clubs.data";
-import { CLUB_CATEGORIES } from "./clubs.data";
+import type { Club } from "./data/clubs.data";
+import { CLUB_CATEGORIES } from "./data/clubs.data";
 import { Box, Button, Chip, Divider, TextField, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { btnGhost, btnPrimary } from "./ClubsStates";
@@ -13,7 +13,10 @@ import GlassPanel from "./GlassPanels";
 import AuroraBackground from "./AuroraBackground";
 import PanelImageGallery from "./PanelImageGallery";
 
-type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
+// BACKEND: clubs prop is now optional — store provides live data
+import { useClubStore } from "./useClubStore";
+
+type Props = { clubs?: Club[]; mode: "hub" | "club"; club?: Club };
 
 const CATEGORY_COLORS: Record<string, string> = {
   STEM:        "rgba(59,130,246,0.80)",
@@ -59,8 +62,11 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
-export default function ClubsUI({ clubs, mode, club }: Props) {
+export default function ClubsUI({ clubs: clubsProp, mode, club }: Props) {
   const router = useRouter();
+  const { clubs: storeClubs } = useClubStore();
+  // Use live store clubs; fall back to prop if provided (e.g. SSR initial data)
+  const clubs = clubsProp ?? storeClubs;
   const [tab, setTab] = useState<"discover" | "mine">("discover");
   const [search, setSearch] = useState("");
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
@@ -176,12 +182,25 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
           </Box>
 
           {/* Tabs — below gallery */}
-          <Box sx={{ display: "flex", gap: 1.2, mt: 3 }}>
+          <Box sx={{ display: "flex", gap: 1.2, mt: 3, flexWrap: "wrap", justifyContent: "center" }}>
             <Button onClick={() => setTab("discover")} sx={tab === "discover" ? { ...btnPrimary, px: 2.8 } : { ...btnGhost, px: 2.8 }}>
               Discover
             </Button>
             <Button onClick={() => setTab("mine")} sx={tab === "mine" ? { ...btnPrimary, px: 2.8 } : { ...btnGhost, px: 2.8 }}>
               My Clubs
+            </Button>
+            <Button
+              component={Link}
+              href="/clubs/create-club"
+              sx={{
+                ...btnGhost, px: 2.8,
+                background: "rgba(180,0,46,0.18)",
+                border: "1px solid rgba(180,0,46,0.45)",
+                color: "rgba(255,180,180,0.95)",
+                "&:hover": { background: "rgba(180,0,46,0.32)", transform: "translateY(-2px)" },
+              }}
+            >
+              + Create Club
             </Button>
           </Box>
         </Box>

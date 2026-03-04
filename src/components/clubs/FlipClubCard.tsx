@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Box, Button, Chip, Typography } from "@mui/material";
-import type { Club } from "./clubs.data";
+import type { Club } from "./data/clubs.data";
 import { btnMaroon } from "./ClubsStates";
 
 export default function FlipClubCard({ club }: { club: Club }) {
