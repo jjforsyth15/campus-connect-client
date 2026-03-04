@@ -12,46 +12,6 @@ import AuroraBackground from "./AuroraBackground";
 
 type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
 
-// ─── VERTICAL WORD ART ────────────────────────────────────────────────────────
-function VerticalWordArt({ left = true, words }: { left?: boolean; words: string[] }) {
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        top: 50,
-        bottom: 40,
-        [left ? "left" : "right"]: { xs: -8, md: 4, lg: 12 },
-        display: { xs: "none", lg: "flex" },
-        flexDirection: "column",
-        justifyContent: "space-around",
-        pointerEvents: "none",
-        opacity: 0.28,
-        zIndex: 0,
-      }}
-    >
-      {words.map((w) => (
-        <Typography
-          key={w}
-          sx={{
-            color: "white",
-            fontWeight: 900,
-            fontSize: 52,
-            letterSpacing: 6,
-            writingMode: "vertical-rl",
-            transform: left ? "rotate(180deg)" : "none",
-            textTransform: "uppercase",
-            userSelect: "none",
-            fontFamily: "'Arial Black', 'Impact', sans-serif",
-            textShadow: "0 0 30px rgba(255,30,60,0.4)",
-          }}
-        >
-          {w}
-        </Typography>
-      ))}
-    </Box>
-  );
-}
-
 const CATEGORY_COLORS: Record<string, string> = {
   STEM:        "rgba(59,130,246,0.80)",
   Business:    "rgba(16,185,129,0.80)",
@@ -141,9 +101,6 @@ export default function ClubsUI({ clubs, mode, club }: Props) {
   return (
     <AuroraBackground>
       <Box sx={{ position: "relative", minHeight: "100vh" }}>
-        <VerticalWordArt left words={["COMMUNITY", "CONNECT", "GROW"]} />
-        <VerticalWordArt left={false} words={["BUILD", "CREATE", "JOIN"]} />
-
         {/* ── HERO ──────────────────────────────────────────────────────────── */}
         <Box sx={{ px: { xs: 3, md: 8, lg: 14 }, pt: { xs: 5, md: 7 }, pb: 3, textAlign: "center", position: "relative", zIndex: 1 }}>
           <Typography
