@@ -34,6 +34,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReportIcon from "@mui/icons-material/Report";
 import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
 import { RED, DRAWER_WIDTH } from "./constants";
 import {
   panelScrollSx,
@@ -66,6 +67,9 @@ export type MessagesViewProps = {
   onUpdateNote: (text: string) => void | Promise<void>;
   onPickUser: (userId: ID) => void | Promise<void>;
   onRefresh: () => void;
+  // Edit/delete message handlers
+  onEditMessage: (messageId: string, newText: string) => void | Promise<void>;
+  onDeleteMessage: (messageId: string) => void | Promise<void>;
 };
 
 export default function MessagesView(props: MessagesViewProps) {
@@ -84,6 +88,8 @@ export default function MessagesView(props: MessagesViewProps) {
     onUpdateNote,
     onPickUser,
     onRefresh,
+    onEditMessage,
+    onDeleteMessage,
   } = props;
 
   const [activeTab, setActiveTab] = React.useState<"messages" | "requests">("messages");
@@ -98,6 +104,14 @@ export default function MessagesView(props: MessagesViewProps) {
   const [reportReason, setReportReason] = React.useState("");
   const [reportDetails, setReportDetails] = React.useState("");
   const [gifFavorites, setGifFavorites] = React.useState<string[]>([]);
+
+  // Message hover/edit/delete state
+  const [hoveredMsgId, setHoveredMsgId] = React.useState<ID | null>(null);
+  const [msgMenuAnchor, setMsgMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [msgMenuTarget, setMsgMenuTarget] = React.useState<ID | null>(null);
+  const [editingMsgId, setEditingMsgId] = React.useState<ID | null>(null);
+  const [editingText, setEditingText] = React.useState("");
+
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem("cc_gif_favs");
@@ -184,6 +198,14 @@ export default function MessagesView(props: MessagesViewProps) {
     await onSend(selectedThread.id, text, urls.length ? urls : undefined);
     setDraftByThreadId((prev) => ({ ...prev, [selectedThreadId]: emptyDraft() }));
   }, [selectedThread, selectedThreadId, selectedDraft, onSend]);
+
+  // Submit an edited message
+  const handleEditSubmit = React.useCallback(async () => {
+    if (!editingMsgId || !editingText.trim()) return;
+    await onEditMessage(editingMsgId, editingText);
+    setEditingMsgId(null);
+    setEditingText("");
+  }, [editingMsgId, editingText, onEditMessage]);
 
   const openReport = () => { setReportReason(""); setReportDetails(""); setReportOpen(true); };
   const submitReport = () => {
@@ -322,18 +344,59 @@ export default function MessagesView(props: MessagesViewProps) {
                   <Stack spacing={1.25}>
                     {threadMessages.map((m) => {
                       const mine = m.fromUserId === meId;
+                      const isEditing = editingMsgId === m.id;
+                      const isDeleted = !m.text && !m.attachments?.length;
                       return (
-                        <Box key={m.id} sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                        <Box
+                          key={m.id}
+                          sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}
+                          onMouseEnter={() => setHoveredMsgId(m.id)}
+                          onMouseLeave={() => setHoveredMsgId(null)}
+                        >
+                          {/* Show MoreHoriz button on hover for own messages */}
+                          {mine && !isDeleted && (hoveredMsgId === m.id || msgMenuTarget === m.id) && !isEditing && (
+                            <IconButton
+                              size="small"
+                              onClick={(e) => { setMsgMenuAnchor(e.currentTarget); setMsgMenuTarget(m.id); }}
+                              sx={{ alignSelf: "center", mr: 0.5, opacity: 0.6 }}
+                            >
+                              <MoreHorizIcon fontSize="small" />
+                            </IconButton>
+                          )}
                           <Box sx={{ maxWidth: "78%", px: 1.6, py: 1.1, borderRadius: 3, bgcolor: mine ? "rgba(168,5,50,0.10)" : "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.06)", whiteSpace: "pre-wrap", fontSize: 14 }}>
-                            {!!m.text && <Box>{m.text}</Box>}
-                            {!!m.attachments?.length && (
-                              <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
-                                {m.attachments.map((a) => (
-                                  <Box key={a.id}>
-                                    {a.type === "image" ? <Box component="img" src={a.url} alt={a.name} onClick={() => setImgView({ open: true, url: a.url, name: a.name })} sx={{ width: 220, maxWidth: "100%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.10)", cursor: "zoom-in" }} /> : a.type === "audio" ? <audio controls src={a.url} /> : <Chip label={a.name} icon={<AttachFileIcon />} variant="outlined" sx={{ fontWeight: 800 }} />}
-                                  </Box>
-                                ))}
+                            {isDeleted ? (
+                              // Show placeholder for deleted messages
+                              <Typography sx={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontStyle: "italic" }}>Message deleted</Typography>
+                            ) : isEditing ? (
+                              // Inline edit input
+                              <Stack direction="row" spacing={0.5} alignItems="center">
+                                <TextField
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  size="small"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSubmit(); }
+                                    if (e.key === "Escape") { setEditingMsgId(null); setEditingText(""); }
+                                  }}
+                                  InputProps={{ sx: { fontSize: 14, borderRadius: 2 } }}
+                                />
+                                <Button size="small" variant="contained" onClick={handleEditSubmit} sx={{ bgcolor: RED, fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0, px: 1.5 }}>Save</Button>
+                                <Button size="small" onClick={() => { setEditingMsgId(null); setEditingText(""); }} sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0 }}>Cancel</Button>
                               </Stack>
+                            ) : (
+                              <>
+                                {!!m.text && <Box>{m.text}</Box>}
+                                {!!m.attachments?.length && (
+                                  <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
+                                    {m.attachments.map((a) => (
+                                      <Box key={a.id}>
+                                        {a.type === "image" ? <Box component="img" src={a.url} alt={a.name} onClick={() => setImgView({ open: true, url: a.url, name: a.name })} sx={{ width: 220, maxWidth: "100%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.10)", cursor: "zoom-in" }} /> : a.type === "audio" ? <audio controls src={a.url} /> : <Chip label={a.name} icon={<AttachFileIcon />} variant="outlined" sx={{ fontWeight: 800 }} />}
+                                      </Box>
+                                    ))}
+                                  </Stack>
+                                )}
+                              </>
                             )}
                           </Box>
                         </Box>
@@ -341,6 +404,30 @@ export default function MessagesView(props: MessagesViewProps) {
                     })}
                     <Box ref={bottomRef} />
                   </Stack>
+
+                  {/* Per-message context menu (Edit / Delete) */}
+                  <Menu
+                    open={!!msgMenuAnchor}
+                    anchorEl={msgMenuAnchor}
+                    onClose={() => { setMsgMenuAnchor(null); setMsgMenuTarget(null); }}
+                  >
+                    <MenuItem onClick={() => {
+                      const msg = threadMessages.find((m) => m.id === msgMenuTarget);
+                      if (msg) { setEditingMsgId(msg.id); setEditingText(msg.text); }
+                      setMsgMenuAnchor(null); setMsgMenuTarget(null);
+                    }}>
+                      <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        if (msgMenuTarget) onDeleteMessage(msgMenuTarget);
+                        setMsgMenuAnchor(null); setMsgMenuTarget(null);
+                      }}
+                      sx={{ color: "#b91c1c", fontWeight: 900 }}
+                    >
+                      <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+                    </MenuItem>
+                  </Menu>
                 </Box>
               )}
             </Box>

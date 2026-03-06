@@ -151,6 +151,10 @@ export function useMessagesData() {
   useEffect(() => {
     if (selectedThreadId) {
       fetchMessages(selectedThreadId);
+      // Join the socket room when opening a conversation
+      if (socketRef.current) {
+        socketRef.current.emit("conversation:join", { conversationId: selectedThreadId });
+      }
     }
   }, [selectedThreadId, fetchMessages]);
 
@@ -243,14 +247,21 @@ export function useMessagesData() {
       setThreads((prev) =>
         prev.map((t) => (t.id === threadId ? { ...t, updatedAt: Date.now() } : t))
       );
-
-      // Notify socket so other participants get the message in real-time
-      if (socketRef.current) {
-        socketRef.current.emit("conversation:join", { conversationId: threadId });
-      }
     } catch (err) {
       console.error("Failed to send message:", err);
     }
+  }, []);
+
+  // Edit a message via REST (socket broadcasts message:edited to both users)
+  const onEditMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!newText.trim() || !socketRef.current) return;
+    socketRef.current.emit("message:edit", { messageId, content: newText.trim() });
+  }, []);
+
+  // Delete a message via REST (socket broadcasts message:deleted to both users)
+  const onDeleteMessage = useCallback(async (messageId: string) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit("message:delete", { messageId });
   }, []);
 
   // Notes are local-only for now (no backend support)
@@ -294,7 +305,7 @@ export function useMessagesData() {
         }
       }
 
-      // Join the socket room
+      // Join the socket room for the new conversation
       if (socketRef.current) {
         socketRef.current.emit("conversation:join", { conversationId: newThread.id });
       }
@@ -320,6 +331,8 @@ export function useMessagesData() {
     loading,
     error,
     onSend,
+    onEditMessage,
+    onDeleteMessage,
     onUpdateNote,
     onPickUser,
     refresh,

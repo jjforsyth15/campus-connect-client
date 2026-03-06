@@ -41,6 +41,8 @@ export default function MessagesPage() {
       onUpdateNote={data.onUpdateNote}
       onPickUser={data.onPickUser}
       onRefresh={data.refresh}
+      onEditMessage={data.onEditMessage}
+      onDeleteMessage={data.onDeleteMessage}
     />
   );
 }
