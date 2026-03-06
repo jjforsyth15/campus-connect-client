@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 // BACKEND: In production, replace static CLUBS import with a server-side fetch:
 //   const clubs = await supabase.from('clubs').select('*').order('name')
 // Then pass clubs as a prop through a Server Component wrapper.
-import { CLUBS } from "@/components/clubs/data/clubs.data";
+import { CLUBS } from "@/components/clubs/temp(mockdata)/clubs.data";
 
 const ClubsUI = dynamic(() => import("@/components/clubs/ClubsUI"), { ssr: false });
 

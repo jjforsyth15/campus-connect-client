@@ -3,26 +3,7 @@
 import * as React from "react";
 import { Box } from "@mui/material";
 
-const DEFAULT_IMAGES = [
-  "/images/clubs/20240905at-meet-the-clubs-004.jpg",
-  "/images/clubs/20240905at-meet-the-clubs-005.jpg",
-  "/images/clubs/20240905at-meet-the-clubs-007.jpg",
-  "/images/clubs/20240905at-meet-the-clubs-015.jpg",
-  "/images/clubs/602383742_1340951458076336_2830616914440893755_n.jpg",
-  "/images/clubs/618824328_1340951591409656_6716731707385688937_n.jpg",
-  "/images/clubs/619199250_1340095514828597_1780305293810035239_n.jpg",
-  "/images/clubs/619521771_1340951504742998_4195533456574167438_n.jpg",
-  "/images/clubs/619619754_1340951488076333_3054219931968396020_n.jpg",
-  "/images/clubs/619680048_1340951541409661_1799761759153235588_n.jpg",
-  "/images/clubs/622924132_1340951521409663_2934694975295881492_n.jpg",
-  "/images/clubs/624359681_1340951438076338_7611979525615560769_n.jpg",
-  "/images/clubs/MTC-1-1170x658.jpg",
-  "/images/clubs/jr0ukOcMr5lQM0EgNtj1lwvBHSEuz1Wm0YDxrxqF.jpeg",
-  "/images/clubs/rEfExmfdpd9MF8yJwy7WFoAILERiHgnV7ehKnooB.jpeg",
-  "/images/clubs/0G1I5eu4uePT4mfWBBzNu8UWHF1gbaKmKi0zzmxE.jpeg",
-  "/images/clubs/5NZN0CL9TSDDIj9sV7eB7ow3b5erp58bQaE0T0ES.jpeg",
-  "/images/clubs/Kn24tyGLrGk7D8A8aCtxmGxFj24wq9FU1KmNE2bz.jpeg",
-];
+const DEFAULT_IMAGES = Array.from({ length: 18 }, (_, i) => `/images/clubs/ClubPanel${i + 1}.jpeg`);
 
 const FALLBACK_COLORS = [
   "linear-gradient(135deg,#b4002e,#ff4040)",
@@ -41,7 +22,6 @@ const GRID_AREAS = `
   "tl tr cc bl br"
   "b1 b2 b3 b4 b5"
 `;
-
 
 const PANELS: { area: string; pos?: string }[] = [
   { area: "tl", pos: "center center" },
@@ -130,15 +110,9 @@ function distributeImages(all: string[], n: number): string[][] {
   return buckets;
 }
 
-export default function PanelImageGallery({
-  images = DEFAULT_IMAGES,
-  height = 420,
-}: PanelImageGalleryProps) {
+export default function PanelImageGallery({ images = DEFAULT_IMAGES, height = 420 }: PanelImageGalleryProps) {
   const distributed = React.useMemo(() => distributeImages(images, PANELS.length), [images]);
-  const intervals = React.useMemo(
-    () => PANELS.map((_, i) => BASE_INTERVAL_MS + i * 1300 + Math.floor(i * 700)),
-    []
-  );
+  const intervals = React.useMemo(() => PANELS.map((_, i) => BASE_INTERVAL_MS + i * 1300 + Math.floor(i * 700)), []);
 
   return (
     <Box

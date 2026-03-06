@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Club } from "./data/clubs.data";
-import { CLUB_CATEGORIES } from "./data/clubs.data";
+import type { Club } from "./temp(mockdata)/clubs.data";
+import { CLUB_CATEGORIES } from "./temp(mockdata)/clubs.data";
 import { Box, Button, Chip, Divider, TextField, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { btnGhost, btnPrimary } from "./ClubsStates";

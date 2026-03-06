@@ -7,9 +7,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Club, ClubDetail } from './data/clubs.data';
-import { CLUBS } from './data/clubs.data';
-import { MOCK_CLUB_DETAILS } from './data/mockData';
+import type { Club, ClubDetail } from './temp(mockdata)/clubs.data';
+import { CLUBS } from './temp(mockdata)/clubs.data';
+import { MOCK_CLUB_DETAILS } from './temp(mockdata)/mockData';
 
 // ── In-memory singleton (persists across component remounts in the same session)
 type StoreState = {

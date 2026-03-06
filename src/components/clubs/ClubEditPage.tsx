@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ClubDetail as ClubDetailBase, ClubMember } from './data/clubs.data';
+import { ClubDetail as ClubDetailBase, ClubMember } from './temp(mockdata)/clubs.data';
 
 // Extend ClubDetail locally to include editable UI fields
 type Club = ClubDetailBase & {

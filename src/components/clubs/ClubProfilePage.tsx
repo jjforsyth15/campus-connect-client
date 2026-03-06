@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ClubEditPage from '@/components/clubs/ClubEditPage';
-import type { ClubDetail, ClubMember, ClubPost, ClubEvent } from './data/clubs.data';
+import type { ClubDetail, ClubMember, ClubPost, ClubEvent } from './temp(mockdata)/clubs.data';
 
 // BACKEND: Replace with Supabase queries
-import { MOCK_CLUB_DETAILS, MOCK_MEMBERS, MOCK_POSTS, MOCK_EVENTS } from './data/mockData';
+import { MOCK_CLUB_DETAILS, MOCK_MEMBERS, MOCK_POSTS, MOCK_EVENTS } from './temp(mockdata)/mockData';
 
 export type { ClubDetail as Club, ClubMember, ClubPost, ClubEvent };
 
