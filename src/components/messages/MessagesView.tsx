@@ -70,6 +70,10 @@ export type MessagesViewProps = {
   // Edit/delete message handlers
   onEditMessage: (messageId: string, newText: string) => void | Promise<void>;
   onDeleteMessage: (messageId: string) => void | Promise<void>;
+  // Typing indicator props
+  typingByThread: Record<string, string | null>;
+  onTypingStart: (threadId: string) => void;
+  onTypingStop: (threadId: string) => void;
 };
 
 export default function MessagesView(props: MessagesViewProps) {
@@ -90,6 +94,9 @@ export default function MessagesView(props: MessagesViewProps) {
     onRefresh,
     onEditMessage,
     onDeleteMessage,
+    typingByThread,
+    onTypingStart,
+    onTypingStop,
   } = props;
 
   const [activeTab, setActiveTab] = React.useState<"messages" | "requests">("messages");
@@ -197,7 +204,9 @@ export default function MessagesView(props: MessagesViewProps) {
     if (!text && selectedDraft.files.length === 0 && urls.length === 0) return;
     await onSend(selectedThread.id, text, urls.length ? urls : undefined);
     setDraftByThreadId((prev) => ({ ...prev, [selectedThreadId]: emptyDraft() }));
-  }, [selectedThread, selectedThreadId, selectedDraft, onSend]);
+    // Stop typing indicator when message is sent
+    onTypingStop(selectedThreadId);
+  }, [selectedThread, selectedThreadId, selectedDraft, onSend, onTypingStop]);
 
   // Submit an edited message
   const handleEditSubmit = React.useCallback(async () => {
@@ -402,6 +411,16 @@ export default function MessagesView(props: MessagesViewProps) {
                         </Box>
                       );
                     })}
+
+                    {/* Typing indicator */}
+                    {selectedThreadId && typingByThread[selectedThreadId] && (
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1, py: 0.5 }}>
+                        <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.5)", fontStyle: "italic" }}>
+                          {userById.get(typingByThread[selectedThreadId]!)?.displayName ?? "Someone"} is typing...
+                        </Typography>
+                      </Box>
+                    )}
+
                     <Box ref={bottomRef} />
                   </Stack>
 
@@ -441,7 +460,21 @@ export default function MessagesView(props: MessagesViewProps) {
               <Stack direction="row" spacing={1} alignItems="center">
                 <IconButton component="label" disabled={!selectedThread} title="Attach file"><AttachFileIcon /><input hidden type="file" multiple accept="image/*,audio/*,application/pdf" onChange={(e) => { if (e.target.files) { addFiles(e.target.files); e.currentTarget.value = ""; } }} /></IconButton>
                 <IconButton disabled={!selectedThread} onClick={() => setGifOpen(true)} title="GIFs"><GifBoxIcon /></IconButton>
-                <TextField value={selectedDraft.text} onChange={(e) => setDraft((p) => ({ ...p, text: e.target.value }))} placeholder={selectedThread ? "Message..." : "Select a conversation to message"} fullWidth size="small" disabled={!selectedThread} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} InputProps={{ sx: { borderRadius: 999, bgcolor: "rgba(0,0,0,0.03)", "& fieldset": { borderColor: "rgba(0,0,0,0.10)" } } }} />
+                {/* Message input - emits typing:start on change, typing:stop on blur or send */}
+                <TextField
+                  value={selectedDraft.text}
+                  onChange={(e) => {
+                    setDraft((p) => ({ ...p, text: e.target.value }));
+                    if (selectedThreadId) onTypingStart(selectedThreadId);
+                  }}
+                  onBlur={() => { if (selectedThreadId) onTypingStop(selectedThreadId); }}
+                  placeholder={selectedThread ? "Message..." : "Select a conversation to message"}
+                  fullWidth
+                  size="small"
+                  disabled={!selectedThread}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                  InputProps={{ sx: { borderRadius: 999, bgcolor: "rgba(0,0,0,0.03)", "& fieldset": { borderColor: "rgba(0,0,0,0.10)" } } }}
+                />
                 <IconButton onClick={handleSend} disabled={!selectedThread} title="Send"><SendIcon sx={{ color: selectedThread ? RED : "rgba(0,0,0,0.25)" }} /></IconButton>
               </Stack>
               <Typography sx={{ mt: 0.7, fontSize: 11, color: "rgba(0,0,0,0.45)" }}>Tip: drag and drop files into the chat area to attach.</Typography>

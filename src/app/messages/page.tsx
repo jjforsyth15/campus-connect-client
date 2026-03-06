@@ -43,6 +43,9 @@ export default function MessagesPage() {
       onRefresh={data.refresh}
       onEditMessage={data.onEditMessage}
       onDeleteMessage={data.onDeleteMessage}
+      onTypingStart={data.onTypingStart}
+      onTypingStop={data.onTypingStop}
+      typingByThread={data.typingByThread}
     />
   );
 }

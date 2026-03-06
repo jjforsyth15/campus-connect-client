@@ -59,10 +59,14 @@ export function useMessagesData() {
   const [selectedThreadId, setSelectedThreadId] = useState<ID | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [typingByThread, setTypingByThread] = useState<Record<string, string | null>>({});
   const socketRef = useRef<Socket | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const meIdRef = useRef<string>("");
 
   const storedUser = getStoredUser();
   const meId: ID = storedUser?.id || "";
+  meIdRef.current = meId;
 
   const me: User = useMemo(() => ({
     id: meId,
@@ -100,7 +104,7 @@ export function useMessagesData() {
         convos.push(toThread(conv));
 
         for (const p of conv.Participants) {
-          if (p.userId !== meId && !userMap.has(p.userId)) {
+          if (p.userId !== meIdRef.current && !userMap.has(p.userId)) {
             userMap.set(p.userId, toUser(p));
           }
         }
@@ -118,12 +122,20 @@ export function useMessagesData() {
       setThreads(convos);
       setUsers(Array.from(userMap.values()));
       setError(null);
+
+      // After fetching, join all conversation rooms via socket
+      // This ensures socket is in the right rooms even if it connected before fetch completed
+      if (socketRef.current?.connected) {
+        convos.forEach((conv) => {
+          socketRef.current!.emit("conversation:join", { conversationId: conv.id });
+        });
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to load conversations");
     } finally {
       setLoading(false);
     }
-  }, [meId]);
+  }, []);
 
   // Fetch messages for a specific conversation
   const fetchMessages = useCallback(async (threadId: string) => {
@@ -147,36 +159,45 @@ export function useMessagesData() {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Fetch messages when selecting a thread
+  // Fetch messages and join socket room when selecting a thread
   useEffect(() => {
     if (selectedThreadId) {
       fetchMessages(selectedThreadId);
       // Join the socket room when opening a conversation
-      if (socketRef.current) {
+      if (socketRef.current?.connected) {
         socketRef.current.emit("conversation:join", { conversationId: selectedThreadId });
       }
     }
   }, [selectedThreadId, fetchMessages]);
 
-  // Socket.io connection
+  // Socket.io connection — runs once on mount
   useEffect(() => {
     const token = getToken();
     if (!token) return;
 
     const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000", {
       auth: { token },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     socket.on("connect", () => {
-      console.log("Socket connected");
+      console.log("Socket connected:", socket.id);
+      // Re-join all conversation rooms on reconnect
+      fetchConversations();
     });
 
     socket.on("message:new", (msg: any) => {
       const mapped = toMessage(msg);
-      setMessagesByThread((prev) => ({
-        ...prev,
-        [mapped.threadId]: [...(prev[mapped.threadId] ?? []), mapped],
-      }));
+      setMessagesByThread((prev) => {
+        const existing = prev[mapped.threadId] ?? [];
+        // Avoid duplicates in case REST and socket both add the message
+        if (existing.some((m) => m.id === mapped.id)) return prev;
+        return {
+          ...prev,
+          [mapped.threadId]: [...existing, mapped],
+        };
+      });
       // Bump thread to top
       setThreads((prev) =>
         prev.map((t) => (t.id === mapped.threadId ? { ...t, updatedAt: Date.now() } : t))
@@ -208,7 +229,11 @@ export function useMessagesData() {
     });
 
     socket.on("typing:indicator", (data: { conversationId: string; userId: string; isTyping: boolean }) => {
-      // Can wire this to UI later for typing indicators
+      // Update typing state for the conversation
+      setTypingByThread((prev) => ({
+        ...prev,
+        [data.conversationId]: data.isTyping ? data.userId : null,
+      }));
     });
 
     socket.on("message:read_receipt", (data: { conversationId: string; userId: string; messageId: string }) => {
@@ -219,49 +244,83 @@ export function useMessagesData() {
       console.error("Socket connection error:", err.message);
     });
 
+    socket.on("disconnect", (reason) => {
+      console.log("Socket disconnected:", reason);
+    });
+
     socketRef.current = socket;
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Send message via REST (socket broadcasts to other participants)
+  // Send message via socket (backend broadcasts message:new to all participants including sender)
   const onSend = useCallback(async (threadId: string, text: string, attachmentUrls?: string[]) => {
-    const token = getToken();
-    if (!token || !text.trim()) return;
-
-    try {
-      const res = await api.post(
-        `/api/v1/messages/conversations/${threadId}/messages`,
-        { content: text.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const mapped = toMessage(res.data);
-      setMessagesByThread((prev) => ({
-        ...prev,
-        [threadId]: [...(prev[threadId] ?? []), mapped],
-      }));
-      setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, updatedAt: Date.now() } : t))
-      );
-    } catch (err) {
-      console.error("Failed to send message:", err);
+    if (!text.trim() || !socketRef.current?.connected) {
+      // Fallback to REST if socket is not connected
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await api.post(
+          `/api/v1/messages/conversations/${threadId}/messages`,
+          { content: text.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const mapped = toMessage(res.data);
+        setMessagesByThread((prev) => ({
+          ...prev,
+          [threadId]: [...(prev[threadId] ?? []), mapped],
+        }));
+        setThreads((prev) =>
+          prev.map((t) => (t.id === threadId ? { ...t, updatedAt: Date.now() } : t))
+        );
+      } catch (err) {
+        console.error("Failed to send message via REST fallback:", err);
+      }
+      return;
     }
+
+    // Send via socket — backend saves to DB and broadcasts message:new to all in room
+    socketRef.current.emit("message:send", { conversationId: threadId, content: text.trim() });
   }, []);
 
-  // Edit a message via REST (socket broadcasts message:edited to both users)
+  // Edit a message via socket (backend broadcasts message:edited to all participants)
   const onEditMessage = useCallback(async (messageId: string, newText: string) => {
     if (!newText.trim() || !socketRef.current) return;
     socketRef.current.emit("message:edit", { messageId, content: newText.trim() });
   }, []);
 
-  // Delete a message via REST (socket broadcasts message:deleted to both users)
+  // Delete a message via socket (backend broadcasts message:deleted to all participants)
   const onDeleteMessage = useCallback(async (messageId: string) => {
     if (!socketRef.current) return;
     socketRef.current.emit("message:delete", { messageId });
+  }, []);
+
+  // Debounced typing start - fires on each keystroke, auto-stops after 3s of no input
+  const onTypingStart = useCallback((threadId: string) => {
+    if (!socketRef.current) return;
+
+    // Emit typing start
+    socketRef.current.emit("typing:start", { conversationId: threadId });
+
+    // Clear existing auto-stop timer
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+
+    // Auto-stop after 3 seconds of no typing
+    typingTimerRef.current = setTimeout(() => {
+      if (socketRef.current) {
+        socketRef.current.emit("typing:stop", { conversationId: threadId });
+      }
+    }, 3000);
+  }, []);
+
+  // Emit typing stop via socket (on blur or message send)
+  const onTypingStop = useCallback((threadId: string) => {
+    if (!socketRef.current) return;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    socketRef.current.emit("typing:stop", { conversationId: threadId });
   }, []);
 
   // Notes are local-only for now (no backend support)
@@ -271,13 +330,13 @@ export function useMessagesData() {
 
   // Start a DM with a user
   const onPickUser = useCallback(async (userId: ID) => {
-    if (userId === meId) return;
+    if (userId === meIdRef.current) return;
     const token = getToken();
     if (!token) return;
 
     // Check if thread already exists
     const existing = threads.find(
-      (t) => !t.isRequest && t.participantIds.includes(meId) && t.participantIds.includes(userId)
+      (t) => !t.isRequest && t.participantIds.includes(meIdRef.current) && t.participantIds.includes(userId)
     );
     if (existing) {
       setSelectedThreadId(existing.id);
@@ -297,7 +356,7 @@ export function useMessagesData() {
 
       // Add the other user if not already in state
       for (const p of res.data.Participants) {
-        if (p.userId !== meId) {
+        if (p.userId !== meIdRef.current) {
           setUsers((prev) => {
             if (prev.some((u) => u.id === p.userId)) return prev;
             return [...prev, toUser(p)];
@@ -306,13 +365,13 @@ export function useMessagesData() {
       }
 
       // Join the socket room for the new conversation
-      if (socketRef.current) {
+      if (socketRef.current?.connected) {
         socketRef.current.emit("conversation:join", { conversationId: newThread.id });
       }
     } catch (err) {
       console.error("Failed to create conversation:", err);
     }
-  }, [meId, threads]);
+  }, [threads]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -333,6 +392,9 @@ export function useMessagesData() {
     onSend,
     onEditMessage,
     onDeleteMessage,
+    onTypingStart,
+    onTypingStop,
+    typingByThread,
     onUpdateNote,
     onPickUser,
     refresh,
