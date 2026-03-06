@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { api } from "@/lib/axios";
+import { api } from "@/lib/api";
 import type { ID, Message, Note, Thread, User } from "@/types/messages";
 
 // Map backend conversation to frontend Thread

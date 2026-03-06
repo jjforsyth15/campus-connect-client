@@ -6,7 +6,6 @@ import { Box } from "@mui/material";
 import { LoadingState, ErrorState } from "@/components/messages/MessagesStates";
 import MessagesView from "@/components/messages/MessagesView";
 import { useMessagesData } from "@/components/messages/useMessagesData";
-import { ME_ID } from "@/components/messages/constants";
 
 const DashboardSidebar = dynamic(() => import("@/components/dashboard/sidebar"), {
   ssr: false,
@@ -30,7 +29,7 @@ export default function MessagesPage() {
   return (
     <MessagesView
       me={data.me}
-      meId={ME_ID}
+      meId={data.me.id}
       threads={data.threads}
       users={data.usersWithMe}
       notes={data.notes}
