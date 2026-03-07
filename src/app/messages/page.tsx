@@ -50,6 +50,9 @@ export default function MessagesPage() {
       onReactMessage={data.onReactMessage}
       reactionsByMessage={data.reactionsByMessage}
       onSearchUsers={data.onSearchUsers}
+      hasMoreByThread={data.hasMoreByThread}
+      loadingMoreByThread={data.loadingMoreByThread}
+      onFetchOlder={data.fetchOlderMessages}
     />
   );
 }

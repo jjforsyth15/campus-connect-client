@@ -5,7 +5,6 @@ import { io, Socket } from "socket.io-client";
 import { api } from "@/lib/axios";
 import type { ID, Message, Note, Thread, User } from "@/types/messages";
 
-// Map backend conversation to frontend Thread
 function toThread(conv: any): Thread {
   return {
     id: conv.id,
@@ -15,7 +14,6 @@ function toThread(conv: any): Thread {
   };
 }
 
-// Map backend user participant to frontend User
 function toUser(participant: any): User {
   const u = participant.User || participant;
   return {
@@ -27,7 +25,6 @@ function toUser(participant: any): User {
   };
 }
 
-// Map backend message to frontend Message
 function toMessage(msg: any): Message {
   return {
     id: msg.id,
@@ -62,9 +59,13 @@ export function useMessagesData() {
   const [typingByThread, setTypingByThread] = useState<Record<string, string | null>>({});
   const [reactionsByMessage, setReactionsByMessage] = useState<Record<string, { emoji: string; userId: string }[]>>({});
   const [readReceiptsByThread, setReadReceiptsByThread] = useState<Record<string, { userId: string; messageId: string }>>({});
+  const [hasMoreByThread, setHasMoreByThread] = useState<Record<string, boolean>>({});
+  const [loadingMoreByThread, setLoadingMoreByThread] = useState<Record<string, boolean>>({});
+  
   const socketRef = useRef<Socket | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const meIdRef = useRef<string>("");
+  const loadingMoreRef = useRef<Record<string, boolean>>({});
 
   const storedUser = getStoredUser();
   const meId: ID = storedUser?.id || "";
@@ -89,7 +90,6 @@ export function useMessagesData() {
     [selectedThreadId, messagesByThread]
   );
 
-  // Fetch conversations on mount
   const fetchConversations = useCallback(async () => {
     const token = getToken();
     if (!token) { setError("Not authenticated"); setLoading(false); return; }
@@ -110,19 +110,12 @@ export function useMessagesData() {
             userMap.set(p.userId, toUser(p));
           }
         }
-
-        // Store the last message preview if it exists
-        if (conv.Messages?.length > 0) {
-          const msgs = conv.Messages.map(toMessage);
-          setMessagesByThread((prev) => ({ ...prev, [conv.id]: msgs }));
-        }
       }
 
       setThreads(convos);
       setUsers(Array.from(userMap.values()));
       setError(null);
 
-      // After fetching, join all conversation rooms via socket
       if (socketRef.current?.connected) {
         convos.forEach((conv) => {
           socketRef.current!.emit("conversation:join", { conversationId: conv.id });
@@ -135,20 +128,31 @@ export function useMessagesData() {
     }
   }, []);
 
-  // Fetch messages for a specific conversation
   const fetchMessages = useCallback(async (threadId: string) => {
     const token = getToken();
     if (!token) return;
 
+    setMessagesByThread((prev) => ({ ...prev, [threadId]: [] }));
+
     try {
       const res = await api.get(`/api/v1/messages/conversations/${threadId}/messages`, {
+        params: { limit: 30 },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const msgs = res.data.map(toMessage).reverse();
       setMessagesByThread((prev) => ({ ...prev, [threadId]: msgs }));
+      setHasMoreByThread((prev) => ({ ...prev, [threadId]: res.data.length === 30 }));
 
-      // Seed reactions from fetched messages
+      // Emit read receipt after messages are loaded
+      if (msgs.length && socketRef.current?.connected) {
+        const lastMsg = msgs[msgs.length - 1];
+        socketRef.current.emit("message:read", {
+          conversationId: threadId,
+          messageId: lastMsg.id,
+        });
+      }
+
       const reactions: Record<string, { emoji: string; userId: string }[]> = {};
       res.data.forEach((msg: any) => {
         if (msg.Reactions?.length) {
@@ -161,19 +165,57 @@ export function useMessagesData() {
     }
   }, []);
 
-  // Load conversations on mount
+  const fetchOlderMessages = useCallback(async (threadId: string) => {
+    const token = getToken();
+    if (!token) return;
+    if (loadingMoreRef.current[threadId]) return;
+
+    const existing = messagesByThread[threadId] ?? [];
+    if (!existing.length) return;
+
+    const cursor = existing[0].id;
+
+    loadingMoreRef.current[threadId] = true;
+    setLoadingMoreByThread((prev) => ({ ...prev, [threadId]: true }));
+
+    try {
+      const res = await api.get(`/api/v1/messages/conversations/${threadId}/messages`, {
+        params: { limit: 30, cursor },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const older = res.data.map(toMessage).reverse();
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [threadId]: [...older, ...(prev[threadId] ?? [])],
+      }));
+      setHasMoreByThread((prev) => ({ ...prev, [threadId]: res.data.length === 30 }));
+
+      const reactions: Record<string, { emoji: string; userId: string }[]> = {};
+      res.data.forEach((msg: any) => {
+        if (msg.Reactions?.length) {
+          reactions[msg.id] = msg.Reactions.map((r: any) => ({ emoji: r.emoji, userId: r.userId }));
+        }
+      });
+      setReactionsByMessage((prev) => ({ ...prev, ...reactions }));
+    } catch (err) {
+      console.error("Failed to fetch older messages:", err);
+    } finally {
+      loadingMoreRef.current[threadId] = false;
+      setLoadingMoreByThread((prev) => ({ ...prev, [threadId]: false }));
+    }
+  }, [messagesByThread]);
+
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Fetch messages and join socket room when selecting a thread
   useEffect(() => {
     if (selectedThreadId) {
       fetchMessages(selectedThreadId);
       if (socketRef.current?.connected) {
         socketRef.current.emit("conversation:join", { conversationId: selectedThreadId });
       }
-      // Mark conversation as read when opening it
       if (socketRef.current?.connected) {
         const messages = messagesByThread[selectedThreadId];
         if (messages?.length) {
@@ -185,9 +227,8 @@ export function useMessagesData() {
         }
       }
     }
-  }, [selectedThreadId, fetchMessages, messagesByThread]);
+  }, [selectedThreadId, fetchMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Socket.io connection — runs once on mount
   useEffect(() => {
     const token = getToken();
     if (!token) return;
@@ -200,7 +241,6 @@ export function useMessagesData() {
 
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
-      // Re-join all conversation rooms on reconnect
       fetchConversations();
     });
 
@@ -241,13 +281,13 @@ export function useMessagesData() {
         if (data.action === "removed") {
           return { ...prev, [data.messageId]: existing.filter((r) => !(r.userId === data.userId && r.emoji === data.emoji)) };
         }
-        // Avoid duplicates
         if (existing.some((r) => r.userId === data.userId && r.emoji === data.emoji)) return prev;
         return { ...prev, [data.messageId]: [...existing, { emoji: data.emoji, userId: data.userId }] };
       });
     });
 
     socket.on("typing:indicator", (data: { conversationId: string; userId: string; isTyping: boolean }) => {
+        console.log("typing:indicator received", data);
       setTypingByThread((prev) => ({
         ...prev,
         [data.conversationId]: data.isTyping ? data.userId : null,
@@ -277,10 +317,8 @@ export function useMessagesData() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Send message via socket
   const onSend = useCallback(async (threadId: string, text: string, attachmentUrls?: string[]) => {
     if (!text.trim() || !socketRef.current?.connected) {
-      // Fallback to REST if socket is not connected
       const token = getToken();
       if (!token) return;
       try {
@@ -306,26 +344,24 @@ export function useMessagesData() {
     socketRef.current.emit("message:send", { conversationId: threadId, content: text.trim() });
   }, []);
 
-  // Edit a message via socket
   const onEditMessage = useCallback(async (messageId: string, newText: string) => {
     if (!newText.trim() || !socketRef.current) return;
     socketRef.current.emit("message:edit", { messageId, content: newText.trim() });
   }, []);
 
-  // Delete a message via socket
   const onDeleteMessage = useCallback(async (messageId: string) => {
     if (!socketRef.current) return;
     socketRef.current.emit("message:delete", { messageId });
   }, []);
 
-  // React to a message via socket (toggles — backend handles add/remove)
   const onReactMessage = useCallback((messageId: string, emoji: string) => {
     if (!socketRef.current) return;
     socketRef.current.emit("message:react", { messageId, emoji });
   }, []);
 
-  // Debounced typing start
   const onTypingStart = useCallback((threadId: string) => {
+    console.log("typing:start emitting", threadId, socketRef.current?.connected);
+
     if (!socketRef.current) return;
     socketRef.current.emit("typing:start", { conversationId: threadId });
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
@@ -336,17 +372,14 @@ export function useMessagesData() {
     }, 3000);
   }, []);
 
-  // Typing stop
   const onTypingStop = useCallback((threadId: string) => {
     if (!socketRef.current) return;
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     socketRef.current.emit("typing:stop", { conversationId: threadId });
   }, []);
 
-  // Notes are local-only for now
   const onUpdateNote = useCallback(async (_text: string) => {}, []);
 
-  // Start a DM with a user
   const onPickUser = useCallback(async (userId: ID) => {
     if (userId === meIdRef.current) return;
     const token = getToken();
@@ -393,7 +426,6 @@ export function useMessagesData() {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Search users by name or email via backend
   const onSearchUsers = useCallback(async (q: string): Promise<User[]> => {
     const token = getToken();
     if (!token || q.trim().length < 2) return [];
@@ -432,5 +464,8 @@ export function useMessagesData() {
     onPickUser,
     refresh,
     onSearchUsers,
+    hasMoreByThread,
+    loadingMoreByThread,
+    fetchOlderMessages,
   };
 }
