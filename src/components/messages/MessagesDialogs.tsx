@@ -6,6 +6,7 @@ import {
   Avatar,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -49,6 +50,7 @@ export type MessagesDialogsProps = {
   onReportReason: (r: string) => void;
   onReportDetails: (v: string) => void;
   onSubmitReport: () => void;
+  onSearchUsers: (q: string) => Promise<User[]>;
 };
 
 export default function MessagesDialogs(props: MessagesDialogsProps) {
@@ -77,20 +79,55 @@ export default function MessagesDialogs(props: MessagesDialogsProps) {
     onReportReason,
     onReportDetails,
     onSubmitReport,
+    onSearchUsers,
   } = props;
 
   const [newMsgQuery, setNewMsgQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<User[]>([]);
+  const [searchLoading, setSearchLoading] = React.useState(false);
   const [noteText, setNoteText] = React.useState(myNoteText);
-  React.useEffect(() => { if (!newMsgOpen) setNewMsgQuery(""); }, [newMsgOpen]);
-  React.useEffect(() => { if (noteOpen) setNoteText(myNoteText); }, [noteOpen, myNoteText]);
+  const searchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredUsers = React.useMemo(() => {
-    const q = newMsgQuery.trim().toLowerCase();
-    return users
-      .filter((u) => u.id !== meId && !blockedUserIds.has(u.id))
-      .filter((u) => !q || u.username.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q))
-      .slice(0, 30);
-  }, [newMsgQuery, users, blockedUserIds, meId]);
+  React.useEffect(() => {
+    if (!newMsgOpen) {
+      setNewMsgQuery("");
+      setSearchResults([]);
+      setSearchLoading(false);
+    }
+  }, [newMsgOpen]);
+
+  React.useEffect(() => {
+    if (noteOpen) setNoteText(myNoteText);
+  }, [noteOpen, myNoteText]);
+
+  // Debounced search — fires 350ms after user stops typing
+  React.useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    const q = newMsgQuery.trim();
+
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    searchTimerRef.current = setTimeout(async () => {
+      const results = await onSearchUsers(q);
+      setSearchResults(results.filter((u) => u.id !== meId && !blockedUserIds.has(u.id)));
+      setSearchLoading(false);
+    }, 350);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [newMsgQuery, onSearchUsers, meId, blockedUserIds]);
+
+  // Fall back to local users list when query is empty
+  const displayedUsers = newMsgQuery.trim().length < 2
+    ? users.filter((u) => u.id !== meId && !blockedUserIds.has(u.id)).slice(0, 30)
+    : searchResults;
 
   const trimmedNote = noteText.trim();
 
@@ -102,21 +139,48 @@ export default function MessagesDialogs(props: MessagesDialogsProps) {
           <IconButton onClick={onCloseNewMsg} sx={{ position: "absolute", right: 10, top: 10 }}><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
-          <TextField value={newMsgQuery} onChange={(e) => setNewMsgQuery(e.target.value)} placeholder="Search username or name" fullWidth size="small" InputProps={{ sx: { bgcolor: "rgba(0,0,0,0.04)", borderRadius: 999 } }} />
+          <TextField
+            value={newMsgQuery}
+            onChange={(e) => setNewMsgQuery(e.target.value)}
+            placeholder="Search by name or email"
+            fullWidth
+            size="small"
+            autoFocus
+            InputProps={{
+              sx: { bgcolor: "rgba(0,0,0,0.04)", borderRadius: 999 },
+              endAdornment: searchLoading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null,
+            }}
+          />
           <Divider sx={{ my: 1.5 }} />
           <List sx={{ p: 0, maxHeight: 380, overflow: "auto" }}>
-            {filteredUsers.map((u) => (
-              <ListItemButton key={u.id} onClick={() => { onPickUser(u.id); onCloseNewMsg(); }} sx={{ borderRadius: 2 }}>
+            {displayedUsers.map((u) => (
+              <ListItemButton
+                key={u.id}
+                onClick={() => { onPickUser(u.id); onCloseNewMsg(); }}
+                sx={{ borderRadius: 2 }}
+              >
                 <Avatar src={u.avatarUrl} sx={{ mr: 1.5, bgcolor: "white" }} />
-                <ListItemText primary={<Typography sx={{ fontWeight: 900 }}>{u.displayName}</Typography>} secondary={`@${u.username}`} />
-                <Button variant="contained" sx={{ ml: 1, borderRadius: 999, fontWeight: 900, textTransform: "none", bgcolor: RED }}>Chat</Button>
+                <ListItemText
+                  primary={<Typography sx={{ fontWeight: 900 }}>{u.displayName}</Typography>}
+                  secondary={`@${u.username}`}
+                />
+                <Button variant="contained" sx={{ ml: 1, borderRadius: 999, fontWeight: 900, textTransform: "none", bgcolor: RED }}>
+                  Chat
+                </Button>
               </ListItemButton>
             ))}
-            {filteredUsers.length === 0 && <Box sx={{ py: 5, textAlign: "center" }}><Typography sx={{ fontWeight: 900 }}>No results</Typography></Box>}
+            {!searchLoading && displayedUsers.length === 0 && (
+              <Box sx={{ py: 5, textAlign: "center" }}>
+                <Typography sx={{ fontWeight: 900 }}>
+                  {newMsgQuery.trim().length >= 2 ? "No users found" : "Start typing to search"}
+                </Typography>
+              </Box>
+            )}
           </List>
         </DialogContent>
       </Dialog>
 
+      {/* Note dialog */}
       <Dialog open={noteOpen} onClose={onCloseNote} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 1000 }}>
           Create a note
@@ -132,6 +196,7 @@ export default function MessagesDialogs(props: MessagesDialogsProps) {
         </DialogActions>
       </Dialog>
 
+      {/* GIF dialog */}
       <Dialog open={gifOpen} onClose={onCloseGif} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 1000 }}>
           GIFs
@@ -152,6 +217,7 @@ export default function MessagesDialogs(props: MessagesDialogsProps) {
         <DialogActions sx={{ px: 3, pb: 2 }}><Button onClick={onCloseGif} sx={{ fontWeight: 900, textTransform: "none" }}>Close</Button></DialogActions>
       </Dialog>
 
+      {/* Image viewer */}
       <Dialog open={imgView.open} onClose={onCloseImgView} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 1000 }}>
           {imgView.name || "Image"}
@@ -162,6 +228,7 @@ export default function MessagesDialogs(props: MessagesDialogsProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Report dialog */}
       <Dialog open={reportOpen} onClose={onCloseReport} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 1000 }}>
           Report

@@ -49,9 +49,24 @@ export function getLastMessage(all: Message[], threadId: ID): Message | null {
   return ms.sort((a, b) => b.createdAt - a.createdAt)[0];
 }
 
-export function isThreadUnread(all: Message[], threadId: ID, meId: ID): boolean {
+export function isThreadUnread(
+  all: Message[],
+  threadId: ID,
+  meId: ID,
+  readReceiptsByThread?: Record<string, { userId: string; messageId: string }>
+): boolean {
   const last = getLastMessage(all, threadId);
   if (!last || last.fromUserId === meId) return false;
+  // If we have read receipt data, use it
+  if (readReceiptsByThread) {
+    const receipt = readReceiptsByThread[threadId];
+    if (!receipt) return true;
+    // Find if the receipt messageId is >= last message (i.e. last was seen)
+    const msgs = all.filter((m) => m.threadId === threadId).sort((a, b) => a.createdAt - b.createdAt);
+    const receiptIdx = msgs.findIndex((m) => m.id === receipt.messageId);
+    const lastIdx = msgs.findIndex((m) => m.id === last.id);
+    return receiptIdx < lastIdx;
+  }
   return !new Set(last.seenByUserIds ?? []).has(meId);
 }
 

@@ -46,6 +46,10 @@ export default function MessagesPage() {
       onTypingStart={data.onTypingStart}
       onTypingStop={data.onTypingStop}
       typingByThread={data.typingByThread}
+      readReceiptsByThread={data.readReceiptsByThread}
+      onReactMessage={data.onReactMessage}
+      reactionsByMessage={data.reactionsByMessage}
+      onSearchUsers={data.onSearchUsers}
     />
   );
 }

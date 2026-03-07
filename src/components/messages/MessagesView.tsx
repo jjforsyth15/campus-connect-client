@@ -53,6 +53,8 @@ const DashboardSidebar = dynamic(() => import("@/components/dashboard/sidebar"),
   loading: () => <Box sx={{ width: 220, flexShrink: 0, height: "100vh", borderRight: "1px solid rgba(0,0,0,0.08)", bgcolor: "white" }} />,
 });
 
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
+
 export type MessagesViewProps = {
   me: User;
   meId: ID;
@@ -67,13 +69,16 @@ export type MessagesViewProps = {
   onUpdateNote: (text: string) => void | Promise<void>;
   onPickUser: (userId: ID) => void | Promise<void>;
   onRefresh: () => void;
-  // Edit/delete message handlers
   onEditMessage: (messageId: string, newText: string) => void | Promise<void>;
   onDeleteMessage: (messageId: string) => void | Promise<void>;
-  // Typing indicator props
+  onReactMessage: (messageId: string, emoji: string) => void;
   typingByThread: Record<string, string | null>;
   onTypingStart: (threadId: string) => void;
   onTypingStop: (threadId: string) => void;
+  readReceiptsByThread: Record<string, { userId: string; messageId: string }>;
+  reactionsByMessage: Record<string, { emoji: string; userId: string }[]>;
+  onSearchUsers: (q: string) => Promise<User[]>;
+
 };
 
 export default function MessagesView(props: MessagesViewProps) {
@@ -94,9 +99,13 @@ export default function MessagesView(props: MessagesViewProps) {
     onRefresh,
     onEditMessage,
     onDeleteMessage,
+    onReactMessage,
     typingByThread,
     onTypingStart,
     onTypingStop,
+    readReceiptsByThread,
+    reactionsByMessage,
+    onSearchUsers,
   } = props;
 
   const [activeTab, setActiveTab] = React.useState<"messages" | "requests">("messages");
@@ -112,12 +121,27 @@ export default function MessagesView(props: MessagesViewProps) {
   const [reportDetails, setReportDetails] = React.useState("");
   const [gifFavorites, setGifFavorites] = React.useState<string[]>([]);
 
-  // Message hover/edit/delete state
   const [hoveredMsgId, setHoveredMsgId] = React.useState<ID | null>(null);
   const [msgMenuAnchor, setMsgMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [msgMenuTarget, setMsgMenuTarget] = React.useState<ID | null>(null);
   const [editingMsgId, setEditingMsgId] = React.useState<ID | null>(null);
   const [editingText, setEditingText] = React.useState("");
+  const [emojiPickerMsgId, setEmojiPickerMsgId] = React.useState<ID | null>(null);
+
+  // Track which threads we've opened so we can clear the unread dot
+  const [readThreadIds, setReadThreadIds] = React.useState<Set<ID>>(new Set());
+  React.useEffect(() => {
+    if (selectedThreadId) {
+      setReadThreadIds((prev) => new Set([...prev, selectedThreadId]));
+    }
+  }, [selectedThreadId]);
+
+  // Also clear unread when a new message arrives in the currently open thread
+  React.useEffect(() => {
+    if (selectedThreadId && threadMessages.length > 0) {
+      setReadThreadIds((prev) => new Set([...prev, selectedThreadId]));
+    }
+  }, [selectedThreadId, threadMessages.length]);
 
   React.useEffect(() => {
     try {
@@ -125,6 +149,7 @@ export default function MessagesView(props: MessagesViewProps) {
       if (stored) setGifFavorites(JSON.parse(stored));
     } catch {}
   }, []);
+
   const [draftByThreadId, setDraftByThreadId] = React.useState<Record<ID, DraftState>>({});
   const [nowMs, setNowMs] = React.useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
@@ -137,6 +162,7 @@ export default function MessagesView(props: MessagesViewProps) {
     const id = window.setInterval(() => setNowMs(Date.now()), 30000);
     return () => window.clearInterval(id);
   }, []);
+
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior) => {
     if (scrollerRef.current && bottomRef.current) scrollerRef.current.scrollTo({ top: bottomRef.current.offsetTop, behavior });
   }, []);
@@ -174,12 +200,12 @@ export default function MessagesView(props: MessagesViewProps) {
         return `${who} ${recent}`.toLowerCase().includes(q);
       });
     return base.sort((a, b) => {
-      const au = isThreadUnread(allMessages, a.id, meId) ? 1 : 0;
-      const bu = isThreadUnread(allMessages, b.id, meId) ? 1 : 0;
+      const au = !readThreadIds.has(a.id) && isThreadUnread(allMessages, a.id, meId) ? 1 : 0;
+      const bu = !readThreadIds.has(b.id) && isThreadUnread(allMessages, b.id, meId) ? 1 : 0;
       if (au !== bu) return bu - au;
       return b.updatedAt - a.updatedAt;
     });
-  }, [threads, activeTab, reportedThreadIds, blockedUserIds, threadSearch, userById, allMessages, meId]);
+  }, [threads, activeTab, reportedThreadIds, blockedUserIds, threadSearch, userById, allMessages, meId, readThreadIds]);
 
   const selectedDraft = selectedThreadId ? draftByThreadId[selectedThreadId] ?? emptyDraft() : emptyDraft();
   const setDraft = React.useCallback((updater: (prev: DraftState) => DraftState) => {
@@ -204,11 +230,9 @@ export default function MessagesView(props: MessagesViewProps) {
     if (!text && selectedDraft.files.length === 0 && urls.length === 0) return;
     await onSend(selectedThread.id, text, urls.length ? urls : undefined);
     setDraftByThreadId((prev) => ({ ...prev, [selectedThreadId]: emptyDraft() }));
-    // Stop typing indicator when message is sent
     onTypingStop(selectedThreadId);
   }, [selectedThread, selectedThreadId, selectedDraft, onSend, onTypingStop]);
 
-  // Submit an edited message
   const handleEditSubmit = React.useCallback(async () => {
     if (!editingMsgId || !editingText.trim()) return;
     await onEditMessage(editingMsgId, editingText);
@@ -227,6 +251,22 @@ export default function MessagesView(props: MessagesViewProps) {
     if (selectedThreadId === threadId) onSelectedThreadIdChange(null);
     onRefresh();
   };
+
+  const lastMyMessageId = React.useMemo(() => {
+    const mine = [...threadMessages].reverse().find((m) => m.fromUserId === meId);
+    return mine?.id ?? null;
+  }, [threadMessages, meId]);
+
+  const getGroupedReactions = React.useCallback((messageId: string) => {
+    const reactions = reactionsByMessage[messageId] ?? [];
+    const grouped: Record<string, { count: number; reactedByMe: boolean }> = {};
+    for (const r of reactions) {
+      if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, reactedByMe: false };
+      grouped[r.emoji].count++;
+      if (r.userId === meId) grouped[r.emoji].reactedByMe = true;
+    }
+    return grouped;
+  }, [reactionsByMessage, meId]);
 
   return (
     <Box sx={{ display: "flex", bgcolor: "#fafafb", height: "100vh", overflow: "hidden" }}>
@@ -273,7 +313,8 @@ export default function MessagesView(props: MessagesViewProps) {
                   const other = otherId ? userById.get(otherId) : null;
                   if (!other) return null;
                   const last = getLastMessage(allMessages, t.id);
-                  const unread = isThreadUnread(allMessages, t.id, meId);
+                  // Unread only if thread hasn't been opened and has unread messages
+                  const unread = !readThreadIds.has(t.id) && isThreadUnread(allMessages, t.id, meId);
                   const lastText = last?.text || (last?.attachments?.length ? "Sent an attachment" : "Say hi");
                   return (
                     <Box key={t.id} sx={{ mb: 0.4 }}>
@@ -355,64 +396,157 @@ export default function MessagesView(props: MessagesViewProps) {
                       const mine = m.fromUserId === meId;
                       const isEditing = editingMsgId === m.id;
                       const isDeleted = !m.text && !m.attachments?.length;
+                      const isLastMine = mine && m.id === lastMyMessageId;
+                      const seenByOther = selectedThreadId && readReceiptsByThread[selectedThreadId]?.messageId === m.id;
+                      const groupedReactions = getGroupedReactions(m.id);
+                      const hasReactions = Object.keys(groupedReactions).length > 0;
+                      const showEmojiPicker = emojiPickerMsgId === m.id;
+
                       return (
-                        <Box
-                          key={m.id}
-                          sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}
-                          onMouseEnter={() => setHoveredMsgId(m.id)}
-                          onMouseLeave={() => setHoveredMsgId(null)}
-                        >
-                          {/* Show MoreHoriz button on hover for own messages */}
-                          {mine && !isDeleted && (hoveredMsgId === m.id || msgMenuTarget === m.id) && !isEditing && (
-                            <IconButton
-                              size="small"
-                              onClick={(e) => { setMsgMenuAnchor(e.currentTarget); setMsgMenuTarget(m.id); }}
-                              sx={{ alignSelf: "center", mr: 0.5, opacity: 0.6 }}
-                            >
-                              <MoreHorizIcon fontSize="small" />
-                            </IconButton>
-                          )}
-                          <Box sx={{ maxWidth: "78%", px: 1.6, py: 1.1, borderRadius: 3, bgcolor: mine ? "rgba(168,5,50,0.10)" : "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.06)", whiteSpace: "pre-wrap", fontSize: 14 }}>
-                            {isDeleted ? (
-                              // Show placeholder for deleted messages
-                              <Typography sx={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontStyle: "italic" }}>Message deleted</Typography>
-                            ) : isEditing ? (
-                              // Inline edit input
-                              <Stack direction="row" spacing={0.5} alignItems="center">
-                                <TextField
-                                  value={editingText}
-                                  onChange={(e) => setEditingText(e.target.value)}
+                        <Box key={m.id} sx={{ mb: hasReactions ? 1.5 : 0 }}>
+                          <Box
+                            sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", alignItems: "center", gap: 0.5 }}
+                            onMouseEnter={() => setHoveredMsgId(m.id)}
+                            onMouseLeave={() => { setHoveredMsgId(null); setEmojiPickerMsgId(null); }}
+                          >
+                            {!isDeleted && !isEditing && (hoveredMsgId === m.id || showEmojiPicker) && (
+                              <Box sx={{ order: mine ? 0 : 2, position: "relative" }}>
+                                <IconButton
                                   size="small"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSubmit(); }
-                                    if (e.key === "Escape") { setEditingMsgId(null); setEditingText(""); }
-                                  }}
-                                  InputProps={{ sx: { fontSize: 14, borderRadius: 2 } }}
-                                />
-                                <Button size="small" variant="contained" onClick={handleEditSubmit} sx={{ bgcolor: RED, fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0, px: 1.5 }}>Save</Button>
-                                <Button size="small" onClick={() => { setEditingMsgId(null); setEditingText(""); }} sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0 }}>Cancel</Button>
-                              </Stack>
-                            ) : (
-                              <>
-                                {!!m.text && <Box>{m.text}</Box>}
-                                {!!m.attachments?.length && (
-                                  <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
-                                    {m.attachments.map((a) => (
-                                      <Box key={a.id}>
-                                        {a.type === "image" ? <Box component="img" src={a.url} alt={a.name} onClick={() => setImgView({ open: true, url: a.url, name: a.name })} sx={{ width: 220, maxWidth: "100%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.10)", cursor: "zoom-in" }} /> : a.type === "audio" ? <audio controls src={a.url} /> : <Chip label={a.name} icon={<AttachFileIcon />} variant="outlined" sx={{ fontWeight: 800 }} />}
-                                      </Box>
-                                    ))}
-                                  </Stack>
+                                  onClick={() => setEmojiPickerMsgId(showEmojiPicker ? null : m.id)}
+                                  sx={{ opacity: 0.55, fontSize: 16 }}
+                                >
+                                  😊
+                                </IconButton>
+                                {showEmojiPicker && (
+                                  <Box
+                                    sx={{
+                                      position: "absolute",
+                                      bottom: "100%",
+                                      [mine ? "right" : "left"]: 0,
+                                      mb: 0.5,
+                                      bgcolor: "white",
+                                      border: "1px solid rgba(0,0,0,0.12)",
+                                      borderRadius: 3,
+                                      boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                                      display: "flex",
+                                      gap: 0.25,
+                                      px: 0.75,
+                                      py: 0.5,
+                                      zIndex: 10,
+                                    }}
+                                    onMouseEnter={() => setEmojiPickerMsgId(m.id)}
+                                  >
+                                    {QUICK_EMOJIS.map((emoji) => {
+                                      const alreadyReacted = groupedReactions[emoji]?.reactedByMe ?? false;
+                                      return (
+                                        <Box
+                                          key={emoji}
+                                          onClick={() => { onReactMessage(m.id, emoji); setEmojiPickerMsgId(null); }}
+                                          sx={{
+                                            fontSize: 20,
+                                            cursor: "pointer",
+                                            px: 0.5,
+                                            py: 0.25,
+                                            borderRadius: 1.5,
+                                            bgcolor: alreadyReacted ? "rgba(168,5,50,0.10)" : "transparent",
+                                            "&:hover": { bgcolor: "rgba(0,0,0,0.07)", transform: "scale(1.2)" },
+                                            transition: "transform 0.1s",
+                                          }}
+                                        >
+                                          {emoji}
+                                        </Box>
+                                      );
+                                    })}
+                                  </Box>
                                 )}
-                              </>
+                              </Box>
                             )}
+
+                            {mine && !isDeleted && (hoveredMsgId === m.id || msgMenuTarget === m.id) && !isEditing && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => { setMsgMenuAnchor(e.currentTarget); setMsgMenuTarget(m.id); }}
+                                sx={{ order: 1, alignSelf: "center", opacity: 0.6 }}
+                              >
+                                <MoreHorizIcon fontSize="small" />
+                              </IconButton>
+                            )}
+
+                            <Box sx={{ order: mine ? 1 : 1, maxWidth: "78%", px: 1.6, py: 1.1, borderRadius: 3, bgcolor: mine ? "rgba(168,5,50,0.10)" : "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.06)", whiteSpace: "pre-wrap", fontSize: 14 }}>
+                              {isDeleted ? (
+                                <Typography sx={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontStyle: "italic" }}>Message deleted</Typography>
+                              ) : isEditing ? (
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                  <TextField
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.target.value)}
+                                    size="small"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSubmit(); }
+                                      if (e.key === "Escape") { setEditingMsgId(null); setEditingText(""); }
+                                    }}
+                                    InputProps={{ sx: { fontSize: 14, borderRadius: 2 } }}
+                                  />
+                                  <Button size="small" variant="contained" onClick={handleEditSubmit} sx={{ bgcolor: RED, fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0, px: 1.5 }}>Save</Button>
+                                  <Button size="small" onClick={() => { setEditingMsgId(null); setEditingText(""); }} sx={{ fontWeight: 900, textTransform: "none", borderRadius: 999, minWidth: 0 }}>Cancel</Button>
+                                </Stack>
+                              ) : (
+                                <>
+                                  {!!m.text && <Box>{m.text}</Box>}
+                                  {!!m.attachments?.length && (
+                                    <Stack spacing={1} sx={{ mt: m.text ? 1 : 0 }}>
+                                      {m.attachments.map((a) => (
+                                        <Box key={a.id}>
+                                          {a.type === "image" ? <Box component="img" src={a.url} alt={a.name} onClick={() => setImgView({ open: true, url: a.url, name: a.name })} sx={{ width: 220, maxWidth: "100%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.10)", cursor: "zoom-in" }} /> : a.type === "audio" ? <audio controls src={a.url} /> : <Chip label={a.name} icon={<AttachFileIcon />} variant="outlined" sx={{ fontWeight: 800 }} />}
+                                        </Box>
+                                      ))}
+                                    </Stack>
+                                  )}
+                                </>
+                              )}
+                            </Box>
                           </Box>
+
+                          {hasReactions && (
+                            <Box sx={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", flexWrap: "wrap", gap: 0.5, mt: 0.4, px: 0.5 }}>
+                              {Object.entries(groupedReactions).map(([emoji, { count, reactedByMe }]) => (
+                                <Box
+                                  key={emoji}
+                                  onClick={() => onReactMessage(m.id, emoji)}
+                                  sx={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 0.4,
+                                    px: 0.9,
+                                    py: 0.2,
+                                    borderRadius: 999,
+                                    fontSize: 13,
+                                    cursor: "pointer",
+                                    bgcolor: reactedByMe ? "rgba(168,5,50,0.12)" : "rgba(0,0,0,0.05)",
+                                    border: reactedByMe ? `1px solid rgba(168,5,50,0.35)` : "1px solid rgba(0,0,0,0.10)",
+                                    "&:hover": { bgcolor: reactedByMe ? "rgba(168,5,50,0.20)" : "rgba(0,0,0,0.10)" },
+                                    transition: "background 0.15s",
+                                    userSelect: "none",
+                                  }}
+                                >
+                                  <span>{emoji}</span>
+                                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: reactedByMe ? RED : "rgba(0,0,0,0.6)", lineHeight: 1 }}>{count}</Typography>
+                                </Box>
+                              ))}
+                            </Box>
+                          )}
+
+                          {isLastMine && seenByOther && (
+                            <Box sx={{ display: "flex", justifyContent: "flex-end", pr: 0.5, mt: 0.25 }}>
+                              <Typography sx={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>Seen</Typography>
+                            </Box>
+                          )}
                         </Box>
                       );
                     })}
 
-                    {/* Typing indicator */}
                     {selectedThreadId && typingByThread[selectedThreadId] && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1, py: 0.5 }}>
                         <Typography sx={{ fontSize: 12, color: "rgba(0,0,0,0.5)", fontStyle: "italic" }}>
@@ -424,7 +558,6 @@ export default function MessagesView(props: MessagesViewProps) {
                     <Box ref={bottomRef} />
                   </Stack>
 
-                  {/* Per-message context menu (Edit / Delete) */}
                   <Menu
                     open={!!msgMenuAnchor}
                     anchorEl={msgMenuAnchor}
@@ -460,7 +593,6 @@ export default function MessagesView(props: MessagesViewProps) {
               <Stack direction="row" spacing={1} alignItems="center">
                 <IconButton component="label" disabled={!selectedThread} title="Attach file"><AttachFileIcon /><input hidden type="file" multiple accept="image/*,audio/*,application/pdf" onChange={(e) => { if (e.target.files) { addFiles(e.target.files); e.currentTarget.value = ""; } }} /></IconButton>
                 <IconButton disabled={!selectedThread} onClick={() => setGifOpen(true)} title="GIFs"><GifBoxIcon /></IconButton>
-                {/* Message input - emits typing:start on change, typing:stop on blur or send */}
                 <TextField
                   value={selectedDraft.text}
                   onChange={(e) => {
@@ -508,6 +640,7 @@ export default function MessagesView(props: MessagesViewProps) {
         onReportReason={setReportReason}
         onReportDetails={setReportDetails}
         onSubmitReport={submitReport}
+        onSearchUsers={onSearchUsers}
       />
     </Box>
   );
