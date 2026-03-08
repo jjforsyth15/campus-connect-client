@@ -63,7 +63,7 @@ const navItems: { label: string; icon: React.ReactNode; href?: string }[] = [
   { label: "Clubs", icon: <Diversity3Icon />, href: "/clubs" },
   { label: "Academics", icon: <SchoolIcon />, href: "/academics" },
   { label: "Marketplace", icon: <StorefrontIcon />, href: "/marketplace" },
-  { label: "SRC", icon: SRCIcon, href: "/ToroSRC" },
+  { label: "SRC", icon: SRCIcon, href: "/StudentRecCenter" },
 ];
 
 const containerVariants = {

@@ -8,9 +8,9 @@ import { Box, Tabs, Tab } from "@mui/material";
 const CSUN_RED = "#A80532";
 
 const tabs = [
-  { label: "Services", href: "/ToroSRC/services" },
-  { label: "Sport Clubs", href: "/ToroSRC/SportClubs" },
-  { label: "FitQuest", href: "/ToroSRC/FitQuest" },
+  { label: "Services", href: "/StudentRecCenter/services" },
+  { label: "Sport Clubs", href: "/StudentRecCenter/SportClubs" },
+  { label: "FitQuest", href: "/StudentRecCenter/FitQuest" },
 ];
 
 export default function NavTabs({

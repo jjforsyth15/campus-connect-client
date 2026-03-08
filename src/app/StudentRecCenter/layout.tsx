@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { Box } from "@mui/material";
-import SrcAuroraBg from "@/components/SRC-Components/SrcBg";
+import SrcAuroraBg from "@/components/StudentRecCenter/SrcBg";
 
 const SRC_TINT =
   "linear-gradient(180deg, rgba(168,5,50,0.45) 0%, rgba(168,5,50,0.34) 50%, rgba(168,5,50,0.45) 100%)";

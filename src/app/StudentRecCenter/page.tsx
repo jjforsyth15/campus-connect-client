@@ -12,34 +12,35 @@ import {
   Alert,
 } from "@mui/material";
 import Link from "next/link";
-import Header from "@/components/SRC-Components/srcHeader";
-import Carousel from "@/components/SRC-Components/Carousel";
-import { useRouter } from "next/navigation";
-import { loadProfile } from "@/lib/load-profile";
-import { Profile } from "../profile/page";
-import { useAuthorize } from "@/lib/useAuthorize";
+import Header from "@/components/StudentRecCenter/srcHeader";
+import Carousel from "@/components/StudentRecCenter/Carousel";
 
 const SRC_RED = "#A80532";
 
 export default function ToroSRC_HomePage() {
-
-  // authorization
-  const router = useRouter();
-  const { auth, user, token, loading } = useAuthorize();
-
-  React.useEffect(() => {
-    if(loading) return;
-    
-    if (auth && token)
-    console.log("Stored user: ", user);
-    else {
-      console.log("User not logged in.");
-      console.log("auth: " + auth, ". token: " + token);
-      router.replace("/");
-    }
-  }, [auth, token, user, loading, router]); 
+  // Authorization lockout feature temporarily disabled.
+  //
+  // If you want to re-enable it later, restore these imports and effect:
+  //   import { useRouter } from "next/navigation";
+  //   import { useAuthorize } from "@/lib/useAuthorize";
+  //
+  //   const router = useRouter();
+  //   const { auth, user, token, loading } = useAuthorize();
+  //
+  //   React.useEffect(() => {
+  //     if (loading) return;
+  //
+  //     if (auth && token) {
+  //       console.log("Stored user: ", user);
+  //     } else {
+  //       console.log("User not logged in.");
+  //       console.log("auth: " + auth, ". token: " + token);
+  //       router.replace("/");
+  //     }
+  //   }, [auth, token, user, loading, router]);
 
   const [toast, setToast] = React.useState<string | null>(null);
+
   const post = (url: string, program: string) =>
     fetch(url, {
       method: "POST",
@@ -48,19 +49,67 @@ export default function ToroSRC_HomePage() {
     });
 
   const featured = [
-    { title: "Yoga", blurb: "Guided flows for balance and flexibility. Mats available.", imageSrc: "/images/yoga.png" },
-    { title: "Boxing Conditioning", blurb: "Pads, bags, and footwork. High energy training.", imageSrc: "/images/boxing.png" },
-    { title: "Aquatics", blurb: "Lap swim and learn to swim options for all levels.", imageSrc: "/images/aquatics.png" },
-    { title: "Recovery Sessions", blurb: "Mobility, stretching, and tools to feel your best.", imageSrc: "/images/recovery.png" },
-    { title: "Private Instruction", blurb: "One on one coaching tailored to your goals.", imageSrc: "/images/private.png" },
-    { title: "First Aid & CPR", blurb: "Learn lifesaving skills with certified instruction.", imageSrc: "/images/firstaid.png" },
-    { title: "Reservations", blurb: "Reserve courts, lanes, and spaces with ease.", imageSrc: "/images/reservations.png" },
-    { title: "Group Exercise", blurb: "Join classes across strength, cardio, and mobility.", imageSrc: "/images/classes.png" },
-    { title: "Games Room", blurb: "Billiards, console gaming, lounge space to unwind.", imageSrc: "/images/games-room.png" },
-    { title: "Rock Wall", blurb: "Bouldering and top rope for all experience levels.", imageSrc: "/images/rock-wall.png" },
-    { title: "Outdoor Experiences", blurb: "Trips and skills clinics to explore the outdoors.", imageSrc: "/images/outdoor.png" },
-    { title: "Intramural Sports", blurb: "Leagues and tournaments for friendly competition.", imageSrc: "/images/intramurals.png" },
-  ].map(p => ({
+    {
+      title: "Yoga",
+      blurb: "Guided flows for balance and flexibility. Mats available.",
+      imageSrc: "/images/yoga.png",
+    },
+    {
+      title: "Boxing Conditioning",
+      blurb: "Pads, bags, and footwork. High energy training.",
+      imageSrc: "/images/boxing.png",
+    },
+    {
+      title: "Aquatics",
+      blurb: "Lap swim and learn to swim options for all levels.",
+      imageSrc: "/images/aquatics.png",
+    },
+    {
+      title: "Recovery Sessions",
+      blurb: "Mobility, stretching, and tools to feel your best.",
+      imageSrc: "/images/recovery.png",
+    },
+    {
+      title: "Private Instruction",
+      blurb: "One on one coaching tailored to your goals.",
+      imageSrc: "/images/private.png",
+    },
+    {
+      title: "First Aid & CPR",
+      blurb: "Learn lifesaving skills with certified instruction.",
+      imageSrc: "/images/firstaid.png",
+    },
+    {
+      title: "Reservations",
+      blurb: "Reserve courts, lanes, and spaces with ease.",
+      imageSrc: "/images/reservations.png",
+    },
+    {
+      title: "Group Exercise",
+      blurb: "Join classes across strength, cardio, and mobility.",
+      imageSrc: "/images/classes.png",
+    },
+    {
+      title: "Games Room",
+      blurb: "Billiards, console gaming, lounge space to unwind.",
+      imageSrc: "/images/games-room.png",
+    },
+    {
+      title: "Rock Wall",
+      blurb: "Bouldering and top rope for all experience levels.",
+      imageSrc: "/images/rock-wall.png",
+    },
+    {
+      title: "Outdoor Experiences",
+      blurb: "Trips and skills clinics to explore the outdoors.",
+      imageSrc: "/images/outdoor.png",
+    },
+    {
+      title: "Intramural Sports",
+      blurb: "Leagues and tournaments for friendly competition.",
+      imageSrc: "/images/intramurals.png",
+    },
+  ].map((p) => ({
     ...p,
     onAddToEvents: async () => {
       try {
@@ -174,7 +223,11 @@ export default function ToroSRC_HomePage() {
           sx={{
             display: "grid",
             gap: 2,
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+              md: "1fr 1fr 1fr",
+            },
           }}
         >
           {[
@@ -193,7 +246,8 @@ export default function ToroSRC_HomePage() {
                 border: "2px solid rgba(255,255,255,0.9)",
                 backdropFilter: "blur(8px)",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
+                transition:
+                  "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
                 "&:hover": {
                   transform: "translateY(-4px)",
                   boxShadow: "0 6px 24px rgba(0,0,0,0.25)",
@@ -206,7 +260,10 @@ export default function ToroSRC_HomePage() {
                   <Typography variant="h6" fontWeight={800} sx={{ color: "#fff" }}>
                     {c.title}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "rgba(255,255,255,0.85)" }}
+                  >
                     Explore classes, schedules, and sign ups.
                   </Typography>
                 </CardContent>
@@ -215,14 +272,21 @@ export default function ToroSRC_HomePage() {
           ))}
         </Box>
 
-
-        <Typography variant="h5" fontWeight={900} sx={{ mt: 5, mb: 2, color: "#fff" }}>
+        <Typography
+          variant="h5"
+          fontWeight={900}
+          sx={{ mt: 5, mb: 2, color: "#fff" }}
+        >
           Featured at the SRC
         </Typography>
         <Carousel slides={featured} />
       </Container>
 
-      <Snackbar open={!!toast} autoHideDuration={3000} onClose={() => setToast(null)}>
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={3000}
+        onClose={() => setToast(null)}
+      >
         <Alert severity="success" sx={{ width: "100%" }}>
           {toast}
         </Alert>

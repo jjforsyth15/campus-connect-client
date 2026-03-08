@@ -2,12 +2,6 @@
 
 import * as React from "react";
 
-/**
- * Interactive aurora-style gradient background.
- * - No deps
- * - Mouse/touch parallax
- * - Red-themed palette tuned for SRC
- */
 export default function SrcAuroraBg({
   opacity = 0.65,
   speed = 0.12,

@@ -1,14 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Avatar, Box, Button, Chip, Dialog, DialogContent, Divider, FormControl, IconButton, InputAdornment, MenuItem,
-  Paper, Select, Stack, TextField, Tooltip, Typography, useMediaQuery, useTheme,
+import { Box, Button, Chip, Dialog, DialogContent, Divider, FormControl, IconButton, InputAdornment, MenuItem, Paper,
+  Select, Stack, TextField, Tooltip, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -18,7 +16,16 @@ import LinkIcon from "@mui/icons-material/Link";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
 
-import type { NoteComment, NoteFolder, NoteFolderItem, NoteFolderItemType, NoteFolderVisibility } from "../shared/constants";
+import type {
+  NoteComment,
+  NoteFolder,
+  NoteFolderItem,
+  NoteFolderItemType,
+  NoteFolderVisibility,
+} from "@/components/academics/shared/constants";
+
+import NoteViewCommentsPanel from "@/components/academics/NoteShare/NoteViewCommentsPanel";
+import { Stars } from "@/components/academics/NoteShare/NoteView.ui";
 
 function makeId() {
   return `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
@@ -44,21 +51,6 @@ const TYPE_META: Record<NoteFolderItemType, { label: string; icon: React.ReactNo
   zip: { label: "ZIP", icon: <FolderZipIcon sx={{ fontSize: 16 }} /> },
   link: { label: "Link", icon: <LinkIcon sx={{ fontSize: 16 }} /> },
 };
-
-function Stars({ value, size = 16 }: { value: number; size?: number }) {
-  return (
-    <Stack direction="row" spacing={0.15} alignItems="center">
-      {Array.from({ length: 5 }).map((_, i) => {
-        const filled = i < Math.round(value);
-        return filled ? (
-          <StarRoundedIcon key={i} sx={{ fontSize: size, color: "#A80532" }} />
-        ) : (
-          <StarBorderRoundedIcon key={i} sx={{ fontSize: size, color: "rgba(0,0,0,0.22)" }} />
-        );
-      })}
-    </Stack>
-  );
-}
 
 function calcAvgRating(comments: NoteComment[], itemId?: string) {
   const list = comments.filter((c) => (itemId ? c.itemId === itemId : true));
@@ -98,6 +90,7 @@ export default function NoteView({
   const [uploadTitle, setUploadTitle] = React.useState("");
   const [uploadDesc, setUploadDesc] = React.useState("");
   const [uploadUrl, setUploadUrl] = React.useState("");
+  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
   const [uploadFileName, setUploadFileName] = React.useState("");
   const [uploadType, setUploadType] = React.useState<NoteFolderItemType>("pdf");
   const [uploadVisibility, setUploadVisibility] = React.useState<NoteFolderVisibility>("public");
@@ -105,11 +98,6 @@ export default function NoteView({
   const [uploadInvited, setUploadInvited] = React.useState<string[]>([]);
   const [uploaderEmail, setUploaderEmail] = React.useState("");
   const fileRef = React.useRef<HTMLInputElement>(null);
-
-  // comment state
-  const [commentBody, setCommentBody] = React.useState("");
-  const [commentRating, setCommentRating] = React.useState<1 | 2 | 3 | 4 | 5>(5);
-  const [commentEmail, setCommentEmail] = React.useState("");
 
   React.useEffect(() => {
     if (!open) return;
@@ -140,7 +128,9 @@ export default function NoteView({
     .filter((c) => (selectedItem ? c.itemId === selectedItem.id : true))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const avgForSelected = selectedItem ? calcAvgRating(selectedItemComments, selectedItem.id) : calcAvgRating(selectedItemComments);
+  const avgForSelected = selectedItem
+    ? calcAvgRating(selectedItemComments, selectedItem.id)
+    : calcAvgRating(selectedItemComments);
 
   const addUploadInvite = () => {
     const e = uploadInvitedEmail.trim().toLowerCase();
@@ -162,10 +152,13 @@ export default function NoteView({
   };
 
   const handlePickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+    const f = e.target.files?.[0] ?? null;
     if (!f) return;
+
+    setUploadFile(f);
     setUploadFileName(f.name);
     setUploadType(inferTypeFromName(f.name));
+    setUploadUrl("");
   };
 
   const canUpload = React.useMemo(() => {
@@ -178,10 +171,20 @@ export default function NoteView({
     }
     if (uploadVisibility === "private" && uploadInvited.length === 0) return false;
     return true;
-  }, [uploadTitle, uploaderEmail, uploadType, uploadUrl, uploadFileName, uploadVisibility, uploadInvited.length]);
+  }, [
+    uploadTitle,
+    uploaderEmail,
+    uploadType,
+    uploadUrl,
+    uploadFileName,
+    uploadVisibility,
+    uploadInvited.length,
+  ]);
 
   const submitUpload = () => {
     if (!canUpload) return;
+
+    const generatedUrl = uploadUrl.trim() || (uploadFile ? URL.createObjectURL(uploadFile) : undefined);
 
     const item: NoteFolderItem = {
       id: makeId(),
@@ -192,7 +195,7 @@ export default function NoteView({
       uploadedByEmail: uploaderEmail.trim().toLowerCase(),
       uploadedAt: new Date().toISOString(),
       type: uploadType,
-      url: uploadUrl.trim() || undefined,
+      url: generatedUrl,
       fileName: uploadFileName || undefined,
       visibility: uploadVisibility,
     };
@@ -202,6 +205,7 @@ export default function NoteView({
     setUploadTitle("");
     setUploadDesc("");
     setUploadUrl("");
+    setUploadFile(null);
     setUploadFileName("");
     setUploadType("pdf");
     setUploadVisibility("public");
@@ -210,30 +214,6 @@ export default function NoteView({
     setUploaderEmail("");
 
     setMode("view");
-  };
-
-  const canComment = React.useMemo(() => {
-    if (!commentBody.trim()) return false;
-    if (!commentEmail.trim() || !isCsunEmail(commentEmail)) return false;
-    return true;
-  }, [commentBody, commentEmail]);
-
-  const submitComment = () => {
-    if (!canComment) return;
-    const c: NoteComment = {
-      id: makeId(),
-      folderId: folder.id,
-      itemId: selectedItem ? selectedItem.id : undefined,
-      author: commentEmail.trim().toLowerCase().split("@")[0],
-      authorEmail: commentEmail.trim().toLowerCase(),
-      createdAt: new Date().toISOString(),
-      rating: commentRating,
-      body: commentBody.trim(),
-    };
-    onAddComment(c);
-    setCommentBody("");
-    setCommentRating(5);
-    setCommentEmail("");
   };
 
   const isPrivateFolder = folder.visibility === "private";
@@ -263,14 +243,16 @@ export default function NoteView({
                   height: 20,
                   fontSize: "0.66rem",
                   fontWeight: 900,
-                  bgcolor: isPrivateFolder ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.20)",
+                  bgcolor: "rgba(255,255,255,0.20)",
                   color: "#fff",
                   "& .MuiChip-icon": { color: "#fff" },
                 }}
               />
             </Stack>
             <Typography sx={{ color: "rgba(255,255,255,0.72)", fontSize: "0.82rem", mt: 0.35 }}>
-              {folder.subject}{folder.courseNumber ? ` ${folder.courseNumber}` : ""} · {folderItems.length} item{folderItems.length === 1 ? "" : "s"}
+              {folder.subject}
+              {folder.courseNumber ? ` ${folder.courseNumber}` : ""} · {folderItems.length} item
+              {folderItems.length === 1 ? "" : "s"}
             </Typography>
           </Box>
 
@@ -305,8 +287,14 @@ export default function NoteView({
       </Box>
 
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: fullScreen ? "1fr" : "1.6fr 1fr", minHeight: fullScreen ? "auto" : 560 }}>
-          {/* Main paper */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: fullScreen ? "1fr" : "1.6fr 1fr",
+            minHeight: fullScreen ? "auto" : 560,
+          }}
+        >
+          {/* Main column */}
           <Box sx={{ p: 2.5, bgcolor: "rgba(0,0,0,0.02)" }}>
             <Box
               sx={{
@@ -319,7 +307,6 @@ export default function NoteView({
                 minHeight: 520,
               }}
             >
-              {/* page flip container */}
               <Box
                 sx={{
                   position: "relative",
@@ -354,7 +341,6 @@ export default function NoteView({
                       flexDirection: "column",
                     }}
                   >
-                    {/* crimped edge */}
                     <Box
                       sx={{
                         position: "absolute",
@@ -380,7 +366,12 @@ export default function NoteView({
                       }}
                     />
 
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ sm: "center" }} justifyContent="space-between">
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1.2}
+                      alignItems={{ sm: "center" }}
+                      justifyContent="space-between"
+                    >
                       <Typography sx={{ fontWeight: 950, fontSize: "0.92rem", color: "rgba(0,0,0,0.78)" }}>
                         Files in this folder
                       </Typography>
@@ -413,148 +404,171 @@ export default function NoteView({
                             value={ratingFilter}
                             onChange={(e) => setRatingFilter(e.target.value as any)}
                             sx={{
-                              minWidth: 120,
+                              minWidth: 140,
                               borderRadius: 2,
                               bgcolor: "rgba(0,0,0,0.03)",
                               "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.18)" },
                             }}
                           >
                             <MenuItem value="all">All</MenuItem>
-                            <MenuItem value="4plus">4+ stars</MenuItem>
-                            <MenuItem value="3plus">3+ stars</MenuItem>
-                            <MenuItem value="2plus">2+ stars</MenuItem>
+                            <MenuItem value="4plus">4+</MenuItem>
+                            <MenuItem value="3plus">3+</MenuItem>
+                            <MenuItem value="2plus">2+</MenuItem>
                           </Select>
                         </FormControl>
                       </Stack>
                     </Stack>
 
-                    <Divider sx={{ my: 1.5 }} />
+                    <Divider sx={{ my: 1.6 }} />
 
-                    <Stack spacing={0.8} sx={{ overflow: "auto", pr: 0.5, flex: 1, minHeight: 0 }}>
+                    <Stack spacing={1.15} sx={{ overflow: "auto", pr: 0.5 }}>
                       {filteredItems.length === 0 ? (
-                        <Box sx={{ py: 3, textAlign: "center" }}>
-                          <Typography sx={{ fontWeight: 900, color: "rgba(0,0,0,0.55)" }}>No items match your filter.</Typography>
-                          <Typography sx={{ color: "rgba(0,0,0,0.45)", fontSize: "0.85rem", mt: 0.5 }}>
-                            Try changing the rating filter or upload something new.
+                        <Box sx={{ py: 6, textAlign: "center" }}>
+                          <Typography sx={{ fontWeight: 950, color: "rgba(0,0,0,0.55)" }}>No files match your filters</Typography>
+                          <Typography sx={{ fontSize: "0.84rem", color: "rgba(0,0,0,0.45)", mt: 0.5 }}>
+                            Try switching filters to All, or upload a new file.
                           </Typography>
                         </Box>
                       ) : (
                         filteredItems.map((it) => {
+                          const avg = calcAvgRating(comments.filter((c) => c.itemId === it.id));
                           const meta = TYPE_META[it.type];
-                          const avg = calcAvgRating(comments.filter((c) => c.itemId === it.id), it.id);
                           return (
                             <Tooltip
                               key={it.id}
-                              placement="right"
-                              title={
-                                it.description ? (
-                                  <Box sx={{ maxWidth: 260 }}>
-                                    <Typography sx={{ fontWeight: 900, fontSize: "0.78rem" }}>{it.title}</Typography>
-                                    <Typography sx={{ fontSize: "0.74rem", mt: 0.3 }}>{it.description}</Typography>
-                                  </Box>
-                                ) : (
-                                  ""
-                                )
-                              }
+                              title={it.description ? it.description : ""}
+                              arrow
+                              placement="top"
                               disableHoverListener={!it.description}
                             >
                               <Paper
                                 elevation={0}
                                 onMouseEnter={() => setHoveredItemId(it.id)}
-                                onMouseLeave={() => setHoveredItemId(null)}
+                                onMouseLeave={() => setHoveredItemId((prev) => (prev === it.id ? null : prev))}
                                 onClick={() => setSelectedItemId(it.id)}
                                 sx={{
-                                  p: 1.25,
-                                  borderRadius: 2.5,
-                                  border: "1px solid rgba(0,0,0,0.08)",
+                                  borderRadius: 3,
+                                  p: 1.5,
+                                  bgcolor: hoveredItemId === it.id ? "rgba(168,5,50,0.035)" : "rgba(0,0,0,0.015)",
+                                  border:
+                                    hoveredItemId === it.id
+                                      ? "1px solid rgba(168,5,50,0.20)"
+                                      : "1px solid rgba(0,0,0,0.06)",
                                   cursor: "pointer",
-                                  transition: "all 0.18s",
-                                  bgcolor: selectedItemId === it.id ? "rgba(168,5,50,0.05)" : "rgba(0,0,0,0.02)",
-                                  "&:hover": { bgcolor: "rgba(168,5,50,0.06)", borderColor: "rgba(168,5,50,0.18)" },
+                                  transition: "transform 0.18s, box-shadow 0.18s, border-color 0.18s, background-color 0.18s",
+                                  "&:hover": { transform: "translateY(-1px)", boxShadow: "0 10px 26px rgba(0,0,0,0.06)" },
                                 }}
                               >
-                                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                                  <Stack direction="row" spacing={1} alignItems="flex-start">
-                                    <Box sx={{ color: "rgba(0,0,0,0.55)", mt: 0.1 }}>{meta.icon}</Box>
-                                    <Box>
-                                      <Typography sx={{ fontWeight: 950, fontSize: "0.86rem", color: "rgba(0,0,0,0.82)", lineHeight: 1.2 }}>
+                                <Stack direction="row" spacing={1.2} alignItems="flex-start">
+                                  <Box sx={{ mt: 0.2, color: "rgba(0,0,0,0.55)" }}>{meta.icon}</Box>
+                                  <Stack spacing={0.45} flex={1}>
+                                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                                      <Typography sx={{ fontWeight: 950, fontSize: "0.92rem", color: "rgba(0,0,0,0.78)" }}>
                                         {it.title}
                                       </Typography>
-                                      <Typography sx={{ fontSize: "0.72rem", color: "rgba(0,0,0,0.50)", mt: 0.2 }}>
+                                      <Chip
+                                        size="small"
+                                        label={meta.label}
+                                        sx={{
+                                          height: 18,
+                                          fontSize: "0.62rem",
+                                          fontWeight: 900,
+                                          bgcolor: "rgba(0,0,0,0.06)",
+                                          color: "rgba(0,0,0,0.7)",
+                                        }}
+                                      />
+                                    </Stack>
+
+                                    <Stack
+                                      direction="row"
+                                      justifyContent="space-between"
+                                      alignItems="center"
+                                      spacing={1}
+                                      sx={{ flexWrap: "wrap" }}
+                                    >
+                                      <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.52)" }}>
                                         {it.uploadedBy} · {formatRelative(it.uploadedAt)}
                                       </Typography>
-                                      {it.fileName && (
-                                        <Typography sx={{ fontSize: "0.70rem", color: "rgba(0,0,0,0.42)", mt: 0.15 }}>
-                                          {it.fileName}{it.fileSize ? ` · ${it.fileSize}` : ""}
-                                        </Typography>
+
+                                      <Stack direction="row" spacing={0.6} alignItems="center">
+                                        <Chip
+                                          size="small"
+                                          icon={
+                                            it.visibility === "private" ? (
+                                              <LockRoundedIcon sx={{ fontSize: 14 }} />
+                                            ) : (
+                                              <PublicRoundedIcon sx={{ fontSize: 14 }} />
+                                            )
+                                          }
+                                          label={it.visibility === "private" ? "Private" : "Public"}
+                                          sx={{
+                                            height: 18,
+                                            fontSize: "0.62rem",
+                                            fontWeight: 900,
+                                            bgcolor: it.visibility === "private" ? "rgba(124,58,237,0.10)" : "rgba(22,163,74,0.10)",
+                                            color: it.visibility === "private" ? "#7c3aed" : "#16a34a",
+                                            "& .MuiChip-icon": { color: "inherit" },
+                                          }}
+                                        />
+                                        <Box sx={{ minWidth: 74, display: "flex", justifyContent: "flex-end" }}>
+                                          {avg > 0 ? (
+                                            <Stars value={avg} size={14} />
+                                          ) : (
+                                            <Typography sx={{ fontSize: "0.70rem", color: "rgba(0,0,0,0.35)", fontWeight: 800 }}>
+                                              No ratings
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                      </Stack>
+                                    </Stack>
+
+                                    {hoveredItemId === it.id && it.description && (
+                                      <Box sx={{ mt: 0.9, pt: 0.9, borderTop: "1px dashed rgba(0,0,0,0.14)" }}>
+                                        <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)" }}>{it.description}</Typography>
+                                      </Box>
+                                    )}
+
+                                    <Stack direction="row" spacing={0.6} justifyContent="flex-end" sx={{ mt: 1.0 }}>
+                                      {it.url && (
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(it.url, "_blank", "noopener,noreferrer");
+                                          }}
+                                          sx={{
+                                            borderRadius: 999,
+                                            fontWeight: 950,
+                                            fontSize: "0.72rem",
+                                            borderColor: "rgba(0,0,0,0.18)",
+                                            color: "rgba(0,0,0,0.72)",
+                                            "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
+                                          }}
+                                        >
+                                          Open
+                                        </Button>
                                       )}
-                                    </Box>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedItemId(it.id);
+                                        }}
+                                        sx={{
+                                          bgcolor: "#A80532",
+                                          "&:hover": { bgcolor: "#810326" },
+                                          borderRadius: 999,
+                                          fontWeight: 950,
+                                          fontSize: "0.72rem",
+                                        }}
+                                      >
+                                        Details
+                                      </Button>
+                                    </Stack>
                                   </Stack>
-
-                                  <Stack direction="row" spacing={0.8} alignItems="center">
-                                    <Chip
-                                      size="small"
-                                      label={meta.label}
-                                      sx={{ height: 18, fontSize: "0.62rem", fontWeight: 900, bgcolor: "rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.60)" }}
-                                    />
-                                    <Chip
-                                      size="small"
-                                      icon={it.visibility === "private" ? <LockRoundedIcon sx={{ fontSize: 14 }} /> : <PublicRoundedIcon sx={{ fontSize: 14 }} />}
-                                      label={it.visibility === "private" ? "Private" : "Public"}
-                                      sx={{
-                                        height: 18,
-                                        fontSize: "0.62rem",
-                                        fontWeight: 900,
-                                        bgcolor: it.visibility === "private" ? "rgba(124,58,237,0.10)" : "rgba(22,163,74,0.10)",
-                                        color: it.visibility === "private" ? "#7c3aed" : "#16a34a",
-                                        "& .MuiChip-icon": { color: "inherit" },
-                                      }}
-                                    />
-                                    <Box sx={{ minWidth: 74, display: "flex", justifyContent: "flex-end" }}>
-                                      {avg > 0 ? <Stars value={avg} size={14} /> : <Typography sx={{ fontSize: "0.70rem", color: "rgba(0,0,0,0.35)", fontWeight: 800 }}>No ratings</Typography>}
-                                    </Box>
-                                  </Stack>
-                                </Stack>
-
-                                {hoveredItemId === it.id && it.description && (
-                                  <Box sx={{ mt: 0.9, pt: 0.9, borderTop: "1px dashed rgba(0,0,0,0.14)" }}>
-                                    <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)" }}>{it.description}</Typography>
-                                  </Box>
-                                )}
-
-                                <Stack direction="row" spacing={0.6} justifyContent="flex-end" sx={{ mt: 1.0 }}>
-                                  {(it.url || it.fileName) && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (it.url) window.open(it.url, "_blank", "noopener,noreferrer");
-                                      }}
-                                      sx={{
-                                        borderRadius: 999,
-                                        fontWeight: 950,
-                                        fontSize: "0.72rem",
-                                        borderColor: "rgba(0,0,0,0.18)",
-                                        color: "rgba(0,0,0,0.72)",
-                                        "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
-                                      }}
-                                    >
-                                      Open
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="small"
-                                    variant="contained"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedItemId(it.id);
-                                    }}
-                                    sx={{ bgcolor: "#A80532", "&:hover": { bgcolor: "#810326" }, borderRadius: 999, fontWeight: 950, fontSize: "0.72rem" }}
-                                  >
-                                    Details
-                                  </Button>
                                 </Stack>
                               </Paper>
                             </Tooltip>
@@ -590,7 +604,6 @@ export default function NoteView({
                       flexDirection: "column",
                     }}
                   >
-                    {/* crimped edge */}
                     <Box
                       sx={{
                         position: "absolute",
@@ -616,178 +629,132 @@ export default function NoteView({
                       }}
                     />
 
-                    <Typography sx={{ fontWeight: 950, fontSize: "0.92rem", color: "rgba(0,0,0,0.78)" }}>
-                      Upload an item
-                    </Typography>
-                    <Typography sx={{ color: "rgba(0,0,0,0.50)", fontSize: "0.80rem", mt: 0.25 }}>
-                      Upload any file type (or add a link). Backend can handle storage later.
+                    <Typography sx={{ fontWeight: 950, fontSize: "0.92rem", color: "rgba(0,0,0,0.78)" }}>Upload a file</Typography>
+                    <Typography sx={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.50)", mt: 0.4 }}>
+                      Add notes, visuals, links, or resources for this folder.
                     </Typography>
 
-                    <Divider sx={{ my: 1.5 }} />
+                    <Divider sx={{ my: 1.6 }} />
 
-                    <Stack spacing={1.25} sx={{ overflow: "auto", pr: 0.5, flex: 1, minHeight: 0 }}>
+                    <Stack spacing={1.2} sx={{ overflow: "auto", pr: 0.5 }}>
+                      <TextField label="Title" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} fullWidth size="small" />
                       <TextField
-                        size="small"
-                        label="Title *"
-                        value={uploadTitle}
-                        onChange={(e) => setUploadTitle(e.target.value)}
-                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                      />
-
-                      <TextField
-                        size="small"
-                        label="Short description"
+                        label="Description (optional)"
                         value={uploadDesc}
                         onChange={(e) => setUploadDesc(e.target.value)}
-                        multiline
-                        minRows={2}
-                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                        fullWidth
+                        size="small"
                       />
 
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                        <FormControl size="small" sx={{ minWidth: 180 }}>
-                          <Select
-                            value={uploadType}
-                            onChange={(e) => setUploadType(e.target.value as NoteFolderItemType)}
-                            sx={{ borderRadius: 2, bgcolor: "rgba(0,0,0,0.03)", "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.18)" } }}
-                          >
-                            {Object.entries(TYPE_META).map(([k, v]) => (
-                              <MenuItem key={k} value={k}>
-                                {v.label}
-                              </MenuItem>
-                            ))}
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                        <FormControl fullWidth size="small">
+                          <Select value={uploadType} onChange={(e) => setUploadType(e.target.value as any)}>
+                            <MenuItem value="pdf">PDF</MenuItem>
+                            <MenuItem value="doc">Doc</MenuItem>
+                            <MenuItem value="video">Video</MenuItem>
+                            <MenuItem value="image">Image</MenuItem>
+                            <MenuItem value="zip">ZIP</MenuItem>
+                            <MenuItem value="link">Link</MenuItem>
                           </Select>
                         </FormControl>
 
-                        <FormControl size="small" sx={{ minWidth: 180 }}>
-                          <Select
-                            value={uploadVisibility}
-                            onChange={(e) => setUploadVisibility(e.target.value as NoteFolderVisibility)}
-                            sx={{ borderRadius: 2, bgcolor: "rgba(0,0,0,0.03)", "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.18)" } }}
-                          >
+                        <FormControl fullWidth size="small">
+                          <Select value={uploadVisibility} onChange={(e) => setUploadVisibility(e.target.value as any)}>
                             <MenuItem value="public">Public</MenuItem>
                             <MenuItem value="private">Private</MenuItem>
                           </Select>
                         </FormControl>
                       </Stack>
 
-                      {uploadType === "link" ? (
-                        <TextField
-                          size="small"
-                          label="Link URL *"
-                          value={uploadUrl}
-                          onChange={(e) => setUploadUrl(e.target.value)}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <LinkIcon sx={{ fontSize: 16, color: "rgba(0,0,0,0.45)" }} />
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                        />
-                      ) : (
-                        <Box>
-                          <Button
-                            variant="outlined"
-                            onClick={() => fileRef.current?.click()}
-                            sx={{
-                              borderRadius: 999,
-                              fontWeight: 950,
-                              borderColor: "rgba(0,0,0,0.20)",
-                              color: "rgba(0,0,0,0.80)",
-                              "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
-                            }}
-                          >
-                            Choose file
-                          </Button>
-                          <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handlePickFile} />
-                          {uploadFileName && (
-                            <Typography sx={{ mt: 0.6, fontSize: "0.75rem", color: "rgba(0,0,0,0.55)", fontWeight: 800 }}>
-                              Selected: {uploadFileName}
-                            </Typography>
-                          )}
+                      <TextField
+                        label="Your CSUN Email"
+                        value={uploaderEmail}
+                        onChange={(e) => setUploaderEmail(e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
 
-                          <TextField
-                            size="small"
-                            label="(Optional) Direct URL"
-                            value={uploadUrl}
-                            onChange={(e) => setUploadUrl(e.target.value)}
-                            sx={{ mt: 1.1, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                          />
-                        </Box>
-                      )}
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ sm: "center" }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => fileRef.current?.click()}
+                          startIcon={<CloudUploadIcon />}
+                          sx={{ borderRadius: 999, fontWeight: 950 }}
+                        >
+                          Choose file
+                        </Button>
+                        <Typography sx={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.6)", fontWeight: 800 }}>
+                          {uploadFileName ? uploadFileName : "No file selected"}
+                        </Typography>
+                        <input ref={fileRef} type="file" hidden onChange={handlePickFile} />
+                      </Stack>
+
+                      <TextField
+                        label="Or paste a URL (optional)"
+                        value={uploadUrl}
+                        onChange={(e) => setUploadUrl(e.target.value)}
+                        fullWidth
+                        size="small"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LinkIcon sx={{ fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
 
                       {uploadVisibility === "private" && (
                         <Box>
-                          <Typography sx={{ fontSize: "0.76rem", fontWeight: 900, color: "rgba(0,0,0,0.52)", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.6 }}>
-                            Invite CSUN emails
+                          <Typography sx={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.6)", fontWeight: 900, mb: 0.7 }}>
+                            Invite CSUN Emails
                           </Typography>
                           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                             <TextField
-                              size="small"
-                              fullWidth
                               value={uploadInvitedEmail}
                               onChange={(e) => setUploadInvitedEmail(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  addUploadInvite();
-                                }
-                              }}
-                              placeholder="example@my.csun.edu"
-                              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                              fullWidth
+                              size="small"
+                              placeholder="someone@my.csun.edu"
                             />
                             <Button
+                              variant="contained"
                               onClick={addUploadInvite}
-                              variant="outlined"
-                              sx={{
-                                borderRadius: 999,
-                                fontWeight: 950,
-                                borderColor: "rgba(0,0,0,0.20)",
-                                color: "rgba(0,0,0,0.80)",
-                                "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
-                              }}
+                              sx={{ borderRadius: 999, fontWeight: 950, bgcolor: "#A80532", "&:hover": { bgcolor: "#810326" } }}
                             >
                               Add
                             </Button>
                           </Stack>
-                          {uploadInvited.length > 0 && (
-                            <Stack direction="row" flexWrap="wrap" gap={0.6} sx={{ mt: 1 }}>
-                              {uploadInvited.map((e) => (
-                                <Chip
-                                  key={e}
-                                  label={e}
-                                  size="small"
-                                  onDelete={() => setUploadInvited((prev) => prev.filter((x) => x !== e))}
-                                  sx={{ fontWeight: 800, bgcolor: "rgba(124,58,237,0.10)", color: "#7c3aed" }}
-                                />
-                              ))}
-                            </Stack>
-                          )}
+
+                          <Stack direction="row" spacing={0.7} sx={{ mt: 1.0, flexWrap: "wrap" }}>
+                            {uploadInvited.map((e) => (
+                              <Chip
+                                key={e}
+                                label={e}
+                                onDelete={() => setUploadInvited((prev) => prev.filter((x) => x !== e))}
+                                sx={{ bgcolor: "rgba(168,5,50,0.08)", color: "#A80532", fontWeight: 900 }}
+                              />
+                            ))}
+                          </Stack>
                         </Box>
                       )}
 
-                      <TextField
-                        size="small"
-                        label="Your CSUN Email *"
-                        value={uploaderEmail}
-                        onChange={(e) => setUploaderEmail(e.target.value)}
-                        placeholder="you@my.csun.edu"
-                        error={!!uploaderEmail && !isCsunEmail(uploaderEmail)}
-                        helperText={!!uploaderEmail && !isCsunEmail(uploaderEmail) ? "Must end with @my.csun.edu" : ""}
-                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                      />
-
-                      <Button
-                        variant="contained"
-                        onClick={submitUpload}
-                        disabled={!canUpload}
-                        startIcon={<CloudUploadIcon />}
-                        sx={{ bgcolor: "#A80532", "&:hover": { bgcolor: "#810326" }, fontWeight: 950, borderRadius: 999, py: 1.15 }}
-                      >
-                        Add to folder
-                      </Button>
+                      <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 0.5 }}>
+                        <Button
+                          variant="contained"
+                          disabled={!canUpload}
+                          onClick={submitUpload}
+                          sx={{
+                            borderRadius: 999,
+                            fontWeight: 950,
+                            bgcolor: "#A80532",
+                            "&:hover": { bgcolor: "#810326" },
+                            px: 2.4,
+                          }}
+                        >
+                          Upload
+                        </Button>
+                      </Box>
                     </Stack>
                   </Paper>
                 </Box>
@@ -795,118 +762,16 @@ export default function NoteView({
             </Box>
           </Box>
 
-          {/* Comments sidebar */}
-          <Box sx={{ p: 2.5, bgcolor: "rgba(0,0,0,0.02)", borderLeft: fullScreen ? "none" : "1px solid rgba(0,0,0,0.06)" }}>
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: "#fff", border: "1.5px solid rgba(0,0,0,0.07)" }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                <Box>
-                  <Typography sx={{ fontWeight: 950, fontSize: "0.92rem", color: "rgba(0,0,0,0.78)" }}>
-                    Comments
-                  </Typography>
-                  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5 }}>
-                    <Stars value={avgForSelected} size={15} />
-                    <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)", fontWeight: 900 }}>
-                      {avgForSelected ? avgForSelected.toFixed(1) : "No ratings"}
-                    </Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.48)", mt: 0.45 }}>
-                    {selectedItem ? `For: ${selectedItem.title}` : "Select an item to view item-specific comments"}
-                  </Typography>
-                </Box>
-                {selectedItem && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setSelectedItemId(null)}
-                    sx={{
-                      borderRadius: 999,
-                      fontWeight: 950,
-                      fontSize: "0.72rem",
-                      borderColor: "rgba(0,0,0,0.18)",
-                      color: "rgba(0,0,0,0.72)",
-                      "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
-                    }}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </Stack>
-
-              <Divider sx={{ my: 1.25 }} />
-
-              <Stack spacing={1.1} sx={{ maxHeight: fullScreen ? "none" : 260, overflow: "auto", pr: 0.5 }}>
-                {selectedItemComments.length === 0 ? (
-                  <Typography sx={{ color: "rgba(0,0,0,0.48)", fontSize: "0.84rem" }}>No comments yet.</Typography>
-                ) : (
-                  selectedItemComments.map((c) => (
-                    <Box key={c.id} sx={{ pb: 1.1, borderBottom: "1px dashed rgba(0,0,0,0.14)" }}>
-                      <Stack direction="row" spacing={0.75} alignItems="center">
-                        <Avatar sx={{ width: 22, height: 22, fontSize: "0.60rem", bgcolor: "#A80532", fontWeight: 900 }}>{c.author[0]?.toUpperCase()}</Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography sx={{ fontSize: "0.74rem", fontWeight: 900, color: "rgba(0,0,0,0.72)" }}>{c.authorEmail}</Typography>
-                          <Typography sx={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.40)" }}>{formatRelative(c.createdAt)}</Typography>
-                        </Box>
-                        <Stars value={c.rating} size={14} />
-                      </Stack>
-                      <Typography sx={{ mt: 0.6, fontSize: "0.78rem", color: "rgba(0,0,0,0.62)" }}>{c.body}</Typography>
-                    </Box>
-                  ))
-                )}
-              </Stack>
-
-              <Divider sx={{ my: 1.25 }} />
-
-              <Typography sx={{ fontWeight: 950, fontSize: "0.86rem", color: "rgba(0,0,0,0.72)", mb: 0.9 }}>
-                Add a comment
-              </Typography>
-
-              <Stack spacing={1}>
-                <TextField
-                  size="small"
-                  label="Your CSUN Email"
-                  value={commentEmail}
-                  onChange={(e) => setCommentEmail(e.target.value)}
-                  placeholder="you@my.csun.edu"
-                  error={!!commentEmail && !isCsunEmail(commentEmail)}
-                  helperText={!!commentEmail && !isCsunEmail(commentEmail) ? "Must end with @my.csun.edu" : ""}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                />
-
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography sx={{ fontSize: "0.75rem", color: "rgba(0,0,0,0.55)", fontWeight: 900, minWidth: 74 }}>Rating</Typography>
-                  <Stack direction="row" spacing={0.35} alignItems="center">
-                    {([1, 2, 3, 4, 5] as const).map((v) => (
-                      <IconButton key={v} size="small" onClick={() => setCommentRating(v)} sx={{ p: 0.25 }}>
-                        {v <= commentRating ? (
-                          <StarRoundedIcon sx={{ fontSize: 18, color: "#A80532" }} />
-                        ) : (
-                          <StarBorderRoundedIcon sx={{ fontSize: 18, color: "rgba(0,0,0,0.25)" }} />
-                        )}
-                      </IconButton>
-                    ))}
-                  </Stack>
-                </Stack>
-
-                <TextField
-                  size="small"
-                  label="Comment"
-                  value={commentBody}
-                  onChange={(e) => setCommentBody(e.target.value)}
-                  multiline
-                  minRows={3}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                />
-
-                <Button
-                  variant="contained"
-                  onClick={submitComment}
-                  disabled={!canComment}
-                  sx={{ bgcolor: "#A80532", "&:hover": { bgcolor: "#810326" }, fontWeight: 950, borderRadius: 999, py: 1.05 }}
-                >
-                  Post comment
-                </Button>
-              </Stack>
-            </Paper>
+          {/* Comments column */}
+          <Box sx={{ p: 2.5, borderLeft: fullScreen ? "none" : "1px solid rgba(0,0,0,0.06)" }}>
+            <NoteViewCommentsPanel
+              folder={folder}
+              selectedItem={selectedItem}
+              selectedItemComments={selectedItemComments}
+              avgForSelected={avgForSelected}
+              formatRelative={formatRelative}
+              onAddComment={onAddComment}
+            />
           </Box>
         </Box>
       </DialogContent>

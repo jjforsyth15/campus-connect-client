@@ -3,32 +3,32 @@
 import * as React from "react";
 import { Box, Container, Typography } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
-import Header from "../../../components/SRC-Components/srcHeader";
-import CreateParty, { Party } from "./FQfunctions/CreateParty";
-import PartyList from "./FQfunctions/PartyList";
-import StartQuest, { Quest } from "./FQfunctions/StartQuest";
-import MilestonesPanel, { Milestone } from "./FQfunctions/Milestones";
-import WorkoutDeck from "./FQfunctions/WorkoutDeck";
-import { useRouter } from "next/navigation";
-import { useAuthorize } from "@/lib/useAuthorize";
+import Header from "@/components/StudentRecCenter/srcHeader";
+import CreateParty, { Party } from "@/components/StudentRecCenter/FitQuest/FQfunctions/CreateParty";
+import PartyList from "@/components/StudentRecCenter/FitQuest/FQfunctions/PartyList";
+import StartQuest, { Quest } from "@/components/StudentRecCenter/FitQuest/FQfunctions/StartQuest";
+import MilestonesPanel, { Milestone } from "@/components/StudentRecCenter/FitQuest/FQfunctions/Milestones";
+import WorkoutDeck from "@/components/StudentRecCenter/FitQuest/FQfunctions/WorkoutDeck";
+// import { useRouter } from "next/navigation";
+// import { useAuthorize } from "@/lib/useAuthorize";
 
 export default function FitQuestPage() {
 
-// authorization
-const router = useRouter();
-const { auth, user, token, loading } = useAuthorize();
+  // authorization (commented out to disable lockout)
+  // const router = useRouter();
+  // const { auth, user, token, loading } = useAuthorize();
 
-React.useEffect(() => {
-  if(loading) return;
-  
-  if (auth && token)
-  console.log("Stored user: ", user);
-  else {
-    console.log("User not logged in.");
-    console.log("auth: " + auth, ". token: " + token);
-    router.replace("/");
-  }
-}, [auth, token, user, loading, router]); 
+  // React.useEffect(() => {
+  //   if(loading) return;
+  //   
+  //   if (auth && token)
+  //     console.log("Stored user: ", user);
+  //   else {
+  //     console.log("User not logged in.");
+  //     console.log("auth: " + auth, ". token: " + token);
+  //     router.replace("/");
+  //   }
+  // }, [auth, token, user, loading, router]); 
 
   const [parties, setParties] = React.useState<Party[]>([]);
   const [quests, setQuests] = React.useState<Quest[]>([]);
