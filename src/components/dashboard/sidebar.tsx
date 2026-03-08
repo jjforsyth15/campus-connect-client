@@ -56,7 +56,7 @@ const SRCIcon: React.ReactNode = (
 );
 
 const navItems: { label: string; icon: React.ReactNode; href?: string }[] = [
-  { label: "Home", icon: <HomeIcon />, href: "/" },
+  { label: "Home", icon: <HomeIcon />, href: "/dashboard" },
   { label: "Social", icon: <GroupsIcon />, href: "/social" },
   { label: "Messages", icon: <MailOutlineIcon />, href: "/messages" },
   { label: "Events", icon: <EventIcon />, href: "/events" },
