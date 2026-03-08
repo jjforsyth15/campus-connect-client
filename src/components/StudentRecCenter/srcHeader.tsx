@@ -50,7 +50,7 @@ export default function Header({ value }: { value?: string }) {
 
           {/* SRC logo + title */}
           <Link
-            href="/ToroSRC"
+            href="/StudentRecCenter"
             aria-label="SRC Home"
             style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
           >
