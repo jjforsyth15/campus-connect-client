@@ -1,5 +1,4 @@
-// ─── UniCart Constants ────────────────────────────────────────────────────────
-
+//UniCart specific constants ─
 export const SEMESTERS = ["Spring 2026", "Fall 2026", "Summer 2026"];
 
 export const HOURS = Array.from({ length: 15 }, (_, i) => i + 7); // 7am–9pm
@@ -9,7 +8,7 @@ export const rmpUrl = (professor: string) =>
   `https://www.ratemyprofessors.com/search/professors?q=${encodeURIComponent(professor)}`;
 
 
-// ─── Search tag groups ────────────────────────────────────────────────────────
+//  Search tag groups
 export const TAG_GROUPS: { label: string; tags: string[] }[] = [
   {
     label: "Department",

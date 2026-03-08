@@ -425,7 +425,7 @@ function ProgressView({
   );
 }
 
-// ─── List view ────────────────────────────────────────────────────────────────
+//  List view 
 function ListView({
   assignments, exams, onToggleAssignment, courses,
 }: {
@@ -555,7 +555,7 @@ function ListView({
   );
 }
 
-// ─── Main widget ──────────────────────────────────────────────────────────────
+// Main Element
 export default function DueDateElement({
   assignments,
   exams,
@@ -564,9 +564,6 @@ export default function DueDateElement({
   expanded = false,
 }: Props) {
   const [viewMode, setViewMode] = React.useState<ViewMode>("list");
-
-  // Sidebar: list / calendar / progress only.
-  // Expanded (Due Dates tab): also show pie chart option.
   const views: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
     { mode: "list",     icon: <ViewListIcon          sx={{ fontSize: 16 }} />, label: "List"     },
     ...(expanded
