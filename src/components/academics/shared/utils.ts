@@ -1,4 +1,4 @@
-import type { SemesterBucket, CourseItem } from "./constants";
+import type { SemesterBucket } from "./constants";
 
 export function makeId() {
   return `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
@@ -23,7 +23,7 @@ export function formatTimeOnly(iso: string) {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-export function rmpSearchUrl(profName: string) {
+export function rmpSearchUrl(profName: string) { //todo: fix rate my professor quicklink vram attempted 
   return `https://www.ratemyprofessors.com/search/professors/1800?q=${encodeURIComponent(profName)}`;
 }
 
@@ -43,6 +43,7 @@ export function timesConflict(
   days1: string[], start1: string, end1: string,
   days2: string[], start2: string, end2: string
 ): boolean {
+  if (!start1 || !end1 || !start2 || !end2) return false;
   const sharedDays = days1.filter((d) => days2.includes(d));
   if (!sharedDays.length) return false;
   const toMin = (t: string) => {
@@ -81,4 +82,13 @@ export function fmt12(t: string) {
   const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 || 12;
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/* Build CSUN catalog URL for a course */
+export function catalogUrl(department: string, courseCode: string) {
+  // Format: https://catalog.csun.edu/academics/{department}/courses/{section}
+  // e.g. https://catalog.csun.edu/academics/comp/courses/comp-310/
+  const dept = department.toLowerCase();
+  const code = courseCode.toLowerCase().replace(/\s+/, "-");
+  return `https://catalog.csun.edu/academics/${dept}/courses/${code}/`;
 }
