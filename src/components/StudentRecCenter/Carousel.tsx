@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Slider from "react-slick";
-import { Box, IconButton } from "@mui/material";
+import { motion } from "framer-motion";
+import { Box, IconButton, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ProgramCard from "./ProgramCard";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 
 export type Slide = {
   title: string;
@@ -17,175 +15,151 @@ export type Slide = {
   onInvite: () => void;
 };
 
-type Role = "center" | "left" | "right" | "far-left" | "far-right" | "hidden";
+const CARD_W = 32;
 
-const PrevArrow = (props: any) => (
-  <IconButton
-    aria-label="Previous"
-    onClick={props.onClick}
-    sx={{
-      position: "absolute",
-      left: { xs: 6, md: 12 },
-      top: "50%",
-      transform: "translateY(-50%)",
-      zIndex: 10,
-      bgcolor: "rgba(255,255,255,0.95)",
-      border: "2px solid rgba(0,0,0,0.06)",
-      "&:hover": { bgcolor: "#fff" },
-    }}
-  >
-    <ChevronLeftIcon />
-  </IconButton>
-);
+const SLOTS: Record<number, { x: number; scale: number; opacity: number; brightness: number; z: number }> = {
+  [-2]: { x: -108, scale: 0.74, opacity: 0,    brightness: 0.5,  z: 0 },
+  [-1]: { x:  -68, scale: 0.88, opacity: 0.88, brightness: 0.75, z: 2 },
+  [0]:  { x:    0, scale: 1,    opacity: 1,    brightness: 1,    z: 4 },
+  [1]:  { x:   68, scale: 0.88, opacity: 0.88, brightness: 0.75, z: 2 },
+  [2]:  { x:  108, scale: 0.74, opacity: 0,    brightness: 0.5,  z: 0 },
+};
 
-const NextArrow = (props: any) => (
-  <IconButton
-    aria-label="Next"
-    onClick={props.onClick}
-    sx={{
-      position: "absolute",
-      right: { xs: 6, md: 12 },
-      top: "50%",
-      transform: "translateY(-50%)",
-      zIndex: 10,
-      bgcolor: "rgba(255,255,255,0.95)",
-      border: "2px solid rgba(0,0,0,0.06)",
-      "&:hover": { bgcolor: "#fff" },
-    }}
-  >
-    <ChevronRightIcon />
-  </IconButton>
-);
+const spring = { type: "spring" as const, stiffness: 300, damping: 30, mass: 0.8 };
 
 export default function Carousel({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = React.useState(0);
   const count = slides.length;
 
-  const role = (i: number): Role => {
-    const c = ((current % count) + count) % count;
-    const left = (c - 1 + count) % count;
-    const right = (c + 1) % count;
-    const farLeft = (c - 2 + count) % count;
-    const farRight = (c + 2) % count;
-    if (i === c) return "center";
-    if (i === left) return "left";
-    if (i === right) return "right";
-    if (i === farLeft) return "far-left";
-    if (i === farRight) return "far-right";
-    return "hidden";
+  const go = (dir: 1 | -1) => setCurrent((c) => (c + dir + count) % count);
+
+  const getPos = (i: number) => {
+    let diff = i - current;
+    if (diff > count / 2) diff -= count;
+    if (diff < -count / 2) diff += count;
+    return Math.max(-2, Math.min(2, diff));
   };
 
-  const settings: any = {
-    infinite: true,
-    centerMode: true,
-    centerPadding: "0px",
-    slidesToShow: 5, 
-    speed: 450,
-    autoplay: true,
-    autoplaySpeed: 3500,
-    pauseOnHover: true,
-    swipeToSlide: true,
-    draggable: true,
-    arrows: true,
-    prevArrow: <PrevArrow />,
-    nextArrow: <NextArrow />,
-    beforeChange: (_old: number, next: number) => setCurrent(next % count),
-    responsive: [
-      { breakpoint: 1400, settings: { slidesToShow: 3, centerMode: true, centerPadding: "0px" } },
-      { breakpoint: 900, settings: { slidesToShow: 1, centerMode: true, centerPadding: "0px" } },
-    ],
-  };
-
-  const baseCard = {
-    position: "relative" as const,
-    borderRadius: 8,
-    willChange: "transform",
-    transition:
-      "transform .22s ease, box-shadow .22s ease, opacity .22s ease, z-index .22s ease",
-  };
-
-  const roleStyles: Record<Role, any> = {
-    center: {
-      zIndex: 6,
-      transform: "scale(1.08)",                            // biggest middle card
-      boxShadow: "0 18px 36px rgba(0,0,0,.24)",
-      opacity: 1,
-      pointerEvents: "auto",
-      "&:hover": {
-        transform: "translateY(-4px) scale(1.1)",
-        boxShadow: "0 28px 52px rgba(0,0,0,.28)",
-      },
-    },
-    left: {
-      zIndex: 5,
-      transform: "translateX(8px) scale(0.98)",            // normal-ish
-      boxShadow: "0 12px 24px rgba(0,0,0,.18)",
-      opacity: 0.98,
-      pointerEvents: "auto",
-      "&:hover": {
-        transform: "translateX(8px) translateY(-2px) scale(1.0)",
-        boxShadow: "0 18px 34px rgba(0,0,0,.24)",
-      },
-    },
-    right: {
-      zIndex: 5,
-      transform: "translateX(-8px) scale(0.98)",           // normal-ish
-      boxShadow: "0 12px 24px rgba(0,0,0,.18)",
-      opacity: 0.98,
-      pointerEvents: "auto",
-      "&:hover": {
-        transform: "translateX(-8px) translateY(-2px) scale(1.0)",
-        boxShadow: "0 18px 34px rgba(0,0,0,.24)",
-      },
-    },
-    "far-left": {
-      zIndex: 4,
-      transform: "translateX(12px) scale(0.92)",           // smaller outermost
-      boxShadow: "0 10px 20px rgba(0,0,0,.16)",
-      opacity: 0.92,
-      pointerEvents: "none",                                // depth only
-    },
-    "far-right": {
-      zIndex: 4,
-      transform: "translateX(-12px) scale(0.92)",          // smaller outermost
-      boxShadow: "0 10px 20px rgba(0,0,0,.16)",
-      opacity: 0.92,
-      pointerEvents: "none",
-    },
-    hidden: { zIndex: 1, opacity: 0, pointerEvents: "none" },
+  const arrowBtn = {
+    width: 44, height: 44, flexShrink: 0,
+    bgcolor: "rgba(255,255,255,0.18)",
+    border: "1.5px solid rgba(255,255,255,0.45)",
+    color: "#fff",
+    backdropFilter: "blur(10px)",
+    "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
   };
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        pb: 6,
-        overflowX: "clip",
-        overflowY: "visible",
-        "& .slick-list": { overflow: "visible", marginLeft: 0, marginRight: 0 },
-        "& .slick-track": { marginLeft: 0, marginRight: 0 },
-        "& .slick-slide > div": { px: { xs: 1, md: 1.25 } },
-        "& .slick-prev, & .slick-next": { display: "none !important" },
-      }}
-    >
-      <Slider {...settings}>
-        {slides.map((s, i) => {
-          const r = role(i);
-          return (
-            <Box key={s.title} sx={{ ...baseCard, ...roleStyles[r] }}>
-              <ProgramCard
-                white
-                hideRSVP
-                title={s.title}
-                blurb={s.blurb}
-                imageSrc={s.imageSrc}
-                onAddToEvents={s.onAddToEvents}
-                onInvite={s.onInvite}
-              />
-            </Box>
-          );
-        })}
-      </Slider>
+    <Box sx={{ position: "relative" }}>
+
+      {/* ── Row: left arrow · track · right arrow ── */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+
+        <motion.div whileHover={{ x: -2 }} whileTap={{ scale: 0.9 }}>
+          <IconButton onClick={() => go(-1)} aria-label="Previous" sx={arrowBtn}>
+            <ChevronLeftIcon />
+          </IconButton>
+        </motion.div>
+
+        {/* Track: overflow visible so side cards show fully */}
+        <Box sx={{ flex: 1, position: "relative", minHeight: { xs: 380, sm: 420, md: 450 }, overflow: "visible" }}>
+          {slides.map((slide, i) => {
+            const pos = getPos(i);
+            const slot = SLOTS[pos];
+            const isCenter = pos === 0;
+            const isClickable = pos === -1 || pos === 1;
+
+            return (
+              <motion.div
+                key={slide.title}
+                onClick={() => isClickable && go(pos as 1 | -1)}
+                animate={{
+                  x: `${slot.x}%`,
+                  scale: slot.scale,
+                  opacity: slot.opacity,
+                  zIndex: slot.z,
+                }}
+                transition={spring}
+                style={{
+                  position: "absolute",
+                  left: `calc(50% - ${CARD_W / 2}%)`,
+                  top: 0,
+                  bottom: 0,
+                  width: `${CARD_W}%`,
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: isClickable ? "pointer" : "default",
+                  pointerEvents: Math.abs(pos) <= 1 ? "auto" : "none",
+                  transformOrigin: "center center",
+                }}
+              >
+                <motion.div
+                  animate={{
+                    filter: `brightness(${slot.brightness})`,
+                    boxShadow: isCenter
+                      ? "0 24px 56px rgba(0,0,0,0.30), 0 8px 20px rgba(168,5,50,0.22)"
+                      : "0 8px 28px rgba(0,0,0,0.18)",
+                  }}
+                  transition={spring}
+                  style={{ width: "100%", borderRadius: 16, position: "relative" }}
+                >
+                  {/* Tint overlay on side cards */}
+                  {!isCenter && (
+                    <motion.div
+                      animate={{ opacity: Math.abs(pos) === 1 ? 1 : 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{
+                        position: "absolute", inset: 0, borderRadius: 16,
+                        background: "rgba(50,0,12,0.22)",
+                        pointerEvents: "none", zIndex: 2,
+                      }}
+                    />
+                  )}
+                  <ProgramCard
+                    white hideRSVP
+                    title={slide.title}
+                    blurb={slide.blurb}
+                    imageSrc={slide.imageSrc}
+                    onAddToEvents={slide.onAddToEvents}
+                    onInvite={slide.onInvite}
+                  />
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </Box>
+
+        <motion.div whileHover={{ x: 2 }} whileTap={{ scale: 0.9 }}>
+          <IconButton onClick={() => go(1)} aria-label="Next" sx={arrowBtn}>
+            <ChevronRightIcon />
+          </IconButton>
+        </motion.div>
+
+      </Box>
+
+      {/* ── Dots ── */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.75, mt: 2.5 }}>
+        {slides.map((_, i) => (
+          <motion.div
+            key={i}
+            onClick={() => setCurrent(i)}
+            animate={{
+              width: i === current ? 22 : 7,
+              backgroundColor: i === current ? "#ffffff" : "rgba(255,255,255,0.32)",
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            style={{ height: 7, borderRadius: 999, cursor: "pointer" }}
+            whileHover={{ backgroundColor: "rgba(255,255,255,0.65)" }}
+          />
+        ))}
+      </Box>
+
+      <Box sx={{ textAlign: "center", mt: 1 }}>
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>
+          {current + 1} / {count}
+        </Typography>
+      </Box>
+
     </Box>
   );
 }
