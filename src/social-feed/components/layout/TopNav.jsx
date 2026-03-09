@@ -1,11 +1,18 @@
 // =============================================================================
 // components/layout/TopNav.jsx
 //
-// Sticky top navigation bar:
-//   • Logo + wordmark
-//   • Global search box  (/ shortcut to focus)
-//   • Notification bell  (popover with NotifPanel)
-//   • Avatar menu        (view profile / settings / sign-out)
+// Sticky top navigation bar -- always visible at the top of the page.
+//
+// Layout (left to right):
+//   1. Logo + wordmark   -- CSUN gradient text, links to feed root
+//   2. Search bar        -- centered, expands on focus with red glow;
+//                           press "/" anywhere to focus (unless in a text field)
+//   3. Notification bell -- badge count, opens NotifPanel popover
+//   4. Settings button   -- shortcut to open the SettingsPanel drawer
+//   5. Avatar dropdown   -- current user info + links to profile/settings
+//
+// Uses glassmorphism (backdrop-filter: blur) for the sticky header.
+// Popovers close on outside click via document-level mousedown listener.
 // =============================================================================
 
 import { useState, useRef, useEffect } from 'react';
@@ -14,7 +21,7 @@ import { LogoIcon, BellIcon, SearchIcon, CogIcon, UserIcon } from '../ui/primiti
 import { NotifPanel }   from '../modals/index';
 import { displayName }  from '../../utils/avatar';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 export function TopNav({ currentUser, unreadCount = 3, onSettings, onViewProfile, onSearch }) {
   const [showNotifs,   setShowNotifs]   = useState(false);
@@ -60,7 +67,7 @@ export function TopNav({ currentUser, unreadCount = 3, onSettings, onViewProfile
       display: 'flex', alignItems: 'center', gap: 16,
       padding: '0 24px', height: 60,
     }}>
-      {/* ── Logo ── */}
+      {/* -- Logo and wordmark with CSUN red gradient -- */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <LogoIcon size={30} />
         <span style={{
@@ -73,7 +80,7 @@ export function TopNav({ currentUser, unreadCount = 3, onSettings, onViewProfile
         </span>
       </div>
 
-      {/* ── Search ── */}
+      {/* -- Centered search bar with "/" shortcut hint -- */}
       <form onSubmit={handleSearchSubmit} style={{ flex: 1, maxWidth: 480, margin: '0 auto' }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           {/* Icon wrapper — absolutely centered vertically */}
@@ -112,7 +119,7 @@ export function TopNav({ currentUser, unreadCount = 3, onSettings, onViewProfile
         </div>
       </form>
 
-      {/* ── Right actions ── */}
+      {/* -- Right-side action buttons: notifications, settings, avatar -- */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
         {/* Bell */}

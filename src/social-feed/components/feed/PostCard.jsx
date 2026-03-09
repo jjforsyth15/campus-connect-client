@@ -1,20 +1,29 @@
 // =============================================================================
 // components/feed/PostCard.jsx
 //
-// Individual post card — the core unit of the feed.
-// Handles: image display with shimmer, like animation, repost,
-//          comment trigger, profile navigation, overflow menu.
+// Individual post card -- the core visual unit of the feed.
+//
+// Each card displays:
+//   - Author header with avatar, name, role badge, and relative timestamp
+//   - Tags row (clickable pills that filter the feed)
+//   - Post body text
+//   - Image gallery (responsive grid, shimmer placeholder, overflow count)
+//   - Repost embed (if the post is a quote-repost)
+//   - Action bar (comment, repost, like with heart animation, bookmark)
+//   - Overflow menu (copy link, save/unsave, delete for owner)
+//   - Double-click on post body to like (Instagram-style)
 //
 // Props:
-//   post            Post          — the post data object
-//   currentUserId   string        — logged-in user's id (to show delete)
-//   showImages      boolean       — from UserPreferences
-//   onLike          (id) => void
-//   onComment       (post) => void — opens CommentModal
-//   onRepost        (post) => void — opens RepostModal
-//   onDelete        (id) => void
-//   onViewProfile   (userId) => void
-//   onTagClick      (tag) => void
+//   post            -- the post data object
+//   currentUserId   -- logged-in user's id (controls delete visibility)
+//   showImages      -- whether to render image attachments
+//   onLike          -- (id) => void
+//   onComment       -- (post) => void -- opens CommentModal
+//   onRepost        -- (post) => void -- opens RepostModal
+//   onDelete        -- (id) => void
+//   onSave          -- (post) => void -- toggles bookmark
+//   onViewProfile   -- (userId) => void
+//   onTagClick      -- (tag) => void
 // =============================================================================
 
 import { useState, useRef } from 'react';
@@ -40,14 +49,23 @@ export function PostCard({
   const [menuOpen,  setMenuOpen]  = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [likeAnim,  setLikeAnim]  = useState(false);
+  const [dblLikeAnim, setDblLikeAnim] = useState(false);
   const menuRef = useRef(null);
   const isOwner = post.User.id === currentUserId;
   const isLiked = post.isLikedByUser ?? false;
 
+  /** Trigger the heart pop animation and call onLike */
   function handleLike() {
     setLikeAnim(true);
     setTimeout(() => setLikeAnim(false), 400);
     onLike(post.id);
+  }
+
+  /** Double-click on post body to like (Instagram-style interaction) */
+  function handleDoubleClickLike() {
+    if (!isLiked) handleLike();
+    setDblLikeAnim(true);
+    setTimeout(() => setDblLikeAnim(false), 600);
   }
 
   function handleCopyLink() {
@@ -175,16 +193,33 @@ export function PostCard({
           </div>
         </div>
 
-        {/* ── Post body text ── */}
-        <p style={{
-          marginTop: 12, paddingLeft: 56,
-          lineHeight: 1.65, fontSize: '0.95rem', color: 'var(--text1)',
-          wordBreak: 'break-word',
-        }}>
-          {post.content}
-        </p>
+        {/* -- Post body text (double-click to like) -- */}
+        <div
+          onDoubleClick={handleDoubleClickLike}
+          style={{ position: 'relative', cursor: 'default' }}
+        >
+          <p style={{
+            marginTop: 12, paddingLeft: 56,
+            lineHeight: 1.65, fontSize: '0.95rem', color: 'var(--text1)',
+            wordBreak: 'break-word',
+          }}>
+            {post.content}
+          </p>
 
-        {/* ── Images ── */}
+          {/* Floating heart animation on double-click */}
+          {dblLikeAnim && (
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              animation: 'heartPop 0.5s var(--spring) forwards',
+              pointerEvents: 'none', opacity: 0.85,
+            }}>
+              <HeartIcon size={48} filled />
+            </div>
+          )}
+        </div>
+
+        {/* -- Image gallery with responsive grid and shimmer loading -- */}
         {showImages && post.images && post.images.length > 0 && (
           <div style={{
             marginTop: 12, marginLeft: 56,
@@ -230,7 +265,7 @@ export function PostCard({
           </div>
         )}
 
-        {/* ── Original post embed (when repost) ── */}
+        {/* -- Original post embed shown when this is a quote-repost -- */}
         {post.isRepost && post.Post && (
           <div style={{
             marginTop: 12, marginLeft: 56,
@@ -252,7 +287,7 @@ export function PostCard({
           </div>
         )}
 
-        {/* ── Action bar ── */}
+        {/* -- Action bar: comment, repost, like, bookmark -- */}
         <div style={{
           display: 'flex', alignItems: 'center',
           marginTop: 12, paddingTop: 10,
@@ -305,7 +340,10 @@ export function PostCard({
   );
 }
 
-// ── Small overflow menu button ─────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// MenuBtn -- small button used inside the post overflow dropdown menu.
+// Supports a danger variant for destructive actions (delete).
+// ---------------------------------------------------------------------------
 
 function MenuBtn({ icon, label, onClick, danger = false }) {
   const [h, setH] = useState(false);

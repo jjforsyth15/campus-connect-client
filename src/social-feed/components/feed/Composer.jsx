@@ -1,18 +1,21 @@
 // =============================================================================
 // components/feed/Composer.jsx
 //
-// Post composer with:
-//   - Expandable text area (collapses when empty)
-//   - Real photo upload (drag-and-drop + click-to-browse)
-//   - Preview grid with remove buttons
-//   - Tag selection chips
-//   - Character counter with color warning
-//   - Calls api.uploadImage() then api.createPost()
+// Post composer -- the primary content-creation surface of the feed.
+//
+// Features:
+//   - Expandable textarea that collapses when empty/blurred
+//   - Real image upload via drag-and-drop or click-to-browse
+//   - Preview grid with per-image upload progress + remove buttons
+//   - Tag selection chips for categorizing posts
+//   - Character counter with color-coded warning (amber < 50, red < 0)
+//   - Keyboard shortcut: Cmd/Ctrl+Enter to submit
+//   - Calls api.uploadImage() per file, then api.createPost() on submit
 //
 // Props:
-//   currentUser   SessionUser
-//   availableTags string[]
-//   onPost        (post: Post) => void   — called after successful API post
+//   currentUser   -- session user object (for avatar display)
+//   availableTags -- string array of selectable tags (excludes 'All')
+//   onPost        -- callback invoked with the new post after success
 // =============================================================================
 
 import { useState, useRef, useCallback } from 'react';
@@ -39,12 +42,12 @@ export function Composer({ currentUser, availableTags = [], onPost }) {
   const canPost   = content.trim().length > 0 && !overLimit && !submitting &&
                     files.every(f => !f.uploading && !f.error);
 
-  // ── Tag toggle ──────────────────────────────────────────────────────────────
+  // -- Tag toggle: adds or removes a tag from the selected set
   function toggleTag(t) {
     setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   }
 
-  // ── File processing ─────────────────────────────────────────────────────────
+  // -- File processing: validates, creates preview URLs, uploads in parallel
   const processFiles = useCallback(async (rawFiles) => {
     const valid = Array.from(rawFiles)
       .filter(f => f.type.startsWith('image/'))
@@ -78,14 +81,14 @@ export function Composer({ currentUser, availableTags = [], onPost }) {
     }));
   }, [files.length]);
 
-  // ── Drag-and-drop ────────────────────────────────────────────────────────────
+  // -- Drag-and-drop handler
   function handleDrop(e) {
     e.preventDefault();
     setDragging(false);
     processFiles(e.dataTransfer.files);
   }
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
+  // -- Submit: collects uploaded URLs, calls createPost API, resets state
   async function handleSubmit() {
     if (!canPost) return;
     setSubmitting(true);
@@ -134,7 +137,7 @@ export function Composer({ currentUser, availableTags = [], onPost }) {
             onChange={e => { setContent(e.target.value); if (!expanded) setExpanded(true); }}
             onFocus={() => setExpanded(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Share an update, idea, or resource with Matadors..."
+            placeholder="Share an update, idea, or resource with fellow Matadors..."
             maxLength={MAX_CHARS + 50}
             style={{
               width: '100%', border: 'none', outline: 'none', resize: 'none',
@@ -143,6 +146,7 @@ export function Composer({ currentUser, availableTags = [], onPost }) {
               fontFamily: 'var(--font-body)',
               transition: 'min-height 0.22s var(--ease)',
               caretColor: 'var(--red)',
+              '::placeholder': { color: 'var(--text3)' },
             }}
           />
 
