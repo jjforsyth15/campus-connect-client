@@ -148,10 +148,10 @@ export default function SocialFeedPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg)',
-      color: 'var(--text1)',
-      fontFamily: 'var(--font-body)',
-      transition: 'background 0.2s, color 0.2s',
+      background: 'var(--bg, #EEF0F4)',
+      color: 'var(--text1, #0F1117)',
+      fontFamily: 'var(--font-body, "DM Sans", system-ui, sans-serif)',
+      transition: 'background 0.25s, color 0.25s',
     }}>
       {/* Top nav */}
       <TopNav
