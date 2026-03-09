@@ -1,25 +1,37 @@
 // =============================================================================
 // components/ui/primitives.jsx
 //
-// Atomic, reusable UI building blocks.
-// All other components import from here — never define primitives inline.
+// Atomic, reusable UI building blocks for the social feed.
+// All other components import from here -- never define primitives inline.
 //
-//  Exports: Avatar, Card, Tag, ActionButton, SectionLabel, Spinner, Divider
-//  Icons:   Heart, Comment, Repost, Bookmark, Pin, Bell, Search, Close,
-//           Pencil, Cog, Graduation, Image, X, Check, ChevronRight, Send
+// These are the smallest visual units: avatar circles, card containers,
+// tag pills, action buttons, section labels, spinners, dividers, and
+// stat pills. Each is self-contained with no side-effects.
+//
+// Exports (components):
+//   Avatar, Card, Tag, ActionButton, SectionLabel, Spinner,
+//   Divider, StatPill, Tooltip
+//
+// Exports (icons -- inline SVGs, no external icon library needed):
+//   HeartIcon, CommentIcon, RepostIcon, BookmarkIcon, BellIcon,
+//   SearchIcon, CloseIcon, PencilIcon, CogIcon, GraduationIcon,
+//   ImageIcon, SendIcon, PinIcon, ChevronRight, TrashIcon,
+//   ShareIcon, UserIcon, LogoIcon, CheckIcon
 // =============================================================================
 
 import { useState } from 'react';
 import { gradientFromId, initials, fmtCount } from '../../utils/avatar';
 import { tagColor } from '../../styles/tokens';
 
-// ─── Avatar ──────────────────────────────────────────────────────────────────
-
-/**
- * Circular avatar.
- * If user has a profilePicture URL, shows it; otherwise renders initials
- * on a deterministic gradient (seed = user.id).
- */
+// ---------------------------------------------------------------------------
+// Avatar -- circular user avatar with fallback to gradient + initials.
+// Deterministic: same user ID always produces the same gradient color.
+// Props:
+//   user   -- user object with id, firstName, lastName, profilePicture
+//   size   -- diameter in pixels (default 40)
+//   ring   -- whether to show a white ring border (for overlapping avatars)
+//   style  -- additional inline styles to merge
+// ---------------------------------------------------------------------------
 export function Avatar({ user, size = 40, ring = false, style = {} }) {
   const grad  = gradientFromId(user?.id ?? 'default');
   const label = initials(user?.firstName ?? '?', user?.lastName ?? '');
@@ -28,14 +40,15 @@ export function Avatar({ user, size = 40, ring = false, style = {} }) {
 
   return (
     <div
-      title={`${user?.firstName} ${user?.lastName}`}
+      title={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`}
       style={{
         width: size, height: size, borderRadius: '50%', flexShrink: 0,
         background: showImg ? 'transparent' : grad,
         display: 'grid', placeItems: 'center',
-        border: ring ? '2.5px solid #fff' : 'none',
-        boxShadow: ring ? 'var(--shadow-sm)' : 'none',
+        border: ring ? '2.5px solid var(--bg-card)' : 'none',
+        boxShadow: ring ? '0 0 0 1px var(--border)' : 'none',
         overflow: 'hidden', userSelect: 'none',
+        transition: 'box-shadow 0.15s var(--ease)',
         ...style,
       }}
     >
@@ -58,19 +71,34 @@ export function Avatar({ user, size = 40, ring = false, style = {} }) {
   );
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Card -- base container used for sidebars, post cards, settings panels.
+// Provides consistent background, border, shadow, and rounded corners.
+// Props:
+//   children  -- card body content
+//   style     -- additional inline styles
+//   className -- optional CSS class
+//   onClick   -- optional click handler (makes card interactive)
+//   hover     -- if true, card lifts slightly on hover (default false)
+// ---------------------------------------------------------------------------
+export function Card({ children, style = {}, className = '', onClick, hover = false }) {
+  const [isHovered, setIsHovered] = useState(false);
 
-export function Card({ children, style = {}, className = '', onClick }) {
   return (
     <div
       className={className}
       onClick={onClick}
+      onMouseEnter={() => hover && setIsHovered(true)}
+      onMouseLeave={() => hover && setIsHovered(false)}
       style={{
         background: 'var(--bg-card)',
         borderRadius: 'var(--r-lg)',
         border: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: isHovered ? 'var(--shadow-md)' : 'var(--shadow-sm)',
         overflow: 'hidden',
+        transition: 'box-shadow 0.2s var(--ease), transform 0.2s var(--ease)',
+        transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+        cursor: onClick ? 'pointer' : 'default',
         ...style,
       }}
     >
@@ -79,12 +107,15 @@ export function Card({ children, style = {}, className = '', onClick }) {
   );
 }
 
-// ─── Tag ─────────────────────────────────────────────────────────────────────
-
-/**
- * Pill tag badge.
- * active = filled background; onClick = clickable pill.
- */
+// ---------------------------------------------------------------------------
+// Tag -- pill-shaped badge for categorizing posts by topic.
+// Active state fills the background; inactive state is outlined.
+// Props:
+//   label   -- tag text (e.g. "AI", "Events", "Campus")
+//   active  -- whether this tag is currently selected
+//   onClick -- click handler to toggle the tag
+//   small   -- compact size variant for use inside post cards
+// ---------------------------------------------------------------------------
 export function Tag({ label, active = false, onClick, small = false }) {
   const color = tagColor(label);
   const isAll = label === 'All';
@@ -103,7 +134,7 @@ export function Tag({ label, active = false, onClick, small = false }) {
         background: active ? `${color}15` : 'transparent',
         color: active ? color : 'var(--text2)',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'all 0.15s var(--ease)',
+        transition: 'all 0.18s var(--ease)',
         whiteSpace: 'nowrap',
         flexShrink: 0,
       }}
@@ -122,7 +153,11 @@ export function Tag({ label, active = false, onClick, small = false }) {
   );
 }
 
-// ─── ActionButton (Like / Comment / Repost / Bookmark) ────────────────────────
+// ---------------------------------------------------------------------------
+// ActionButton -- compact button used in the post action bar
+// (like, comment, repost, bookmark). Shows icon + optional count label.
+// Supports active state coloring and hover feedback.
+// ---------------------------------------------------------------------------
 
 export function ActionButton({
   icon, label, active = false, activeColor = 'var(--red)',
@@ -144,10 +179,11 @@ export function ActionButton({
         color,
         border: '1px solid transparent',
         fontWeight: 600, fontSize: '0.82rem',
-        transition: 'all 0.15s var(--ease)',
+        transition: 'all 0.18s var(--ease)',
         transform: hovered ? 'scale(1.04)' : 'scale(1)',
       }}
     >
+      {/* Icon with spring scale on active */}
       <span style={{
         display: 'inline-flex',
         transform: active ? 'scale(1.1)' : 'scale(1)',
@@ -164,7 +200,10 @@ export function ActionButton({
   );
 }
 
-// ─── SectionLabel ─────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// SectionLabel -- uppercase, small-caps heading for sidebar sections.
+// Used in LeftSidebar (Quick Actions, Following) and RightSidebar (Trending).
+// ---------------------------------------------------------------------------
 
 export function SectionLabel({ children }) {
   return (
@@ -179,7 +218,12 @@ export function SectionLabel({ children }) {
   );
 }
 
-// ─── Spinner ─────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Spinner -- simple CSS-only loading spinner.
+// Props:
+//   size  -- diameter in pixels (default 20)
+//   color -- spinner color (default brand red)
+// ---------------------------------------------------------------------------
 
 export function Spinner({ size = 20, color = 'var(--red)' }) {
   return (
@@ -193,13 +237,20 @@ export function Spinner({ size = 20, color = 'var(--red)' }) {
   );
 }
 
-// ─── Divider ──────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Divider -- horizontal line separator.
+// Props:
+//   my -- vertical margin in pixels (default 12)
+// ---------------------------------------------------------------------------
 
 export function Divider({ my = 12 }) {
   return <div style={{ height: 1, background: 'var(--border)', margin: `${my}px 0` }} />;
 }
 
-// ─── StatPill ─────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// StatPill -- numeric stat with label, used in profile cards.
+// Example: "128 Posts" or "2.4k Followers"
+// ---------------------------------------------------------------------------
 
 export function StatPill({ count, label }) {
   return (
@@ -217,7 +268,8 @@ export function StatPill({ count, label }) {
 }
 
 // =============================================================================
-// ICONS — self-contained inline SVGs, no icon library dependency
+// ICONS -- self-contained inline SVGs, no icon library dependency.
+// Each icon is a small functional component accepting a size prop.
 // =============================================================================
 
 const SVG = ({ size = 18, children, ...rest }) => (
@@ -230,22 +282,39 @@ const SVG = ({ size = 18, children, ...rest }) => (
   </svg>
 );
 
+/* Heart -- used for the like action */
 export const HeartIcon      = ({ size = 18, filled = false }) => <SVG size={size} fill={filled ? 'currentColor' : 'none'}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></SVG>;
+/* Speech bubble -- used for the comment action */
 export const CommentIcon    = ({ size = 18 }) => <SVG size={size}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></SVG>;
+/* Arrows -- used for the repost action */
 export const RepostIcon     = ({ size = 18 }) => <SVG size={size}><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></SVG>;
+/* Bookmark flag -- used for the save/bookmark action */
 export const BookmarkIcon   = ({ size = 18, filled = false }) => <SVG size={size} fill={filled ? 'currentColor' : 'none'}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></SVG>;
+/* Bell -- used in the top navigation for notifications */
 export const BellIcon       = ({ size = 18 }) => <SVG size={size}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></SVG>;
+/* Magnifying glass -- used in the search bar */
 export const SearchIcon     = ({ size = 16 }) => <SVG size={size} strokeWidth={2.5}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></SVG>;
+/* X mark -- used for closing modals and dismissing items */
 export const CloseIcon      = ({ size = 14 }) => <SVG size={size} strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></SVG>;
+/* Pencil -- used for the edit/compose action */
 export const PencilIcon     = ({ size = 16 }) => <SVG size={size}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></SVG>;
+/* Gear -- used for the settings button */
 export const CogIcon        = ({ size = 16 }) => <SVG size={size}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></SVG>;
+/* Graduation cap -- used for the CSUN brand logo mark */
 export const GraduationIcon = ({ size = 14 }) => <SVG size={size}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></SVG>;
+/* Image/photo -- used for the image upload button in the composer */
 export const ImageIcon      = ({ size = 18 }) => <SVG size={size}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></SVG>;
+/* Paper plane -- used for the send/submit button */
 export const SendIcon       = ({ size = 16 }) => <SVG size={size}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></SVG>;
+/* Pin -- used to indicate pinned posts */
 export const PinIcon        = ({ size = 14 }) => <SVG size={size} strokeWidth={2.5}><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" /></SVG>;
+/* Chevron right -- used for navigation arrows and expand indicators */
 export const ChevronRight   = ({ size = 14 }) => <SVG size={size} strokeWidth={2.5}><polyline points="9 18 15 12 9 6" /></SVG>;
+/* Trash can -- used for the delete action in overflow menus */
 export const TrashIcon      = ({ size = 14 }) => <SVG size={size}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></SVG>;
+/* Share network -- used for the share action */
 export const ShareIcon      = ({ size = 16 }) => <SVG size={size}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></SVG>;
+/* Person silhouette -- used for profile and user references */
 export const UserIcon       = ({ size = 16 }) => <SVG size={size}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></SVG>;
 export const LogoIcon       = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">

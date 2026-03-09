@@ -1,13 +1,21 @@
 // =============================================================================
 // components/feed/FeedControls.jsx
 //
-// Tab bar (For You / Following / Trending), sort toggle, and tag scroller.
+// Feed filter controls displayed above the post list.
+//
+// Layout (top to bottom):
+//   1. Tab row -- pill buttons for For You / Following / Trending
+//   2. Sort toggle -- top (most liked) vs latest (chronological)
+//   3. Horizontal tag scroller -- scrollable row of Tag pills
 //
 // Props:
-//   activeTab    FeedTab      setActiveTab  (tab) => void
-//   sortBy       SortMode     setSortBy     (sort) => void
-//   filterTag    string       setFilterTag  (tag) => void
-//   tags         string[]     — all available tags including 'All'
+//   activeTab    -- current tab key ('forYou' | 'following' | 'trending')
+//   setActiveTab -- (tab) => void
+//   sortBy       -- current sort ('top' | 'latest')
+//   setSortBy    -- (sort) => void
+//   filterTag    -- currently active tag or null
+//   setFilterTag -- (tag) => void
+//   tags         -- string[] of all available tags including 'All'
 // =============================================================================
 
 import { Tag } from '../ui/primitives';
@@ -35,7 +43,7 @@ export function FeedControls({
       flexDirection: 'column',
       gap: 12,
     }}>
-      {/* Tab row */}
+      {/* Tab row -- segmented pill buttons for feed mode selection */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         {TABS.map(({ key, label }) => {
           const active = activeTab === key;
@@ -60,7 +68,7 @@ export function FeedControls({
           );
         })}
 
-        {/* Sort toggle pushed to right */}
+        {/* Sort toggle -- pushed to the right side of the tab row */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: '0.80rem', color: 'var(--text3)', fontWeight: 600 }}>Sort:</span>
           {(['top', 'latest']).map(s => (
@@ -83,11 +91,14 @@ export function FeedControls({
         </div>
       </div>
 
-      {/* Horizontal tag scroller */}
+      {/* Horizontal tag scroller -- smooth scroll, hidden scrollbar */}
       <div style={{
         display: 'flex', gap: 6, overflowX: 'auto',
         paddingBottom: 2,
         scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch',
+        maskImage: 'linear-gradient(to right, transparent 0, black 8px, black calc(100% - 8px), transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 8px, black calc(100% - 8px), transparent 100%)',
       }}>
         {tags.map(tag => (
           <Tag

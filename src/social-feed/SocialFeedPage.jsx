@@ -1,5 +1,23 @@
 // =============================================================================
-// SocialFeedPage.jsx  — root component of the social feed module
+// SocialFeedPage.jsx -- root component of the social feed module
+//
+// This is the top-level page that orchestrates every piece of the social feed:
+//   - TopNav (sticky header with search, notifications, avatar menu)
+//   - LeftSidebar (profile card, quick actions, following list)
+//   - Main feed (composer, feed controls, post cards with infinite scroll)
+//   - RightSidebar (trending topics, follow suggestions, about card)
+//   - Modals (comment, repost, profile, saved)
+//   - SettingsPanel (drawer overlay for preferences)
+//
+// Layout uses CSS Grid with responsive breakpoints:
+//   < 900px   -- single-column (mobile)
+//   900-1279  -- two-column (left sidebar + feed)
+//   >= 1280   -- three-column (left + feed + right)
+//
+// State management:
+//   - useFeed hook handles API calls, optimistic updates, infinite scroll
+//   - usePreferences hook handles theme, compact mode, etc.
+//   - Local state for modals, filters, following set
 // =============================================================================
 
 'use client';
@@ -22,7 +40,9 @@ import { usePreferences }     from './hooks/usePreferences';
 import { Spinner }            from './components/ui/primitives';
 import { ALL_TAGS }           from './types/index';
 
-// ─── Demo session user ────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Demo session user -- in production this would come from auth context.
+// ---------------------------------------------------------------------------
 const CURRENT_USER = {
   id:        'user-me',
   firstName: 'Sara',
@@ -31,7 +51,7 @@ const CURRENT_USER = {
   profilePicture: null,
 };
 
-// All known users in the demo (seed + current) — used for profile lookup
+// All known users in the demo (seed + current) -- used for profile lookup
 const ALL_USERS = [
   CURRENT_USER,
   { id: 'u1', firstName: 'Sara',     lastName: 'Hussein',    userType: 'student', profilePicture: null },
@@ -48,13 +68,13 @@ const TEAM_USERS = ALL_USERS.filter(u => u.id !== 'user-me');
 const BREAKPOINT_MD = 900;
 const BREAKPOINT_LG = 1280;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 export default function SocialFeedPage() {
-  // ── Boot ──────────────────────────────────────────────────────────────────
+  // -- Bootstrap: inject global CSS custom properties and keyframes on mount
   useEffect(() => { injectGlobalStyles(); }, []);
 
-  // ── Responsive width ──────────────────────────────────────────────────────
+  // -- Responsive width tracking for breakpoint-based layout switching
   const [winW, setWinW] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1400
   );
@@ -66,13 +86,13 @@ export default function SocialFeedPage() {
   const showLeft  = winW >= BREAKPOINT_MD;
   const showRight = winW >= BREAKPOINT_LG;
 
-  // ── Feed state ────────────────────────────────────────────────────────────
+  // -- Feed state from the useFeed hook (posts, mutations, pagination)
   const {
     posts, loading, hasMore, error,
     toggleLike, addPost, removePost, incrementComments, incrementReposts, loadMore,
   } = useFeed(CURRENT_USER.id);
 
-  // ── Preferences (theme included) ──────────────────────────────────────────
+  // -- User preferences (theme, compact mode, image visibility, etc.)
   const { prefs, setPrefs, resetPrefs } = usePreferences();
 
   // Apply theme every time it changes
@@ -80,14 +100,14 @@ export default function SocialFeedPage() {
     applyTheme(prefs.theme ?? 'system');
   }, [prefs.theme]);
 
-  // ── Feed filters ──────────────────────────────────────────────────────────
+  // -- Feed filter state: tab selection, sort order, tag filter, following set
   const [activeTab,  setActiveTab]  = useState('forYou');
   const [sortBy,     setSortBy]     = useState('top');
   const [filterTag,  setFilterTag]  = useState(null);
   const [following,  setFollowing]  = useState(new Set());
   const [savedPosts, setSavedPosts] = useState([]);
 
-  // ── Modal state ───────────────────────────────────────────────────────────
+  // -- Modal visibility state -- at most one modal is open at a time
   const [commentPost,   setCommentPost]   = useState(null);
   const [repostPost,    setRepostPost]    = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
@@ -95,7 +115,7 @@ export default function SocialFeedPage() {
   const [showSettings,  setShowSettings]  = useState(false);
   const [showComposer,  setShowComposer]  = useState(false);
 
-  // ── Derived posts ─────────────────────────────────────────────────────────
+  // -- Derived (filtered + sorted) posts based on current filter state
   const visiblePosts = posts.filter(p => {
     if (filterTag && filterTag !== 'All' && !p.tags?.includes(filterTag)) return false;
     if (activeTab === 'following' && !following.has(p.User?.id)) return false;
@@ -105,7 +125,7 @@ export default function SocialFeedPage() {
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // -- Event handlers for follow, save, repost, delete actions
   const handleFollow = useCallback((userId) => {
     setFollowing(prev => {
       const next = new Set(prev);
@@ -144,7 +164,7 @@ export default function SocialFeedPage() {
   // Only keep '/' shortcut (search is handled inside TopNav itself)
   // No other shortcuts to avoid interfering with typing
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // -- Render: three-column responsive grid layout
   return (
     <div style={{
       minHeight: '100vh',
@@ -267,8 +287,19 @@ export default function SocialFeedPage() {
                 textAlign: 'center', padding: '60px 0',
                 color: 'var(--text3)', fontSize: '0.9rem',
               }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎓</div>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Nothing here yet</div>
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%',
+                  background: 'var(--red-muted)', display: 'grid', placeItems: 'center',
+                  margin: '0 auto 14px',
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                  </svg>
+                </div>
+                <div style={{ fontWeight: 700, marginBottom: 6, fontFamily: 'var(--font-head)' }}>
+                  Nothing here yet
+                </div>
                 <div>Be the first to post, or broaden your filters.</div>
               </div>
             )}
@@ -293,7 +324,7 @@ export default function SocialFeedPage() {
         )}
       </div>
 
-      {/* ── Modals ── */}
+      {/* -- Modal overlays -- at most one is rendered at a time */}
 
       {commentPost && (
         <CommentModal

@@ -1,13 +1,19 @@
 // =============================================================================
 // components/modals/index.jsx
 //
-// All modal dialogs for the social feed:
-//   ModalShell       — reusable backdrop + container
-//   CommentModal     — view + submit comments on a post
-//   RepostModal      — repost with optional quote
-//   ProfileModal     — user profile view with their posts + follow
-//   SavedModal       — bookmarked posts list
-//   NotifPanel       — notification dropdown (not a modal, a popover)
+// All modal dialogs and popover panels for the social feed.
+//
+// Exports:
+//   ModalShell    -- reusable backdrop + centered container with scaleIn
+//                    animation, Escape-to-close, and click-outside-to-close
+//   CommentModal  -- view comment thread + post a reply
+//   RepostModal   -- quote-repost with optional comment
+//   ProfileModal  -- full user profile with gradient cover + their posts
+//   SavedModal    -- list of bookmarked posts
+//   NotifPanel    -- notification dropdown popover (not a true modal)
+//
+// Shared button styles (ghostBtnStyle, primaryBtnStyle) are defined at
+// the bottom of this file and reused across modals for consistency.
 // =============================================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -19,9 +25,10 @@ import {
 import { displayName, timeAgo, fmtCount } from '../../utils/avatar';
 import { getComments, createComment } from '../../api/posts';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ModalShell — reusable backdrop + centered container
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// ModalShell -- reusable backdrop + centered container.
+// All modals are built on top of this shell.
+// ---------------------------------------------------------------------------
 
 export function ModalShell({ title, onClose, children, width = 560, noPad = false }) {
   useEffect(() => {
@@ -85,9 +92,10 @@ export function ModalShell({ title, onClose, children, width = 560, noPad = fals
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CommentModal — shows original post + comment thread + reply box
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// CommentModal -- shows original post preview + comment thread + reply box.
+// Fetches comments from the API on mount; new replies appear instantly.
+// ---------------------------------------------------------------------------
 
 export function CommentModal({ post, currentUser, onClose, onCommentPosted }) {
   const [comments,   setComments]   = useState([]);
@@ -225,9 +233,10 @@ export function CommentModal({ post, currentUser, onClose, onCommentPosted }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RepostModal — quote repost with optional comment
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// RepostModal -- quote repost with optional comment text.
+// Shows a preview of the original post + textarea for quote comment.
+// ---------------------------------------------------------------------------
 
 export function RepostModal({ post, onClose, onRepost }) {
   const [comment, setComment] = useState('');
@@ -292,10 +301,11 @@ export function RepostModal({ post, onClose, onRepost }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ProfileModal — full profile with posts + follow button
-// Uses locally-passed data (allUsers + posts) so no API call needed for demo
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// ProfileModal -- full user profile with gradient cover, avatar, stats,
+// follow button, and a list of their posts.
+// Uses locally-passed data (allUsers + posts) so no API call needed for demo.
+// ---------------------------------------------------------------------------
 
 export function ProfileModal({ userId, currentUserId, allUsers = [], posts = [], following, onFollow, onClose }) {
   // Look up user from the passed-in allUsers list (works fully offline/demo)
@@ -378,9 +388,10 @@ export function ProfileModal({ userId, currentUserId, allUsers = [], posts = [],
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SavedModal — bookmarked posts
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// SavedModal -- displays the user's bookmarked/saved posts.
+// Shows an empty state with bookmark icon when no posts are saved.
+// ---------------------------------------------------------------------------
 
 export function SavedModal({ savedPosts, onClose }) {
   return (
@@ -413,9 +424,11 @@ export function SavedModal({ savedPosts, onClose }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NotifPanel — notification popover (not a modal)
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// NotifPanel -- notification popover dropdown (not a full-screen modal).
+// Positioned absolutely below the bell icon in TopNav.
+// Uses demo data for now; in production, fetched from notifications API.
+// ---------------------------------------------------------------------------
 
 const NOTIF_ICONS = {
   like:    { icon: <HeartIcon size={13} />,   color: 'var(--red)'    },
@@ -521,9 +534,9 @@ export function NotifPanel({ onClose }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared button styles
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Shared button style objects reused by RepostModal and other modals.
+// ---------------------------------------------------------------------------
 
 const ghostBtnStyle = {
   padding: '9px 20px', borderRadius: 'var(--r-md)',

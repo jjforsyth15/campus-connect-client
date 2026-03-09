@@ -1,28 +1,44 @@
 // =============================================================================
 // components/sidebar/LeftSidebar.jsx
 //
-// Left sidebar — sticky, contains:
-//   1. MeCard         — profile summary with stats + cover gradient
-//   2. QuickActions   — navigation shortcuts
-//   3. FollowingList  — compact list of who you follow
+// Left sidebar -- sticky panel anchored to the left of the feed.
+// Visible on screens >= 900px (BREAKPOINT_MD).
+//
+// Contains three stacked cards:
+//   1. MeCard        -- profile summary with gradient cover banner,
+//                       avatar, name, handle, and stat pills (posts/following)
+//   2. QuickActions  -- navigation shortcuts with keyboard hint badges
+//                       (Create Post, Saved Posts, My Profile, Preferences)
+//   3. FollowingList -- compact avatar list of users you follow
+//
+// All sub-components are file-private; only LeftSidebar is exported.
 // =============================================================================
 
 import { Avatar, Card, SectionLabel, StatPill, Divider } from '../ui/primitives';
 import { PencilIcon, BookmarkIcon, CogIcon, UserIcon } from '../ui/primitives';
 import { displayName } from '../../utils/avatar';
 
-// ── MeCard ───────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// MeCard -- profile summary card with gradient cover and stat pills.
+// ---------------------------------------------------------------------------──
 
 function MeCard({ user, postCount, followingCount, onViewProfile }) {
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
-      {/* Cover banner */}
+      {/* Cover banner -- CSUN red gradient */}
       <div style={{
         height: 72, flexShrink: 0,
         background: 'linear-gradient(130deg, var(--red) 0%, #FF6B6B 55%, #FFAA8A 100%)',
-      }} />
+        position: 'relative',
+      }}>
+        {/* Subtle pattern overlay for depth */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+        }} />
+      </div>
 
-      {/* Avatar — sits below the banner, not overlapping it */}
+      {/* Avatar -- positioned to overlap the banner/body boundary */}
       <div style={{ padding: '12px 16px 16px' }}>
         <div
           onClick={() => onViewProfile(user.id)}
@@ -66,7 +82,9 @@ function MeCard({ user, postCount, followingCount, onViewProfile }) {
   );
 }
 
-// ── QuickActions ──────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// QuickActions -- sidebar navigation shortcuts with keyboard hint badges.
+// ---------------------------------------------------------------------------──
 
 function QuickActions({ onCompose, onSaved, onProfile, onSettings }) {
   const actions = [
@@ -95,13 +113,13 @@ function QuickBtn({ icon, label, sub, onClick }) {
         padding: '10px 12px', borderRadius: 'var(--r-md)',
         border: 'none', background: 'transparent',
         color: 'var(--text1)', width: '100%', cursor: 'pointer',
-        transition: 'background 0.14s',
+        transition: 'background 0.14s, transform 0.14s',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.transform = 'translateX(2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateX(0)'; }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ color: 'var(--red)', display: 'flex' }}>{icon}</span>
+        <span style={{ color: 'var(--red)', display: 'flex', transition: 'transform 0.14s' }}>{icon}</span>
         <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{label}</span>
       </div>
       {sub && (
@@ -118,7 +136,10 @@ function QuickBtn({ icon, label, sub, onClick }) {
   );
 }
 
-// ── FollowingList ─────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// FollowingList -- compact list of users the current user follows.
+// Shows up to 6 entries; clicking opens their profile modal.
+// ---------------------------------------------------------------------------──
 
 function FollowingList({ followedUsers, onViewProfile }) {
   if (!followedUsers.length) return null;
@@ -156,7 +177,9 @@ function FollowingList({ followedUsers, onViewProfile }) {
   );
 }
 
-// ── LeftSidebar (composed export) ─────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// LeftSidebar -- composed export that stacks the three cards vertically.
+// ---------------------------------------------------------------------------──
 
 export function LeftSidebar({
   currentUser,

@@ -1,14 +1,28 @@
 // =============================================================================
 // components/settings/SettingsPanel.jsx
 //
-// Full settings panel — appearance, feed, notifications, accessibility.
-// Slides in from the right as a drawer overlay.
+// Full settings panel -- slides in from the right as a drawer overlay.
+//
+// Sections:
+//   1. Profile      -- edit display name and bio
+//   2. Appearance   -- theme selector, font size
+//   3. Feed         -- show images, compact view, auto-refresh
+//   4. Privacy      -- profile visibility, activity status
+//   5. Notifications-- likes, comments, followers, reposts
+//   6. Accessibility-- reduce motion, high contrast
+//   7. Shortcuts    -- keyboard shortcut reference
+//   8. Data         -- export data, reset settings
+//
+// Uses slideInRight animation (defined in injectStyles.ts).
+// Closes on Escape key or backdrop click.
 // =============================================================================
 
 import { useEffect } from 'react';
 import { CloseIcon, CogIcon } from '../ui/primitives';
 
-// ─── Primitives ───────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Internal primitives used only within SettingsPanel.
+// ---------------------------------------------------------------------------
 
 function Toggle({ on, onChange }) {
   return (
@@ -115,7 +129,9 @@ function Shortcut({ keys, label }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// SettingsPanel -- main exported component.
+// ---------------------------------------------------------------------------
 
 export function SettingsPanel({ prefs, setPrefs, onClose }) {
   // Close on Escape
@@ -243,6 +259,27 @@ export function SettingsPanel({ prefs, setPrefs, onClose }) {
             />
           </Section>
 
+          <Section title="Privacy">
+            <SettingRow
+              label="Public profile"
+              description="Allow other students to view your profile"
+              on={prefs.publicProfile ?? true}
+              onChange={v => setPrefs({ publicProfile: v })}
+            />
+            <SettingRow
+              label="Show activity status"
+              description="Let others see when you are online"
+              on={prefs.showActivity ?? true}
+              onChange={v => setPrefs({ showActivity: v })}
+            />
+            <SettingRow
+              label="Allow mentions"
+              description="Let other users mention you in posts"
+              on={prefs.allowMentions ?? true}
+              onChange={v => setPrefs({ allowMentions: v })}
+            />
+          </Section>
+
           <Section title="Accessibility">
             <SettingRow
               label="Reduce motion"
@@ -268,21 +305,55 @@ export function SettingsPanel({ prefs, setPrefs, onClose }) {
             <Shortcut keys={['R']}         label="Repost focused post" />
           </Section>
 
-          {/* Reset button */}
-          <button
-            onClick={() => setPrefs(null)}
-            style={{
-              width: '100%', padding: '10px', marginTop: 8,
-              border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
-              background: 'transparent', color: 'var(--text3)',
-              fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#DC2626'; e.currentTarget.style.color = '#DC2626'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text3)'; }}
-          >
-            Reset all settings to default
-          </button>
+          <Section title="Data Management">
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 8,
+              padding: '8px 0',
+            }}>
+              <button
+                onClick={() => {
+                  /* Export preferences as JSON download */
+                  const blob = new Blob([JSON.stringify(prefs, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'matador-connect-prefs.json'; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{
+                  width: '100%', padding: '10px', marginTop: 4,
+                  border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
+                  background: 'transparent', color: 'var(--text2)',
+                  fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--blue)'; e.currentTarget.style.color = 'var(--blue)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export my preferences
+              </button>
+
+              <button
+                onClick={() => setPrefs(null)}
+                style={{
+                  width: '100%', padding: '10px',
+                  border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
+                  background: 'transparent', color: 'var(--text3)',
+                  fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#DC2626'; e.currentTarget.style.color = '#DC2626'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text3)'; }}
+              >
+                Reset all settings to default
+              </button>
+            </div>
+          </Section>
         </div>
       </div>
     </>

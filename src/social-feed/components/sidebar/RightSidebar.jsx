@@ -1,16 +1,25 @@
 // =============================================================================
 // components/sidebar/RightSidebar.jsx
 //
-// Right sidebar — sticky, contains:
-//   1. TrendingTopics — tag cloud with activity indicators
-//   2. WhoToFollow    — user suggestions with follow/unfollow
-//   3. AboutCard      — project credits and links
+// Right sidebar -- sticky panel anchored to the right of the feed.
+// Visible on screens >= 1280px (BREAKPOINT_LG).
+//
+// Contains three stacked cards:
+//   1. TrendingTopics -- tag cloud showing popular discussion topics
+//   2. WhoToFollow    -- user suggestions with follow/unfollow buttons;
+//                        hover on "Following" shows red "Unfollow" hint
+//   3. AboutCard      -- project credits, CSUN branding, and course info
+//
+// All sub-components are file-private; only RightSidebar is exported.
 // =============================================================================
 
 import { Avatar, Card, SectionLabel, Tag } from '../ui/primitives';
 import { displayName } from '../../utils/avatar';
 
-// ── Trending Topics ───────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// TrendingTopics -- tag cloud for popular discussion categories.
+// Excludes the 'All' meta-tag (first item in array).
+// ---------------------------------------------------------------------------──
 
 function TrendingTopics({ tags, activeTag, onTagSelect }) {
   return (
@@ -30,7 +39,9 @@ function TrendingTopics({ tags, activeTag, onTagSelect }) {
   );
 }
 
-// ── Who to Follow ─────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// WhoToFollow -- suggested user cards with follow/unfollow toggle.
+// ---------------------------------------------------------------------------────
 
 function WhoToFollow({ suggestions, following, onFollow, onViewProfile }) {
   if (!suggestions.length) return null;
@@ -103,7 +114,9 @@ function FollowBtn({ isFollowing, onToggle }) {
   );
 }
 
-// ── About Card ────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// AboutCard -- project credits and CSUN course information.
+// ---------------------------------------------------------------------------────
 
 function AboutCard() {
   return (
@@ -123,7 +136,7 @@ function AboutCard() {
         </span>
       </div>
       <p style={{ fontSize: '0.80rem', color: 'var(--text2)', lineHeight: 1.65, marginBottom: 12 }}>
-        Built by CSUN students for CSUN students. One platform to share ideas, find teammates, and stay connected with campus life.
+        Built by CSUN students for CSUN students. One platform to share ideas, find teammates, and stay connected with campus life. Go Matadors!
       </p>
       <p style={{ marginTop: 10, fontSize: '0.72rem', color: 'var(--text3)' }}>
         COMP 490 · California State University, Northridge · 2025
@@ -132,7 +145,9 @@ function AboutCard() {
   );
 }
 
-// ── RightSidebar (composed export) ────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// RightSidebar -- composed export that stacks the three cards vertically.
+// ---------------------------------------------------------------------------────
 
 export function RightSidebar({ tags, activeTag, onTagSelect, suggestions, following, onFollow, onViewProfile }) {
   return (
