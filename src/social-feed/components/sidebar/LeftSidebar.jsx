@@ -15,44 +15,44 @@ import { displayName } from '../../utils/avatar';
 
 function MeCard({ user, postCount, followingCount, onViewProfile }) {
   return (
-    <Card style={{ padding: 0, overflow: 'visible' }}>
+    <Card style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Cover banner */}
       <div style={{
-        height: 68, borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
+        height: 72, flexShrink: 0,
         background: 'linear-gradient(130deg, var(--red) 0%, #FF6B6B 55%, #FFAA8A 100%)',
-        position: 'relative',
       }} />
 
-      <div style={{ padding: '0 16px 16px', marginTop: -28 }}>
-        <div onClick={() => onViewProfile(user.id)} style={{ display: 'inline-block', cursor: 'pointer' }}>
-          <Avatar user={user} size={52} ring style={{ border: '3px solid var(--bg-card)' }} />
+      {/* Avatar — sits below the banner, not overlapping it */}
+      <div style={{ padding: '12px 16px 16px' }}>
+        <div
+          onClick={() => onViewProfile(user.id)}
+          style={{
+            display: 'inline-block', cursor: 'pointer',
+            marginTop: -36,        /* pull avatar up to sit on the border */
+            marginBottom: 8,
+          }}
+        >
+          <Avatar
+            user={user}
+            size={52}
+            style={{ border: '3px solid var(--bg-card)', borderRadius: '50%' }}
+          />
         </div>
 
-        <div style={{ marginTop: 8 }}>
-          <button
-            onClick={() => onViewProfile(user.id)}
-            style={{
-              fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1rem',
-              color: 'var(--text1)', background: 'none', border: 'none',
-              cursor: 'pointer', padding: 0, display: 'block', textAlign: 'left',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text1)'}
-          >
-            {displayName(user)}
-          </button>
-          <div style={{ fontSize: '0.80rem', color: 'var(--text3)', marginTop: 2 }}>
-            @{user.firstName?.toLowerCase()}{user.lastName?.toLowerCase()}
-          </div>
-          {(user.major || user.year) && (
-            <div style={{
-              fontSize: '0.78rem', color: 'var(--text2)', marginTop: 4,
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}>
-              {user.major}
-              {user.major && user.year && <span style={{ color: 'var(--border-hard)' }}>·</span>}
-              {user.year}
-            </div>
-          )}
+        <button
+          onClick={() => onViewProfile(user.id)}
+          style={{
+            fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1rem',
+            color: 'var(--text1)', background: 'none', border: 'none',
+            cursor: 'pointer', padding: 0, display: 'block', textAlign: 'left',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text1)'}
+        >
+          {displayName(user)}
+        </button>
+        <div style={{ fontSize: '0.80rem', color: 'var(--text3)', marginTop: 2 }}>
+          @{(user.firstName ?? '').toLowerCase()}{(user.lastName ?? '').toLowerCase()}
         </div>
 
         <Divider my={12} />

@@ -89,21 +89,39 @@ export const ALL_TAGS: Array<'All' | PostTag> = [
 
 /** Stored in localStorage — persists across sessions */
 export interface UserPreferences {
-  compactDensity: boolean;
+  theme: 'system' | 'light' | 'dark';
+  fontSize: 'small' | 'medium' | 'large';
+  compact: boolean;
   showImages: boolean;
   showTagColors: boolean;
+  autoRefresh: boolean;
   defaultTab: FeedTab;
   defaultSort: SortMode;
   notificationsEnabled: boolean;
+  notifLikes: boolean;
+  notifComments: boolean;
+  notifFollows: boolean;
+  notifReposts: boolean;
+  reduceMotion: boolean;
+  highContrast: boolean;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  compactDensity: false,
+  theme: 'system',
+  fontSize: 'medium',
+  compact: false,
   showImages: true,
   showTagColors: true,
+  autoRefresh: false,
   defaultTab: 'forYou',
   defaultSort: 'top',
   notificationsEnabled: true,
+  notifLikes: true,
+  notifComments: true,
+  notifFollows: true,
+  notifReposts: false,
+  reduceMotion: false,
+  highContrast: false,
 };
 
 export interface AppNotification {

@@ -121,3 +121,39 @@ export function injectGlobalStyles(): void {
   el.textContent = GLOBAL_CSS;
   document.head.appendChild(el);
 }
+
+/**
+ * Apply a theme by swapping CSS custom properties on :root.
+ * Called whenever prefs.theme changes.
+ */
+export function applyTheme(theme: 'system' | 'light' | 'dark'): void {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+
+  const root = document.documentElement;
+  if (isDark) {
+    root.style.setProperty('--bg',         '#0F1117');
+    root.style.setProperty('--bg-card',    '#1A1D27');
+    root.style.setProperty('--bg-hover',   '#232737');
+    root.style.setProperty('--bg-input',   '#1E2130');
+    root.style.setProperty('--border',     '#2C3045');
+    root.style.setProperty('--border-hard','#3A3F58');
+    root.style.setProperty('--text1',      '#F0F2F8');
+    root.style.setProperty('--text2',      '#9BA3BA');
+    root.style.setProperty('--text3',      '#5C6480');
+    root.style.setProperty('--red-muted',  'rgba(210,32,48,0.12)');
+    root.setAttribute('data-theme', 'dark');
+  } else {
+    root.style.setProperty('--bg',         '#EEF0F4');
+    root.style.setProperty('--bg-card',    '#FFFFFF');
+    root.style.setProperty('--bg-hover',   '#F8F9FB');
+    root.style.setProperty('--bg-input',   '#F3F5F8');
+    root.style.setProperty('--border',     '#E3E6EC');
+    root.style.setProperty('--border-hard','#CDD1DA');
+    root.style.setProperty('--text1',      '#0F1117');
+    root.style.setProperty('--text2',      '#525A6A');
+    root.style.setProperty('--text3',      '#8C95A3');
+    root.style.setProperty('--red-muted',  'rgba(210,32,48,0.07)');
+    root.setAttribute('data-theme', 'light');
+  }
+}

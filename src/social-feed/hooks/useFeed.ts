@@ -115,36 +115,46 @@ export function useFeed(currentUserId: string) {
     if (inFlight.current.has(`like_${postId}`)) return;
     inFlight.current.add(`like_${postId}`);
 
-    // Read current state before mutating
-    const previous = posts.find(p => p.id === postId);
-    if (!previous) return;
-    const wasLiked = previous.isLikedByUser ?? false;
+    // Snapshot the current state for rollback — read directly from setter
+    let snapshot: { wasLiked: boolean; prevCount: number } | null = null;
 
-    // Optimistic update
-    setPosts(prev => prev.map(p =>
-      p.id !== postId ? p : {
-        ...p,
-        isLikedByUser: !wasLiked,
-        _count: { ...p._count, Like: p._count.Like + (wasLiked ? -1 : 1) },
-      }
-    ));
-
-    try {
-      if (wasLiked) await api.unlikePost(postId);
-      else          await api.likePost(postId);
-    } catch {
-      // Roll back on failure
-      setPosts(prev => prev.map(p =>
+    // Optimistic update — use functional form so we don't capture stale posts
+    setPosts(prev => {
+      const post = prev.find(p => p.id === postId);
+      if (!post) return prev;
+      const wasLiked = post.isLikedByUser ?? false;
+      snapshot = { wasLiked, prevCount: post._count.Like };
+      return prev.map(p =>
         p.id !== postId ? p : {
           ...p,
-          isLikedByUser: wasLiked,
-          _count: { ...p._count, Like: previous._count.Like },
+          isLikedByUser: !wasLiked,
+          _count: { ...p._count, Like: p._count.Like + (wasLiked ? -1 : 1) },
         }
-      ));
+      );
+    });
+
+    try {
+      // Small delay to ensure snapshot is set before async call
+      await new Promise(r => setTimeout(r, 0));
+      if (!snapshot) return;
+      if ((snapshot as any).wasLiked) await api.unlikePost(postId);
+      else                             await api.likePost(postId);
+    } catch {
+      // Roll back using the snapshot
+      if (snapshot) {
+        const { wasLiked, prevCount } = snapshot as any;
+        setPosts(prev => prev.map(p =>
+          p.id !== postId ? p : {
+            ...p,
+            isLikedByUser: wasLiked,
+            _count: { ...p._count, Like: prevCount },
+          }
+        ));
+      }
     } finally {
       inFlight.current.delete(`like_${postId}`);
     }
-  }, [posts]);
+  }, []);
 
   // ── Create post (prepend to feed) ──────────────────────────────────────────
   const addPost = useCallback((post: Post) => {

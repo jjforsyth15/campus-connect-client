@@ -17,7 +17,7 @@ import {
   RepostIcon, BookmarkIcon,
 } from '../ui/primitives';
 import { displayName, timeAgo, fmtCount } from '../../utils/avatar';
-import { getComments, createComment, getUserPosts } from '../../api/posts';
+import { getComments, createComment } from '../../api/posts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ModalShell — reusable backdrop + centered container
@@ -294,102 +294,86 @@ export function RepostModal({ post, onClose, onRepost }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileModal — full profile with posts + follow button
+// Uses locally-passed data (allUsers + posts) so no API call needed for demo
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ProfileModal({ userId, currentUserId, following, onFollow, onClose }) {
-  const [user,    setUser]    = useState(null);
-  const [posts,   setPosts]   = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let alive = true;
-    getUserPosts(userId).then(data => {
-      if (!alive) return;
-      if (data.posts.length) setUser(data.posts[0].User);
-      setPosts(data.posts);
-      setLoading(false);
-    }).catch(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [userId]);
+export function ProfileModal({ userId, currentUserId, allUsers = [], posts = [], following, onFollow, onClose }) {
+  // Look up user from the passed-in allUsers list (works fully offline/demo)
+  const user = allUsers.find(u => u.id === userId) ?? null;
+  // Get their posts from the feed
+  const userPosts = posts.filter(p => p.User?.id === userId);
 
   const isFollowing = following.has(userId);
   const isMe = userId === currentUserId;
 
   return (
     <ModalShell title="Profile" onClose={onClose} width={580} noPad>
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spinner size={28} />
-        </div>
-      ) : (
-        <>
-          <div style={{
-            height: 90,
-            background: 'linear-gradient(130deg, var(--red) 0%, #FF6B6B 55%, #FFAA8A 100%)',
-          }} />
+      <>
+        <div style={{
+          height: 90,
+          background: 'linear-gradient(130deg, var(--red) 0%, #FF6B6B 55%, #FFAA8A 100%)',
+        }} />
 
-          <div style={{ padding: '0 22px 18px', marginTop: -30, borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              {user && <Avatar user={user} size={58} ring style={{ border: '3px solid var(--bg-card)' }} />}
-              {!isMe && user && (
-                <button
-                  onClick={() => onFollow(userId)}
-                  style={{
-                    padding: '8px 20px', borderRadius: 'var(--r-full)', marginBottom: 4,
-                    fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer',
-                    border: isFollowing ? '1.5px solid var(--border)' : '1.5px solid var(--red)',
-                    background: isFollowing ? 'transparent' : 'var(--red)',
-                    color: isFollowing ? 'var(--text2)' : '#fff',
-                    transition: 'all 0.18s',
-                  }}
-                >
-                  {isFollowing ? 'Following' : 'Follow'}
-                </button>
-              )}
+        <div style={{ padding: '0 22px 18px', marginTop: -30, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            {user && <Avatar user={user} size={58} ring style={{ border: '3px solid var(--bg-card)' }} />}
+            {!user && <div style={{ width: 58, height: 58 }} />}
+            {!isMe && user && (
+              <button
+                onClick={() => onFollow(userId)}
+                style={{
+                  padding: '8px 20px', borderRadius: 'var(--r-full)', marginBottom: 4,
+                  fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer',
+                  border: isFollowing ? '1.5px solid var(--border)' : '1.5px solid var(--red)',
+                  background: isFollowing ? 'transparent' : 'var(--red)',
+                  color: isFollowing ? 'var(--text2)' : '#fff',
+                  transition: 'all 0.18s',
+                }}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            )}
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1.1rem' }}>
+              {user ? displayName(user) : 'Unknown User'}
             </div>
-
-            {user && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1.1rem' }}>
-                  {displayName(user)}
-                </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text3)', marginTop: 2, textTransform: 'capitalize' }}>
-                  {user.userType}
-                </div>
-                <div style={{ display: 'flex', gap: 20, marginTop: 12 }}>
-                  <div>
-                    <span style={{ fontWeight: 800, fontFamily: 'var(--font-head)' }}>{fmtCount(posts.length)}</span>
-                    <span style={{ color: 'var(--text3)', fontSize: '0.82rem', marginLeft: 4 }}>Posts</span>
-                  </div>
-                </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text3)', marginTop: 2, textTransform: 'capitalize' }}>
+              {user?.userType ?? 'student'}
+            </div>
+            <div style={{ display: 'flex', gap: 20, marginTop: 12 }}>
+              <div>
+                <span style={{ fontWeight: 800, fontFamily: 'var(--font-head)' }}>{fmtCount(userPosts.length)}</span>
+                <span style={{ color: 'var(--text3)', fontSize: '0.82rem', marginLeft: 4 }}>Posts</span>
               </div>
-            )}
+            </div>
           </div>
+        </div>
 
-          <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {posts.length === 0 && (
-              <p style={{ textAlign: 'center', color: 'var(--text3)', padding: '20px 0', fontSize: '0.88rem' }}>
-                No posts yet.
+        <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {userPosts.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--text3)', padding: '20px 0', fontSize: '0.88rem' }}>
+              No posts yet.
+            </p>
+          )}
+          {userPosts.map(p => (
+            <div key={p.id} style={{
+              padding: '14px', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border)', background: 'var(--bg)',
+            }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text1)', lineHeight: 1.6 }}>
+                {p.content}
               </p>
-            )}
-            {posts.map(p => (
-              <div key={p.id} style={{
-                padding: '14px', borderRadius: 'var(--r-md)',
-                border: '1px solid var(--border)', background: 'var(--bg)',
-              }}>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text1)', lineHeight: 1.6 }}>
-                  {p.content}
-                </p>
-                <div style={{ display: 'flex', gap: 14, marginTop: 10, color: 'var(--text3)', fontSize: '0.8rem' }}>
-                  <span>{timeAgo(p.createdAt)}</span>
-                  <span>{fmtCount(p._count.Like)} likes</span>
-                  <span>{fmtCount(p._count.Comment)} comments</span>
-                </div>
+              <div style={{ display: 'flex', gap: 14, marginTop: 10, color: 'var(--text3)', fontSize: '0.8rem' }}>
+                <span>{timeAgo(p.createdAt)}</span>
+                <span>{fmtCount(p._count.Like)} likes</span>
+                <span>{fmtCount(p._count.Comment)} comments</span>
               </div>
-            ))}
-          </div>
-        </>
-      )}
+            </div>
+          ))}
+        </div>
+      </>
     </ModalShell>
   );
 }
