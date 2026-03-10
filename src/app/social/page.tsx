@@ -1,6 +1,6 @@
 'use client';
 
-import SocialFeedPage from '@/social-feed/SocialFeedPage';
+import SocialFeedPage from '@/social-feed';
 
 export default function SocialPage() {
   return <SocialFeedPage />;
