@@ -5,7 +5,7 @@
 // Deterministic gradient from user ID — same user always gets same color.
 // =============================================================================
 
-import type { PostAuthor, SessionUser } from '../types';
+import type { PostAuthor } from '../types/feed.types';
 
 const GRADIENTS: [string, string][] = [
   ['#D22030', '#FF6B6B'],
@@ -39,7 +39,7 @@ export function initials(firstName: string, lastName: string): string {
 }
 
 /** Full display name */
-export function displayName(user: PostAuthor | SessionUser): string {
+export function displayName(user: PostAuthor): string {
   return `${user.firstName} ${user.lastName}`.trim();
 }
 
