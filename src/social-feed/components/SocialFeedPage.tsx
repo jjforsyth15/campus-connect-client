@@ -70,12 +70,12 @@ function IcoCoffee()  { return <svg width="15" height="15" fill="none" stroke="c
 function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }
 
 const QUICK_LINKS = [
-  { label: "SRC",     href: "https://www.csun.edu/src",      Icon: IcoPhone    },
-  { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen },
-  { label: "SOLAR",   href: "https://my.csun.edu",           Icon: IcoClock    },
-  { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap  },
-  { label: "Dining",  href: "https://csun.campusdish.com",   Icon: IcoCoffee   },
-  { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck    },
+  { label: "SRC",     href: "/ToroSRC",                      Icon: IcoPhone,    internal: true  },
+  { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
+  { label: "SOLAR",   href: "https://my.csun.edu",           Icon: IcoClock,    internal: false },
+  { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap,  internal: false },
+  { label: "Dining",  href: "https://dineoncampus.com/CSUN", Icon: IcoCoffee,   internal: false },
+  { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck,    internal: false },
 ];
 
 const SEARCH_INDEX = [
@@ -90,6 +90,61 @@ const SEARCH_INDEX = [
 
 type ToastType = "success" | "error" | "info";
 interface Toast { id: number; msg: string; type: ToastType; }
+
+// ── FollowingPeopleView ────────────────────────────────────────────────────────
+// Extracted as a proper component to avoid calling useState inside a conditional.
+const FOLLOWING_USERS = [
+  { id:"u1", name:"Justin Ayson",    role:"Student",  initials:"JA" },
+  { id:"u3", name:"Joseph Forsyth",  role:"Student",  initials:"JF" },
+  { id:"u5", name:"Emily Rodriguez", role:"Student",  initials:"ER" },
+  { id:"u7", name:"Dr. Chen",        role:"Faculty",  initials:"DC" },
+];
+
+function FollowingPeopleView() {
+  const [followState, setFollowState] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(FOLLOWING_USERS.map(u => [u.id, true]))
+  );
+  return (
+    <div style={{ padding:"20px" }}>
+      <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", marginBottom:4 }}>People You Follow</h2>
+      <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} people · their posts appear in your For You feed</p>
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {FOLLOWING_USERS.map(u => (
+          <div key={u.id}
+            style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", transition:"background 150ms" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
+          >
+            <div className="avatar" style={{ width:44, height:44, fontSize:15, flexShrink:0 }}>
+              <span className="avatar-initials">{u.initials}</span>
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:600, fontSize:14, color:"var(--text-primary)" }}>{u.name}</div>
+              <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
+                <span style={{ background: u.role === "Faculty" ? "var(--csun-red)" : "var(--info)", color:"#fff", padding:"1px 7px", borderRadius:99, fontSize:10, fontWeight:700, textTransform:"uppercase" }}>{u.role}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setFollowState(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+              style={{
+                padding:"7px 18px", borderRadius:99, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms",
+                border: followState[u.id] ? "1px solid var(--border-medium)" : "none",
+                background: followState[u.id] ? "transparent" : "var(--csun-red)",
+                color: followState[u.id] ? "var(--text-secondary)" : "#fff",
+                boxShadow: followState[u.id] ? "none" : "0 2px 10px var(--csun-red-glow)",
+              }}
+            >
+              {followState[u.id] ? "Following" : "Follow"}
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop:24, padding:"16px 20px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }}>
+        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>Want to discover more? Switch to <strong style={{ color:"var(--text-primary)" }}>For You</strong> or <strong style={{ color:"var(--text-primary)" }}>Campus</strong>.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function SocialFeedPage() {
   const { isDark, toggleTheme } = useTheme();
@@ -148,14 +203,6 @@ export default function SocialFeedPage() {
       feedTab === "clubs"     ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
       /* following */           posts.filter(p => ["u1","u3","u5","u7"].includes(p.User.id));
 
-    // Seed following list (people you follow)
-    const FOLLOWING_USERS = [
-      { id:"u1", name:"Justin Ayson",    role:"Student",    initials:"JA" },
-      { id:"u3", name:"Joseph Forsyth",  role:"Student",    initials:"JF" },
-      { id:"u5", name:"Emily Rodriguez", role:"Student",    initials:"ER" },
-      { id:"u7", name:"Dr. Chen",        role:"Faculty",    initials:"DC" },
-    ];
-
     const tabs = (
       <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
         {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
@@ -177,49 +224,10 @@ export default function SocialFeedPage() {
 
     // ── Following tab: dedicated people view ────────────────────────────────
     if (feedTab === "following") {
-      const [followState, setFollowState] = useState<Record<string, boolean>>(
-        Object.fromEntries(FOLLOWING_USERS.map(u => [u.id, true]))
-      );
       return (
         <>
           {tabs}
-          <div style={{ padding:"20px" }}>
-            <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", marginBottom:4 }}>People You Follow</h2>
-            <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} people · their posts appear in your For You feed</p>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              {FOLLOWING_USERS.map(u => (
-                <div key={u.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", transition:"background 150ms" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
-                >
-                  <div className="avatar" style={{ width:44, height:44, fontSize:15, flexShrink:0 }}>
-                    <span className="avatar-initials">{u.initials}</span>
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:600, fontSize:14, color:"var(--text-primary)" }}>{u.name}</div>
-                    <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
-                      <span style={{ background: u.role === "Faculty" ? "var(--csun-red)" : "var(--info)", color:"#fff", padding:"1px 7px", borderRadius:99, fontSize:10, fontWeight:700, textTransform:"uppercase" }}>{u.role}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setFollowState(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
-                    style={{
-                      padding:"7px 18px", borderRadius:99, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms",
-                      border: followState[u.id] ? "1px solid var(--border-medium)" : "none",
-                      background: followState[u.id] ? "transparent" : "var(--csun-red)",
-                      color: followState[u.id] ? "var(--text-secondary)" : "#fff",
-                      boxShadow: followState[u.id] ? "none" : "0 2px 10px var(--csun-red-glow)",
-                    }}
-                  >
-                    {followState[u.id] ? "Following" : "Follow"}
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop:24, padding:"16px 20px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }}>
-              <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>Want to see more? Switch to <strong style={{ color:"var(--text-primary)" }}>For You</strong> or <strong style={{ color:"var(--text-primary)" }}>Campus</strong> to discover new people to follow.</p>
-            </div>
-          </div>
+          <FollowingPeopleView />
         </>
       );
     }
@@ -428,8 +436,9 @@ export default function SocialFeedPage() {
           <div style={{ background:"var(--bg-surface)", borderRadius:12, border:"1px solid var(--border-subtle)", overflow:"hidden" }}>
             <div style={{ padding:"14px 16px 10px", fontWeight:700, fontSize:15, borderBottom:"1px solid var(--border-subtle)" }}>Campus Quick Links</div>
             <div style={{ padding:"10px 12px 12px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {QUICK_LINKS.map(({ label, href, Icon }) => (
-                <a key={label} href={href} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 10px", borderRadius:10, background:"var(--bg-elevated)", border:"1px solid var(--border-subtle)", color:"var(--text-secondary)", fontSize:12, fontWeight:500, textDecoration:"none", transition:"background 150ms, color 150ms" }}
+              {QUICK_LINKS.map(({ label, href, Icon, internal }) => (
+                <a key={label} href={href} {...(!internal && { target:"_blank", rel:"noreferrer" })}
+                  style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 10px", borderRadius:10, background:"var(--bg-elevated)", border:"1px solid var(--border-subtle)", color:"var(--text-secondary)", fontSize:12, fontWeight:500, textDecoration:"none", transition:"background 150ms, color 150ms" }}
                   onMouseEnter={e => { e.currentTarget.style.background = "var(--csun-red)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "var(--csun-red)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}
                 ><Icon />{label}</a>
