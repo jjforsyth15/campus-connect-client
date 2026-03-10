@@ -46,7 +46,14 @@ function parseRssItem(item: Element, idx: number): CampusEvent {
   const cat = get("category") || "Event";
   const location = get("location") || item.querySelector("ev\\:location")?.textContent?.trim() || "CSUN Campus";
   const link = get("link") || "https://news.csun.edu/events";
-  const description = get("description").replace(/<[^>]*>/g, "").trim().slice(0, 220) || undefined;
+  const rawDesc = get("description").replace(/<[^>]*>/g, "").trim();
+  // Strip RSS meta lines like "#123 posts" or "#tag count" patterns
+  const cleanDesc = rawDesc
+    .split(/\n|\r/)
+    .filter(line => !/^#\d/.test(line.trim()) && line.trim().length > 0)
+    .join(" ")
+    .slice(0, 220);
+  const description = cleanDesc || undefined;
   let date = "";
   let time = "";
   if (pubDate) {
@@ -94,8 +101,7 @@ function RsvpModal({ event, onClose, onConfirm }: {
       <div style={{ background:"var(--bg-surface)", borderRadius:16, padding:28, width:"100%", maxWidth:440, boxShadow:"var(--shadow-panel)" }}>
         {done ? (
           <div style={{ textAlign:"center", padding:"12px 0" }}>
-            <div style={{ fontSize:44, marginBottom:10 }}>🎉</div>
-            <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:700, color:"var(--text-primary)", marginBottom:6 }}>You&apos;re going!</div>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:700, color:"var(--text-primary)", marginBottom:6 }}>You&apos;re registered!</div>
             <div style={{ fontSize:13, color:"var(--text-muted)" }}>RSVP confirmed for <strong>{event.title}</strong></div>
           </div>
         ) : (
@@ -125,7 +131,7 @@ function RsvpModal({ event, onClose, onConfirm }: {
                   <input
                     className="form-input"
                     type="text"
-                    placeholder="Sara Medhat"
+                    placeholder="Your full name"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     required
@@ -163,7 +169,7 @@ function RsvpModal({ event, onClose, onConfirm }: {
 }
 
 export function EventsPage({ onToast }: EventsPageProps) {
-  const [events,    setEvents]    = useState<CampusEvent[]>(MOCK_EVENTS);
+  const [events,    setEvents]    = useState<CampusEvent[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [fromCSUN,  setFromCSUN]  = useState(false);
   const [rsvpFor,   setRsvpFor]   = useState<CampusEvent | null>(null);
@@ -181,9 +187,12 @@ export function EventsPage({ onToast }: EventsPageProps) {
         if (items.length > 0 && !cancelled) {
           setEvents(items.map(parseRssItem));
           setFromCSUN(true);
+        } else if (!cancelled) {
+          setEvents(MOCK_EVENTS);
         }
       } catch {
-        // Silently fall back to mock data
+        // Fall back to mock data on any network/parse error
+        if (!cancelled) setEvents(MOCK_EVENTS);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -228,6 +237,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
         <div style={{ padding:"40px 20px", textAlign:"center", color:"var(--text-muted)", fontSize:13 }}>Loading events…</div>
       )}
 
+      {!loading && (
       <div style={{ padding:"12px 20px", display:"flex", flexDirection:"column", gap:12 }}>
         {events.map((ev, i) => (
           <div
@@ -277,11 +287,11 @@ export function EventsPage({ onToast }: EventsPageProps) {
               {ev.date     && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><CalIcon/>{ev.date}</span>}
               {ev.time     && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><ClockIcon/>{ev.time}</span>}
               {ev.location && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><PinIcon/>{ev.location}</span>}
-              {ev.attendees > 0 && <span style={{ fontSize:12, color:"var(--text-muted)" }}>{ev.attendees} attending</span>}
             </div>
           </div>
         ))}
       </div>
+      )}
 
       {/* RSVP modal */}
       {rsvpFor && (

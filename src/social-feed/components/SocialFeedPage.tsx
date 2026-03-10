@@ -373,7 +373,7 @@ export default function SocialFeedPage() {
 
         {/* ── Centre ──────────────────────────────────────────────────── */}
         <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60 }}>
-          <div style={{ maxWidth:680, width:"100%" }}>
+          <div style={{ maxWidth:680, width:"100%", margin:"0 auto" }}>
             {renderCenter()}
           </div>
         </main>
