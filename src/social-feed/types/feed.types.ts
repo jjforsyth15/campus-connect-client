@@ -87,6 +87,8 @@ export interface CampusEvent {
   tagColor: string;
   attendees: number;
   isRsvped: boolean;
+  csunUrl?: string;
+  description?: string;
 }
 
 // ── Marketplace ───────────────────────────────────────────────────────────────

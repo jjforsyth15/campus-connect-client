@@ -49,7 +49,7 @@ export default function ProfilePage({
 
       {/* Avatar + Edit */}
       <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", padding:"0 20px", marginTop:-32, marginBottom:12 }}>
-        <div className="avatar" style={{ width:72, height:72, fontSize:26, border:"4px solid var(--bg-base)" }}>
+        <div className="avatar" style={{ width:72, height:72, fontSize:26, outline:"4px solid var(--bg-base)" }}>
           {profile.profilePicture
             ? <img src={profile.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
             : <span className="avatar-initials">{profile.firstName[0]}{profile.lastName[0]}</span>

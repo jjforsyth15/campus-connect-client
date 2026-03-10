@@ -16,6 +16,7 @@ interface PostCardProps {
   onSave: (id: string) => void;
   onDelete: (id: string) => void;
   onRepost: (id: string, comment?: string) => void;
+  onViewProfile?: (userId: string) => void;
   style?: CSSProperties;
 }
 
@@ -39,7 +40,7 @@ function fmtCount(n: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelete, onRepost, style }: PostCardProps) {
+export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelete, onRepost, onViewProfile, style }: PostCardProps) {
   const [showComments,  setShowComments]  = useState(false);
   const [menuOpen,      setMenuOpen]      = useState(false);
   const [likeAnim,      setLikeAnim]      = useState(false);
@@ -90,8 +91,13 @@ export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelet
 
       {/* ── Author row ───────────────────────────────────────────────────── */}
       <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:14 }}>
-        {/* Avatar */}
-        <div className="avatar" style={{ width:42, height:42, fontSize:15, flexShrink:0 }}>
+        {/* Avatar — clickable */}
+        <div
+          className="avatar"
+          style={{ width:42, height:42, fontSize:15, flexShrink:0, cursor: onViewProfile ? "pointer" : "default" }}
+          onClick={() => onViewProfile?.(post.User.id)}
+          title={onViewProfile ? `View ${post.User.firstName}'s profile` : undefined}
+        >
           {post.User.profilePicture
             ? <img src={post.User.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
             : <span className="avatar-initials">{authorInits}</span>
@@ -101,7 +107,12 @@ export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelet
         {/* Name + meta */}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-            <span style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--text-primary)" }}>
+            <span
+              onClick={() => onViewProfile?.(post.User.id)}
+              style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--text-primary)", cursor: onViewProfile ? "pointer" : "default", textDecoration:"none" }}
+              onMouseEnter={e => { if (onViewProfile) e.currentTarget.style.textDecoration = "underline"; }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = "none"; }}
+            >
               {post.User.firstName} {post.User.lastName}
             </span>
             <span style={{ fontSize:11, fontWeight:600, color:badgeColor, background:badgeBg, padding:"2px 8px", borderRadius:99 }}>

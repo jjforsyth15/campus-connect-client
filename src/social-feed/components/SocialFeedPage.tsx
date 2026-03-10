@@ -70,12 +70,12 @@ function IcoCoffee()  { return <svg width="15" height="15" fill="none" stroke="c
 function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }
 
 const QUICK_LINKS = [
-  { label: "SRC",     href: "/ToroSRC",                         Icon: IcoPhone    },
-  { label: "Library", href: "https://library.csun.edu",         Icon: IcoBookOpen },
-  { label: "SOLAR",   href: "https://my.csun.edu",              Icon: IcoClock    },
-  { label: "Canvas",  href: "https://canvas.csun.edu",          Icon: IcoGradCap  },
-  { label: "Dining",  href: "https://dineoncampus.com/CSUN",    Icon: IcoCoffee   },
-  { label: "Parking", href: "https://www.csun.edu/parking",     Icon: IcoTruck    },
+  { label: "SRC",     href: "https://www.csun.edu/src",      Icon: IcoPhone    },
+  { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen },
+  { label: "SOLAR",   href: "https://my.csun.edu",           Icon: IcoClock    },
+  { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap  },
+  { label: "Dining",  href: "https://csun.campusdish.com",   Icon: IcoCoffee   },
+  { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck    },
 ];
 
 const SEARCH_INDEX = [
@@ -105,12 +105,6 @@ export default function SocialFeedPage() {
   const [searchFocused, setFocused] = useState(false);
   const [searchIdx,     setSearchIdx] = useState(-1);
   const [toasts,        setToasts]  = useState<Toast[]>([]);
-  // Following tab state — must be at component level (Rules of Hooks)
-  const [followState,  setFollowState] = useState<Record<string, boolean>>({
-    u1:true, u2:true, u3:true, u4:true, u5:true, u6:true, u7:true,
-  });
-  // Profile view for author click
-  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const toastId     = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -145,24 +139,21 @@ export default function SocialFeedPage() {
     };
 
     // Filter posts per tab
-    const CAMPUS_TAGS = ["campus", "ar", "src", "csun", "greentech", "events"];
-    const CLUBS_TAGS  = ["src", "ai", "design", "dev"];
+    const CAMPUS_TAGS  = ["campus", "ar", "src", "csun", "greentech", "events"];
+    const CLUBS_TAGS   = ["src", "ai", "design", "dev"];
 
     const filteredPosts =
-      feedTab === "for-you" ? posts :
-      feedTab === "campus"  ? posts.filter(p => p.tags.some(t => CAMPUS_TAGS.includes(t.toLowerCase())) || p.User.userType === "faculty") :
-      feedTab === "clubs"   ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
-      /* following */         posts.filter(p => followState[p.User.id]);
+      feedTab === "for-you"   ? posts :
+      feedTab === "campus"    ? posts.filter(p => p.tags.some(t => CAMPUS_TAGS.includes(t.toLowerCase())) || p.User.userType === "faculty") :
+      feedTab === "clubs"     ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
+      /* following */           posts.filter(p => ["u1","u3","u5","u7"].includes(p.User.id));
 
-    // People you follow — uses real teammate IDs from seed data
+    // Seed following list (people you follow)
     const FOLLOWING_USERS = [
-      { id:"u1", name:"Sara Hussein",       role:"Student", initials:"SH" },
-      { id:"u2", name:"Justin Ayson",       role:"Student", initials:"JA" },
-      { id:"u3", name:"Joseph Forsyth",     role:"Student", initials:"JF" },
-      { id:"u4", name:"Elijah Cortez",      role:"Student", initials:"EC" },
-      { id:"u5", name:"Ivan Juarez",        role:"Student", initials:"IJ" },
-      { id:"u6", name:"Vram Ghazourian",    role:"Student", initials:"VG" },
-      { id:"u7", name:"Gisselle Burgos",    role:"Student", initials:"GB" },
+      { id:"u1", name:"Justin Ayson",    role:"Student",    initials:"JA" },
+      { id:"u3", name:"Joseph Forsyth",  role:"Student",    initials:"JF" },
+      { id:"u5", name:"Emily Rodriguez", role:"Student",    initials:"ER" },
+      { id:"u7", name:"Dr. Chen",        role:"Faculty",    initials:"DC" },
     ];
 
     const tabs = (
@@ -184,31 +175,30 @@ export default function SocialFeedPage() {
       </div>
     );
 
-    // ── Following tab: dedicated people view ─────────────────────────────────
+    // ── Following tab: dedicated people view ────────────────────────────────
     if (feedTab === "following") {
+      const [followState, setFollowState] = useState<Record<string, boolean>>(
+        Object.fromEntries(FOLLOWING_USERS.map(u => [u.id, true]))
+      );
       return (
         <>
           {tabs}
           <div style={{ padding:"20px" }}>
             <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", marginBottom:4 }}>People You Follow</h2>
-            <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>
-              {Object.values(followState).filter(Boolean).length} people · their posts appear in your feed
-            </p>
-            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} people · their posts appear in your For You feed</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               {FOLLOWING_USERS.map(u => (
                 <div key={u.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", transition:"background 150ms" }}
                   onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
                 >
-                  <div className="avatar" style={{ width:44, height:44, fontSize:15, flexShrink:0, cursor:"pointer" }}
-                    onClick={() => { setViewingUserId(u.id); navTo("profile"); }}
-                  >
+                  <div className="avatar" style={{ width:44, height:44, fontSize:15, flexShrink:0 }}>
                     <span className="avatar-initials">{u.initials}</span>
                   </div>
-                  <div style={{ flex:1, minWidth:0, cursor:"pointer" }} onClick={() => { setViewingUserId(u.id); navTo("profile"); }}>
+                  <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:600, fontSize:14, color:"var(--text-primary)" }}>{u.name}</div>
                     <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
-                      <span style={{ background:"var(--csun-red)", color:"#fff", padding:"1px 7px", borderRadius:99, fontSize:10, fontWeight:700, textTransform:"uppercase" as const }}>{u.role}</span>
+                      <span style={{ background: u.role === "Faculty" ? "var(--csun-red)" : "var(--info)", color:"#fff", padding:"1px 7px", borderRadius:99, fontSize:10, fontWeight:700, textTransform:"uppercase" }}>{u.role}</span>
                     </div>
                   </div>
                   <button
@@ -218,6 +208,7 @@ export default function SocialFeedPage() {
                       border: followState[u.id] ? "1px solid var(--border-medium)" : "none",
                       background: followState[u.id] ? "transparent" : "var(--csun-red)",
                       color: followState[u.id] ? "var(--text-secondary)" : "#fff",
+                      boxShadow: followState[u.id] ? "none" : "0 2px 10px var(--csun-red-glow)",
                     }}
                   >
                     {followState[u.id] ? "Following" : "Follow"}
@@ -225,21 +216,20 @@ export default function SocialFeedPage() {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop:20, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }}>
-              <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
-                Switch to <strong style={{ color:"var(--text-primary)" }}>For You</strong> to see posts from everyone, or <strong style={{ color:"var(--text-primary)" }}>Campus</strong> to filter by campus topics.
-              </p>
+            <div style={{ marginTop:24, padding:"16px 20px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }}>
+              <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>Want to see more? Switch to <strong style={{ color:"var(--text-primary)" }}>For You</strong> or <strong style={{ color:"var(--text-primary)" }}>Campus</strong> to discover new people to follow.</p>
             </div>
           </div>
         </>
       );
     }
 
-    // ── Normal post feed (for-you / campus / clubs) ───────────────────────────
+    // ── Normal post feed (for-you / campus / clubs) ─────────────────────────
     return (
       <>
         {tabs}
 
+        {/* Tab resource banners */}
         {feedTab === "campus" && (
           <div style={{ padding:"10px 20px", background:"var(--bg-elevated)", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
             <span style={{ fontSize:13, color:"var(--text-muted)" }}>Stay connected with campus.</span>
@@ -277,8 +267,7 @@ export default function SocialFeedPage() {
                 <PostCard key={p.id} post={p} currentUserId={CURRENT_USER_ID}
                   isSaved={savedPostIds.has(p.id)}
                   onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost}
-                  onViewProfile={(uid) => { setViewingUserId(uid); navTo("profile"); }}
-                />
+                  onViewProfile={() => navTo("profile")} />
               ))}
               <div ref={sentinelRef} style={{ height:1 }} />
               {isLoadingMore && <div style={{ padding:"0 20px" }}><SkeletonPost count={2} /></div>}
@@ -291,7 +280,7 @@ export default function SocialFeedPage() {
   function renderCenter() {
     switch (page) {
       case "notifications": return <NotificationsPage />;
-      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={CURRENT_USER_ID} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} />;
+      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={CURRENT_USER_ID} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onViewProfile={() => navTo("profile")} />;
       case "events":        return <EventsPage onToast={showToast} />;
       case "marketplace":   return <MarketplacePage onToast={showToast} />;
       case "profile":       return <ProfilePage currentUserId={CURRENT_USER_ID} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;
@@ -302,7 +291,7 @@ export default function SocialFeedPage() {
 
   return (
     <div style={{ minHeight:"100vh", background:"var(--bg-base)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms" }}>
-      <div style={{ display:"grid", gridTemplateColumns:"220px minmax(0,680px) 300px", minHeight:"100vh", width:"100%", maxWidth:1200, margin:"0 auto" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"220px 1fr 300px", minHeight:"100vh", width:"100%" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────── */}
         <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight:"1px solid var(--border-subtle)", background:"var(--bg-surface)", display:"flex", flexDirection:"column" }}>
@@ -313,7 +302,7 @@ export default function SocialFeedPage() {
                 <span style={{ color:"#fff", fontWeight:800, fontSize:14, letterSpacing:"-1px" }}>CC</span>
               </div>
               <span style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)", letterSpacing:"-0.3px", lineHeight:1.25 }}>
-                Campus<br />Connect
+                Matador<br />Connect
               </span>
             </div>
           </div>
@@ -376,7 +365,9 @@ export default function SocialFeedPage() {
 
         {/* ── Centre ──────────────────────────────────────────────────── */}
         <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60 }}>
-          {renderCenter()}
+          <div style={{ maxWidth:680, width:"100%" }}>
+            {renderCenter()}
+          </div>
         </main>
 
         {/* ── Right sidebar ────────────────────────────────────────────── */}
