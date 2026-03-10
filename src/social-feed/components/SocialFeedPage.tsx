@@ -441,9 +441,26 @@ export default function SocialFeedPage() {
   }
 
   function renderCenter() {
+    // Show another user's profile when clicked from a post
+    if (viewedUserId !== null && page === "feed") {
+      return (
+        <UserProfileView
+          userId={viewedUserId}
+          posts={posts}
+          savedPostIds={savedPostIds}
+          currentUserId={CURRENT_USER_ID}
+          onLike={handleLike}
+          onDelete={handleDelete}
+          onSave={handleSave}
+          onRepost={handleRepost}
+          onBack={() => { setViewedUserId(null); }}
+        />
+      );
+    }
+
     switch (page) {
       case "notifications": return <NotificationsPage />;
-      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={CURRENT_USER_ID} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onViewProfile={() => navTo("profile")} />;
+      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={CURRENT_USER_ID} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onViewProfile={handleViewProfile} />;
       case "events":        return <EventsPage onToast={showToast} />;
       case "marketplace":   return <MarketplacePage onToast={showToast} />;
       case "profile":       return <ProfilePage currentUserId={CURRENT_USER_ID} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;

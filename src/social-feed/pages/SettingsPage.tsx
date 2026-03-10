@@ -25,7 +25,7 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { profile, isSaving, updateProfile } = useProfile();
-  const [view, setView] = useState<"main" | "edit-profile">("main");
+  const [view, setView] = useState<"main" | "edit-profile" | "blocked">("main");
   const [pushNotif,  setPushNotif]  = useState(true);
   const [emailDigest, setEmailDigest] = useState(true);
   const [repostAlert, setRepostAlert] = useState(false);
@@ -59,6 +59,10 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
 
   if (view === "edit-profile") {
     return <EditProfilePanel form={form} isSaving={isSaving} onChange={handleField} onSave={handleSave} onBack={() => setView("main")} />;
+  }
+
+  if (view === "blocked") {
+    return <BlockedAccountsPanel onBack={() => setView("main")} />;
   }
 
   return (
@@ -168,7 +172,7 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconColor="var(--danger)"
           label="Blocked Accounts"
           sub="Manage blocked users"
-          onClick={() => onToast("Blocked accounts management coming soon", "info")}
+          onClick={() => setView("blocked")}
           chevron
         />
       </SettingsSection>
