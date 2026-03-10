@@ -47,11 +47,14 @@ function parseRssItem(item: Element, idx: number): CampusEvent {
   const location = get("location") || item.querySelector("ev\\:location")?.textContent?.trim() || "CSUN Campus";
   const link = get("link") || "https://news.csun.edu/events";
   const rawDesc = get("description").replace(/<[^>]*>/g, "").trim();
-  // Strip RSS meta lines like "#123 posts" or "#tag count" patterns
+  // Strip RSS artifacts: "#123" patterns, leading/trailing whitespace
   const cleanDesc = rawDesc
+    .replace(/#\d+\s*/g, "")        // remove #number tokens anywhere
+    .replace(/\s{2,}/g, " ")        // collapse multiple spaces
     .split(/\n|\r/)
-    .filter(line => !/^#\d/.test(line.trim()) && line.trim().length > 0)
+    .filter(line => line.trim().length > 0)
     .join(" ")
+    .trim()
     .slice(0, 220);
   const description = cleanDesc || undefined;
   let date = "";
@@ -143,7 +146,7 @@ function RsvpModal({ event, onClose, onConfirm }: {
                   <input
                     className="form-input"
                     type="email"
-                    placeholder="sarah.medhat@my.csun.edu"
+                    placeholder="name@my.csun.edu"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -203,7 +206,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
 
   function handleRsvpConfirm(ev: CampusEvent, _name: string, _email: string) {
     setEvents(prev => prev.map(e =>
-      e.id !== ev.id ? e : { ...e, isRsvped: true, attendees: e.attendees + 1 }
+      e.id !== ev.id ? e : { ...e, isRsvped: true }
     ));
     setRsvpFor(null);
     onToast(`RSVP confirmed for "${ev.title}"!`, "success");
@@ -211,7 +214,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
 
   function handleCancelRsvp(id: string) {
     setEvents(prev => prev.map(e =>
-      e.id !== id ? e : { ...e, isRsvped: false, attendees: Math.max(0, e.attendees - 1) }
+      e.id !== id ? e : { ...e, isRsvped: false }
     ));
     onToast("RSVP cancelled", "info");
   }
@@ -270,7 +273,7 @@ export function EventsPage({ onToast }: EventsPageProps) {
                   onClick={() => handleCancelRsvp(ev.id)}
                   style={{ padding:"7px 16px", borderRadius:99, flexShrink:0, border:"1px solid var(--border-medium)", background:"transparent", color:"var(--text-secondary)", fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms" }}
                 >
-                  Going ✓
+                  Going
                 </button>
               ) : (
                 <button
