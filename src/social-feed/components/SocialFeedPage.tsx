@@ -7,6 +7,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, ChangeEvent } from "react";
+import Link                 from "next/link";
 import { useTheme }         from "../context/ThemeContext";
 import { useFeed }          from "../hooks/useFeed";
 import { useNotifications } from "../hooks/useNotifications";
@@ -60,13 +61,21 @@ const TRENDING = [
   { tag: "CampusEvents",   count: "96 posts"  },
 ];
 
+// SVG icons for Quick Links — matching the screenshot design
+function IcoPhone()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.1 6.1l.72-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>; }
+function IcoBookOpen(){ return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>; }
+function IcoClock()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
+function IcoGradCap() { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>; }
+function IcoCoffee()  { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>; }
+function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }
+
 const QUICK_LINKS = [
-  { label: "SRC",     href: "https://src.csun.edu"         },
-  { label: "Library", href: "https://library.csun.edu"     },
-  { label: "SOLAR",   href: "https://www.csun.edu/solar"   },
-  { label: "Canvas",  href: "https://canvas.csun.edu"      },
-  { label: "Dining",  href: "https://www.csun.edu/dining"  },
-  { label: "Parking", href: "https://www.csun.edu/parking" },
+  { label: "SRC",     href: "https://www.csun.edu/src",      Icon: IcoPhone    },
+  { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen },
+  { label: "SOLAR",   href: "https://my.csun.edu",           Icon: IcoClock    },
+  { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap  },
+  { label: "Dining",  href: "https://csun.campusdish.com",   Icon: IcoCoffee   },
+  { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck    },
 ];
 
 const SEARCH_INDEX = [
@@ -94,6 +103,7 @@ export default function SocialFeedPage() {
   const [feedTab,       setFeedTab] = useState<FeedTab>("for-you");
   const [searchQuery,   setSearch]  = useState("");
   const [searchFocused, setFocused] = useState(false);
+  const [searchIdx,     setSearchIdx] = useState(-1);
   const [toasts,        setToasts]  = useState<Toast[]>([]);
   const toastId     = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -127,29 +137,115 @@ export default function SocialFeedPage() {
     const TAB_LABELS: Record<FeedTab, string> = {
       "for-you": "For You", "campus": "Campus", "clubs": "Clubs", "following": "Following",
     };
+
+    // Filter posts per tab
+    const CAMPUS_TAGS  = ["campus", "ar", "src", "csun", "greentech", "events"];
+    const CLUBS_TAGS   = ["src", "ai", "design", "dev"];
+
+    const filteredPosts =
+      feedTab === "for-you"   ? posts :
+      feedTab === "campus"    ? posts.filter(p => p.tags.some(t => CAMPUS_TAGS.includes(t.toLowerCase())) || p.User.userType === "faculty") :
+      feedTab === "clubs"     ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
+      /* following */           posts.filter(p => ["u1","u3","u5","u7"].includes(p.User.id));
+
+    // Seed following list (people you follow)
+    const FOLLOWING_USERS = [
+      { id:"u1", name:"Justin Ayson",    role:"Student",    initials:"JA" },
+      { id:"u3", name:"Joseph Forsyth",  role:"Student",    initials:"JF" },
+      { id:"u5", name:"Emily Rodriguez", role:"Student",    initials:"ER" },
+      { id:"u7", name:"Dr. Chen",        role:"Faculty",    initials:"DC" },
+    ];
+
+    const tabs = (
+      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
+        {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
+          const active = feedTab === tab;
+          return (
+            <button key={tab} onClick={() => setFeedTab(tab)} style={{
+              flex:1, padding:"16px 8px", border:"none", background:"transparent",
+              color: active ? "var(--text-primary)" : "var(--text-muted)",
+              fontWeight: active ? 700 : 400, fontSize:14, cursor:"pointer",
+              borderBottom: active ? "2px solid var(--csun-red)" : "2px solid transparent",
+              marginBottom:-1, transition:"color 150ms",
+            }}>
+              {TAB_LABELS[tab]}
+            </button>
+          );
+        })}
+      </div>
+    );
+
+    // ── Following tab: dedicated people view ────────────────────────────────
+    if (feedTab === "following") {
+      const [followState, setFollowState] = useState<Record<string, boolean>>(
+        Object.fromEntries(FOLLOWING_USERS.map(u => [u.id, true]))
+      );
+      return (
+        <>
+          {tabs}
+          <div style={{ padding:"20px" }}>
+            <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", marginBottom:4 }}>People You Follow</h2>
+            <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} people · their posts appear in your For You feed</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {FOLLOWING_USERS.map(u => (
+                <div key={u.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", transition:"background 150ms" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
+                >
+                  <div className="avatar" style={{ width:44, height:44, fontSize:15, flexShrink:0 }}>
+                    <span className="avatar-initials">{u.initials}</span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:14, color:"var(--text-primary)" }}>{u.name}</div>
+                    <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
+                      <span style={{ background: u.role === "Faculty" ? "var(--csun-red)" : "var(--info)", color:"#fff", padding:"1px 7px", borderRadius:99, fontSize:10, fontWeight:700, textTransform:"uppercase" }}>{u.role}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFollowState(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+                    style={{
+                      padding:"7px 18px", borderRadius:99, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms",
+                      border: followState[u.id] ? "1px solid var(--border-medium)" : "none",
+                      background: followState[u.id] ? "transparent" : "var(--csun-red)",
+                      color: followState[u.id] ? "var(--text-secondary)" : "#fff",
+                      boxShadow: followState[u.id] ? "none" : "0 2px 10px var(--csun-red-glow)",
+                    }}
+                  >
+                    {followState[u.id] ? "Following" : "Follow"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:24, padding:"16px 20px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }}>
+              <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>Want to see more? Switch to <strong style={{ color:"var(--text-primary)" }}>For You</strong> or <strong style={{ color:"var(--text-primary)" }}>Campus</strong> to discover new people to follow.</p>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // ── Normal post feed (for-you / campus / clubs) ─────────────────────────
     return (
       <>
-        {/* Tabs */}
-        <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
-          {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
-            const active = feedTab === tab;
-            return (
-              <button key={tab} onClick={() => setFeedTab(tab)} style={{
-                flex:1, padding:"16px 8px", border:"none", background:"transparent",
-                color: active ? "var(--text-primary)" : "var(--text-muted)",
-                fontWeight: active ? 700 : 400, fontSize:14, cursor:"pointer",
-                borderBottom: active ? "2px solid var(--csun-red)" : "2px solid transparent",
-                marginBottom:-1, transition:"color 150ms",
-              }}>
-                {TAB_LABELS[tab]}
-              </button>
-            );
-          })}
-        </div>
+        {tabs}
+
+        {/* Tab resource banners */}
+        {feedTab === "campus" && (
+          <div style={{ padding:"10px 20px", background:"var(--bg-elevated)", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+            <span style={{ fontSize:13, color:"var(--text-muted)" }}>Stay connected with campus.</span>
+            <a href="https://news.csun.edu" target="_blank" rel="noreferrer" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", whiteSpace:"nowrap" }}>CSUN News →</a>
+          </div>
+        )}
+        {feedTab === "clubs" && (
+          <div style={{ padding:"10px 20px", background:"var(--bg-elevated)", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+            <span style={{ fontSize:13, color:"var(--text-muted)" }}>Find clubs and organizations.</span>
+            <Link href="/clubs" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", whiteSpace:"nowrap" }}>Browse Clubs →</Link>
+          </div>
+        )}
 
         {/* Composer */}
         <div style={{ padding:"16px 20px 0" }}>
-          <PostComposer currentUserInitials={CURRENT_USER_INITIALS} onPost={async b => { await handleCreate(b); }} />
+          <PostComposer currentUserInitials={CURRENT_USER_INITIALS} onPost={async (b, imgs) => { await handleCreate(b, imgs); }} />
         </div>
 
         {error && (
@@ -161,13 +257,13 @@ export default function SocialFeedPage() {
         {isLoading && !posts.length
           ? <div style={{ padding:"0 20px" }}><SkeletonPost count={4} /></div>
           : <>
-              {posts.length === 0 && !isLoading && (
+              {filteredPosts.length === 0 && !isLoading && (
                 <div style={{ padding:"60px 20px", textAlign:"center", color:"var(--text-muted)" }}>
                   <p style={{ fontWeight:600, fontSize:15, marginBottom:4 }}>Nothing here yet</p>
                   <p style={{ fontSize:13 }}>Be the first to post something!</p>
                 </div>
               )}
-              {posts.map(p => (
+              {filteredPosts.map(p => (
                 <PostCard key={p.id} post={p} currentUserId={CURRENT_USER_ID}
                   isSaved={savedPostIds.has(p.id)}
                   onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} />
@@ -194,7 +290,7 @@ export default function SocialFeedPage() {
 
   return (
     <div style={{ minHeight:"100vh", background:"var(--bg-base)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms" }}>
-      <div style={{ maxWidth:1260, margin:"0 auto", display:"grid", gridTemplateColumns:"220px 1fr 280px", minHeight:"100vh" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"220px 1fr 300px", minHeight:"100vh", width:"100%" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────── */}
         <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight:"1px solid var(--border-subtle)", background:"var(--bg-surface)", display:"flex", flexDirection:"column" }}>
@@ -248,12 +344,18 @@ export default function SocialFeedPage() {
               {isDark ? <IcoSun /> : <IcoMoon />}
               <span>{isDark ? "Light mode" : "Dark mode"}</span>
             </button>
-            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px" }}>
+            <div
+              onClick={() => navTo("profile")}
+              title="Go to your profile"
+              style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, cursor:"pointer", transition:"background 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
               <div className="avatar" style={{ width:32, height:32, fontSize:12, flexShrink:0 }}>
                 <span className="avatar-initials">SM</span>
               </div>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)" }}>Sara Medhat</div>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>Sara Hussein</div>
                 <div style={{ fontSize:11, color:"var(--text-muted)" }}>Student</div>
               </div>
             </div>
@@ -271,20 +373,29 @@ export default function SocialFeedPage() {
           <div style={{ marginBottom:20, position:"relative" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, background:"var(--bg-elevated)", border:`1px solid ${searchFocused ? "var(--csun-red)" : "var(--border-subtle)"}`, borderRadius:99, padding:"9px 14px", boxShadow: searchFocused ? "0 0 0 3px var(--csun-red-glow)" : "none", transition:"border-color 150ms" }}>
               <IcoSearch />
-              <input type="text" placeholder="Search Campus Connect..." value={searchQuery}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              <input
+                type="text"
+                placeholder="Search Campus Connect..."
+                value={searchQuery}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => { setSearch(e.target.value); setSearchIdx(-1); }}
                 onFocus={() => setFocused(true)}
-                onBlur={() => setTimeout(() => setFocused(false), 150)}
+                onBlur={() => setTimeout(() => { setFocused(false); setSearchIdx(-1); }, 150)}
+                onKeyDown={e => {
+                  if (!filteredSearch.length) return;
+                  if (e.key === "ArrowDown") { e.preventDefault(); setSearchIdx(i => Math.min(i + 1, filteredSearch.length - 1)); }
+                  else if (e.key === "ArrowUp") { e.preventDefault(); setSearchIdx(i => Math.max(i - 1, 0)); }
+                  else if (e.key === "Enter" && searchIdx >= 0) { e.preventDefault(); navTo(filteredSearch[searchIdx].page); setSearch(""); }
+                  else if (e.key === "Escape") { setFocused(false); setSearchIdx(-1); }
+                }}
                 style={{ flex:1, border:"none", outline:"none", background:"transparent", color:"var(--text-primary)", fontSize:13 }}
               />
             </div>
             {searchFocused && filteredSearch.length > 0 && (
               <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, right:0, background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-md)", zIndex:50, overflow:"hidden" }}>
-                {filteredSearch.map(r => (
-                  <button key={r.label} onMouseDown={() => navTo(r.page)}
-                    style={{ width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--text-primary)", fontSize:13, textAlign:"left", cursor:"pointer" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                {filteredSearch.map((r, idx) => (
+                  <button key={r.label} onMouseDown={() => { navTo(r.page); setSearch(""); }}
+                    style={{ width:"100%", padding:"10px 14px", border:"none", background: idx === searchIdx ? "var(--bg-hover)" : "transparent", color:"var(--text-primary)", fontSize:13, textAlign:"left", cursor:"pointer", transition:"background 100ms" }}
+                    onMouseEnter={() => setSearchIdx(idx)}
                   >{r.label}</button>
                 ))}
               </div>
@@ -314,11 +425,11 @@ export default function SocialFeedPage() {
           <div style={{ background:"var(--bg-surface)", borderRadius:12, border:"1px solid var(--border-subtle)", overflow:"hidden" }}>
             <div style={{ padding:"14px 16px 10px", fontWeight:700, fontSize:15, borderBottom:"1px solid var(--border-subtle)" }}>Campus Quick Links</div>
             <div style={{ padding:"10px 12px 12px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {QUICK_LINKS.map(({ label, href }) => (
-                <a key={label} href={href} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"9px 6px", borderRadius:8, background:"var(--bg-elevated)", border:"1px solid var(--border-subtle)", color:"var(--text-secondary)", fontSize:12, fontWeight:500, textDecoration:"none", transition:"background 150ms, color 150ms" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "var(--csun-red)"; e.currentTarget.style.color = "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-                >{label}</a>
+              {QUICK_LINKS.map(({ label, href, Icon }) => (
+                <a key={label} href={href} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 10px", borderRadius:10, background:"var(--bg-elevated)", border:"1px solid var(--border-subtle)", color:"var(--text-secondary)", fontSize:12, fontWeight:500, textDecoration:"none", transition:"background 150ms, color 150ms" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "var(--csun-red)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "var(--csun-red)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}
+                ><Icon />{label}</a>
               ))}
             </div>
           </div>

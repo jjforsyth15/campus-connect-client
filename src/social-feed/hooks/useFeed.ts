@@ -149,13 +149,23 @@ export function useFeed() {
     if (inFlight.current.has(`like_${postId}`)) return;
     inFlight.current.add(`like_${postId}`);
 
-    let snapshot: { wasLiked: boolean; prevCount: number } | null = null;
-
+    // Capture current state before mutating
     setPosts(prev => {
       const post = prev.find(p => p.id === postId);
-      if (!post) return prev;
+      if (!post) { inFlight.current.delete(`like_${postId}`); return prev; }
       const wasLiked = post.isLikedByUser ?? false;
-      snapshot = { wasLiked, prevCount: post._count.Like };
+      // Fire the API call in the background from here
+      const apiFn = wasLiked ? feedApi.unlikePost : feedApi.likePost;
+      const prevCount = post._count.Like;
+      apiFn(postId).catch(() => {
+        // Roll back on failure
+        setPosts(curr => curr.map(p =>
+          p.id !== postId ? p : { ...p, isLikedByUser: wasLiked, _count: { ...p._count, Like: prevCount } }
+        ));
+      }).finally(() => {
+        inFlight.current.delete(`like_${postId}`);
+      });
+      // Return optimistic update immediately
       return prev.map(p =>
         p.id !== postId ? p : {
           ...p,
@@ -164,27 +174,6 @@ export function useFeed() {
         }
       );
     });
-
-    try {
-      await new Promise(r => setTimeout(r, 0));
-      if (!snapshot) return;
-      const { wasLiked } = snapshot as { wasLiked: boolean; prevCount: number };
-      if (wasLiked) await feedApi.unlikePost(postId);
-      else          await feedApi.likePost(postId);
-    } catch {
-      if (snapshot) {
-        const { wasLiked, prevCount } = snapshot as { wasLiked: boolean; prevCount: number };
-        setPosts(prev => prev.map(p =>
-          p.id !== postId ? p : {
-            ...p,
-            isLikedByUser: wasLiked,
-            _count: { ...p._count, Like: prevCount },
-          }
-        ));
-      }
-    } finally {
-      inFlight.current.delete(`like_${postId}`);
-    }
   }, []);
 
   // ── Create post ─────────────────────────────────────────────────────────────
@@ -203,7 +192,7 @@ export function useFeed() {
         repostComment:  null,
         createdAt:      new Date().toISOString(),
         updatedAt:      new Date().toISOString(),
-        User:           { id: 'u-sarah', firstName: 'Sara', lastName: 'Medhat', profilePicture: null, userType: 'student' },
+        User:           { id: 'u-sarah', firstName: 'Sara', lastName: 'Hussein', profilePicture: null, userType: 'student' },
         _count:         { Like: 0, Comment: 0, other_Post: 0 },
         isLikedByUser:  false,
       };

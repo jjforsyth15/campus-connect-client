@@ -68,7 +68,7 @@ export function useComments(postId: string): UseCommentsReturn {
       User: {
         id:             "u-sarah",
         firstName:      "Sara",
-        lastName:       "Medhat",
+        lastName:       "Hussein",
         profilePicture: null,
         userType:       "student",
       },

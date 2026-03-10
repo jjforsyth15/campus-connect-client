@@ -8,7 +8,8 @@
 //   - Account actions
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useRef, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useProfile } from "../hooks/useProfile";
 import type { ProfileUpdatePayload } from "../types/feed.types";
@@ -17,10 +18,17 @@ interface SettingsPageProps {
   onToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
+/** Open an external URL in a new tab */
+function openUrl(url: string) { window.open(url, "_blank", "noreferrer"); }
+
 export default function SettingsPage({ onToast }: SettingsPageProps) {
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { profile, isSaving, updateProfile } = useProfile();
   const [view, setView] = useState<"main" | "edit-profile">("main");
+  const [pushNotif,  setPushNotif]  = useState(true);
+  const [emailDigest, setEmailDigest] = useState(true);
+  const [repostAlert, setRepostAlert] = useState(false);
 
   // ── Edit profile local form state ─────────────────────────────────────────
   const [form, setForm] = useState<ProfileUpdatePayload>({
@@ -80,8 +88,8 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconBg="var(--info-dim)"
           iconColor="var(--info)"
           label="Email Address"
-          sub={profile?.email ?? "—"}
-          onClick={() => onToast("Email settings coming soon", "info")}
+          sub={profile?.email ?? "sarah.hussein@my.csun.edu"}
+          onClick={() => openUrl("https://www.csun.edu/it/csun-webmail")}
           chevron
         />
         <SettingsItem
@@ -89,8 +97,8 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconBg="var(--success-dim)"
           iconColor="var(--success)"
           label="Change Password"
-          sub="Update your login password"
-          onClick={() => onToast("Password change coming soon", "info")}
+          sub="Update your login password via myNorthridge"
+          onClick={() => openUrl("https://my.csun.edu")}
           chevron
         />
       </SettingsSection>
@@ -107,16 +115,6 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           toggleChecked={theme === "dark"}
           onToggle={toggleTheme}
         />
-        <SettingsItem
-          icon={<GridIcon />}
-          iconBg="rgba(80,160,255,.1)"
-          iconColor="#78BAFF"
-          label="Compact Feed"
-          sub="Reduce spacing between posts"
-          toggle
-          toggleChecked={false}
-          onToggle={() => onToast("Compact feed toggle coming soon", "info")}
-        />
       </SettingsSection>
 
       {/* ── Notifications ──────────────────────────────────────────────────── */}
@@ -128,8 +126,8 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           label="Push Notifications"
           sub="Likes, comments, mentions"
           toggle
-          toggleChecked={true}
-          onToggle={() => onToast("Push notification preference saved", "success")}
+          toggleChecked={pushNotif}
+          onToggle={() => { setPushNotif(v => !v); onToast("Push notification preference saved", "success"); }}
         />
         <SettingsItem
           icon={<MailIcon />}
@@ -138,8 +136,8 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           label="Email Digest"
           sub="Weekly campus updates"
           toggle
-          toggleChecked={true}
-          onToggle={() => onToast("Email digest preference saved", "success")}
+          toggleChecked={emailDigest}
+          onToggle={() => { setEmailDigest(v => !v); onToast("Email digest preference saved", "success"); }}
         />
         <SettingsItem
           icon={<RepostIcon />}
@@ -148,8 +146,8 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           label="Repost Alerts"
           sub="When someone reposts your content"
           toggle
-          toggleChecked={false}
-          onToggle={() => onToast("Repost alert preference saved", "success")}
+          toggleChecked={repostAlert}
+          onToggle={() => { setRepostAlert(v => !v); onToast("Repost alert preference saved", "success"); }}
         />
       </SettingsSection>
 
@@ -161,7 +159,7 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconColor="#78BAFF"
           label="Privacy Controls"
           sub="Manage who can see your profile"
-          onClick={() => onToast("Privacy controls coming soon", "info")}
+          onClick={() => openUrl("https://www.csun.edu/it/information-security/resources/privacy-notice")}
           chevron
         />
         <SettingsItem
@@ -170,7 +168,38 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconColor="var(--danger)"
           label="Blocked Accounts"
           sub="Manage blocked users"
-          onClick={() => onToast("Blocked accounts coming soon", "info")}
+          onClick={() => onToast("Blocked accounts management coming soon", "info")}
+          chevron
+        />
+      </SettingsSection>
+
+      {/* ── CSUN Resources ─────────────────────────────────────────────────── */}
+      <SettingsSection title="CSUN Resources">
+        <SettingsItem
+          icon={<PortalIcon />}
+          iconBg="var(--csun-red-dim)"
+          iconColor="var(--csun-red)"
+          label="myNorthridge Portal"
+          sub="SOLAR, class registration, finances"
+          onClick={() => openUrl("https://my.csun.edu")}
+          chevron
+        />
+        <SettingsItem
+          icon={<CanvasIcon />}
+          iconBg="rgba(80,160,255,.1)"
+          iconColor="#78BAFF"
+          label="Canvas LMS"
+          sub="Access your courses and assignments"
+          onClick={() => openUrl("https://canvas.csun.edu")}
+          chevron
+        />
+        <SettingsItem
+          icon={<MailIcon />}
+          iconBg="var(--success-dim)"
+          iconColor="var(--success)"
+          label="CSUN Webmail"
+          sub="Your @my.csun.edu inbox"
+          onClick={() => openUrl("https://www.csun.edu/it/csun-webmail")}
           chevron
         />
       </SettingsSection>
@@ -183,7 +212,10 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
           iconColor="var(--danger)"
           label="Sign Out"
           labelColor="var(--danger)"
-          onClick={() => onToast("Signed out successfully", "success")}
+          onClick={() => {
+            onToast("Signing out…", "info");
+            setTimeout(() => router.push("/login"), 800);
+          }}
         />
       </SettingsSection>
     </div>
@@ -212,6 +244,19 @@ function EditProfilePanel({
   onBack: () => void;
 }) {
   const remainingBio = 160 - (form.bio?.length ?? 0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { if (ev.target?.result) setAvatarPreview(ev.target.result as string); };
+    reader.readAsDataURL(file);
+    e.target.value = ""; // reset so same file can be re-picked
+  }
+
+  const initials = `${(form.firstName[0] ?? "?").toUpperCase()}${(form.lastName[0] ?? "").toUpperCase()}`;
 
   return (
     <div style={{ padding: 20, animation: "fadeUp 220ms ease both" }}>
@@ -242,14 +287,47 @@ function EditProfilePanel({
 
       {/* Avatar row */}
       <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:22 }}>
-        <div className="avatar" style={{ width:70, height:70, fontSize:26 }}>
-          <span className="avatar-initials">{(form.firstName[0] ?? "?").toUpperCase()}{(form.lastName[0] ?? "").toUpperCase()}</span>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display:"none" }}
+          onChange={handlePhotoChange}
+        />
+        {/* Avatar circle */}
+        <div
+          className="avatar"
+          style={{ width:72, height:72, fontSize:24, flexShrink:0, cursor:"pointer", position:"relative", overflow:"hidden" }}
+          onClick={() => fileInputRef.current?.click()}
+          title="Click to change photo"
+        >
+          {avatarPreview
+            ? <img src={avatarPreview} alt="Profile preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+            : <span className="avatar-initials">{initials}</span>
+          }
+          {/* hover overlay hint */}
+          <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.35)", display:"flex", alignItems:"center", justifyContent:"center", opacity:0, transition:"opacity 150ms" }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+          >
+            <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
         </div>
         <div>
-          <button style={{ padding:"7px 16px", border:"1px solid var(--border-medium)", borderRadius:99, background:"transparent", color:"var(--text-secondary)", fontSize:12, fontWeight:500, cursor:"pointer" }}>
+          <div style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)", marginBottom:6 }}>
+            {form.firstName || "First"} {form.lastName || "Last"}
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ padding:"7px 16px", border:"1px solid var(--border-medium)", borderRadius:99, background:"transparent", color:"var(--text-secondary)", fontSize:12, fontWeight:500, cursor:"pointer", transition:"background 150ms, border-color 150ms" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--csun-red)"; e.currentTarget.style.color = "var(--csun-red)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-medium)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+          >
             Change Photo
           </button>
-          <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:5 }}>JPG, PNG or GIF · Max 5MB</div>
+          <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:5 }}>JPG, PNG or GIF · Max 5 MB</div>
         </div>
       </div>
 
@@ -406,3 +484,5 @@ const ShieldIcon     = () => <svg {...i} viewBox="0 0 24 24"><path d="M12 22s8-4
 const BlockIcon      = () => <svg {...i} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>;
 const LogoutIcon     = () => <svg {...i} viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
 const ChevronLeftIcon= () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>;
+const PortalIcon     = () => <svg {...i} viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
+const CanvasIcon     = () => <svg {...i} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
