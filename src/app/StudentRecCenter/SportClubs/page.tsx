@@ -1,347 +1,346 @@
 "use client";
 
 import * as React from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  CardActionArea,
-  CardMedia,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stack,
-  TextField,
-} from "@mui/material";
-import Link from "next/link";
 import Header from "@/components/StudentRecCenter/srcHeader";
-// import { useRouter } from "next/navigation";
-// import { useAuthorize } from "@/lib/useAuthorize";
-
-const RED = "#A80532";
-const btnSolid = { bgcolor: RED, color: "#fff", "&:hover": { bgcolor: "#810326" } };
-const btnOutline = { borderColor: RED, color: RED, "&:hover": { borderColor: "#810326", color: "#810326" } };
-
-type Tryout = { dayTime?: string; location?: string; cost?: string; notes?: string };
-type Club = { name: string; href: string; img: string; desc: string; tryout: Tryout };
-
-// Helper for concise tryout placeholders without inventing dates.
-const TBD = (loc: string, cost = "None / TBD", notes = "Confirm details on club site; bring CSUN ID.") =>
-  ({ dayTime: "TBD — see club page", location: loc, cost, notes });
-
-const clubs: Club[] = [
-  // ---- A ----
-  {
-    name: "Archery",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/archery-club",
-    img: "/clubs/Archery.png",
-    desc:
-      "Beginner-friendly and competitive community for target archery. Learn safe form, tune equipment, and train for collegiate events with structured practice blocks.",
-    tryout: TBD("SRC range / outdoor field"),
-  },
-  {
-    name: "Badminton",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/badminton-club",
-    img: "/clubs/Badminton.png",
-    desc:
-      "All-levels sessions with drills, ladders, and team match play. Emphasis on footwork, shot variety, and tournament preparation.",
-    tryout: TBD("SRC courts"),
-  },
-  {
-    name: "Baseball",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/baseball-club",
-    img: "/clubs/Baseball.png",
-    desc:
-      "Student-run club baseball with league play, travel games, and regular practices focused on skill development and team systems.",
-    tryout: TBD("Off-campus/field facility"),
-  },
-  {
-    name: "Boxing",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/boxing-club",
-    img: "/clubs/Boxing.png",
-    desc:
-      "Technique, conditioning, and controlled sparring with a safety-first approach. Optional intercollegiate bouts for qualified athletes.",
-    tryout: TBD("SRC studio / training space", "TBD (wraps/gloves provided for tryout where available)"),
-  },
-  {
-    name: "Brazilian Jiu-Jitsu",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/brazilian-jiu-jitsu-club",
-    img: "/clubs/BrazilianJiuJitsu.png",
-    desc:
-      "Grappling instruction with drilling, positional sparring, and tournament preparation in a welcoming student environment.",
-    tryout: TBD("Mat room / studio"),
-  },
-  {
-    name: "Chess",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/chess-club",
-    img: "/clubs/Chess.png",
-    desc:
-      "Casual and rated play, lessons, and collegiate team competitions. Open to improving players and seasoned competitors alike.",
-    tryout: TBD("Games Room / meeting space"),
-  },
-  {
-    name: "Cheer",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/cheer-club",
-    img: "/clubs/Cheer.png",
-    desc:
-      "Game-day spirit, stunts, and performance with regular team practices and event appearances throughout the semester.",
-    tryout: TBD("Gym / practice floor", "TBD (possible uniform/dues)"),
-  },
-  {
-    name: "Dance",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/dance-club",
-    img: "/clubs/Dance.png",
-    desc:
-      "Team choreography with performance opportunities and technique training in multiple styles, welcoming a range of experience levels.",
-    tryout: TBD("Studio / rehearsal hall"),
-  },
-  {
-    name: "Esports",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/esports",
-    img: "/clubs/Esports.png",
-    desc:
-      "Multiple titles with coached practice, scrims, and league competition. Structured rosters, VOD review, and campus events.",
-    tryout: { dayTime: "Title-specific windows (see Discord/club page)", location: "Games Room / online", cost: "None / TBD", notes: "Bring CSUN ID; check Discord for tryout lobbies." },
-  },
-  {
-    name: "Fasmode Dance Crew",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/fasmode-dance-crew",
-    img: "/clubs/FasmodeDanceCrew.png",
-    desc:
-      "Student hip-hop dance crew focused on choreography, community performances, and campus showcases.",
-    tryout: TBD("Studio / rehearsal hall"),
-  },
-  {
-    name: "Northridge Street Dancers",
-    href: "https://w2.csun.edu/as/departments/sport-clubs/available-sports/northridge-street-dancers",
-    img: "/clubs/NorthridgeStreetDancers.png",
-    desc:
-      "Open-session street styles collective with workshops, jams, and showcases for all experience levels.",
-    tryout: TBD("Studio / open floor"),
-  },
-  {
-    name: "Ice Hockey",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/ice-hockey-club",
-    img: "/clubs/IceHockey.png",
-    desc:
-      "ACHA club hockey with structured practices, film, and competitive schedule. Team travel for league play.",
-    tryout: TBD("Ice rink facility", "TBD (ice fees/equipment)"),
-  },
-  {
-    name: "Men’s Basketball",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/mens-basketball-club-0",
-    img: "/clubs/MensBasketball.png",
-    desc:
-      "Club basketball with team practices, systems, and collegiate club competition opportunities.",
-    tryout: TBD("SRC courts"),
-  },
-  {
-    name: "Men’s Rugby",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/mens-rugby",
-    img: "/clubs/MensRugby.png",
-    desc:
-      "Competitive 15s/7s rugby emphasizing fitness, fundamentals, and league fixtures against regional opponents.",
-    tryout: TBD("Grass field"),
-  },
-  {
-    name: "Men’s Volleyball",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/mens-volleyball-club",
-    img: "/clubs/MensVolleyball.png",
-    desc:
-      "Indoor volleyball training with team systems, positional work, and tournament play.",
-    tryout: TBD("SRC courts"),
-  },
-  {
-    name: "Men’s Soccer",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/mens-soccer-club",
-    img: "/clubs/MensSoccer.png",
-    desc:
-      "Club soccer with coached training sessions, friendlies, and league matches throughout the term.",
-    tryout: TBD("Turf/grass field"),
-  },
-  {
-    name: "Salsa Libre",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/salsa-libre-club",
-    img: "/clubs/SalsaLibre.png",
-    desc:
-      "Latin dance community focusing on salsa and related styles with classes, socials, and campus performances.",
-    tryout: TBD("Studio / social space"),
-  },
-  {
-    name: "Swim",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/swim",
-    img: "/clubs/Swim.png",
-    desc:
-      "Club swim with structured workouts, technique work, and optional collegiate meets.",
-    tryout: TBD("Pool lanes"),
-  },
-  {
-    name: "Table Tennis",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/table-tennis-club",
-    img: "/clubs/TableTennis.png",
-    desc:
-      "Singles and doubles ladders, drills, and intercollegiate competition for all skill levels.",
-    tryout: TBD("Games Room / table area"),
-  },
-  {
-    name: "Tennis",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/tennis-club",
-    img: "/clubs/Tennis.png",
-    desc:
-      "Team practices, challenge ladders, and club tennis matches with travel opportunities.",
-    tryout: TBD("Tennis courts"),
-  },
-  {
-    name: "Water Polo",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/water-polo-club",
-    img: "/clubs/WaterPolo.png",
-    desc:
-      "Club water polo with practices focused on tactics, conditioning, and tournament play.",
-    tryout: TBD("Pool (deep end)"),
-  },
-  {
-    name: "Weightlifting",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/weightlifting-club",
-    img: "/clubs/Weightlifting.png",
-    desc:
-      "Olympic and powerlifting focus with coached technique sessions and optional meet preparation.",
-    tryout: TBD("Strength platform area"),
-  },
-  {
-    name: "Women’s Basketball",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/womens-basketball",
-    img: "/clubs/WomensBasketball.png",
-    desc:
-      "Women’s club basketball with system work, scrimmages, and collegiate club competition.",
-    tryout: TBD("SRC courts"),
-  },
-  {
-    name: "Women’s Lacrosse",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/womens-lacrosse-club",
-    img: "/clubs/WomensLacrosse.png",
-    desc:
-      "Stick skills, offensive/defensive sets, and league play in a supportive team environment.",
-    tryout: TBD("Grass field"),
-  },
-  {
-    name: "Women’s Rugby",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/womens-rugby-club",
-    img: "/clubs/WomensRugby.png",
-    desc:
-      "Competitive women’s rugby emphasizing safe contact, fitness, and fixtures across the region.",
-    tryout: TBD("Grass field"),
-  },
-  {
-    name: "Women’s Soccer",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/womens-soccer-club",
-    img: "/clubs/WomensSoccer.png",
-    desc:
-      "Women’s club soccer with coached training, friendlies, and league matches.",
-    tryout: TBD("Turf/grass field"),
-  },
-  {
-    name: "Women’s Volleyball",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/womens-volleyball-club",
-    img: "/clubs/WomensVolleyball.png",
-    desc:
-      "Women’s indoor volleyball with positional training and tournament competition.",
-    tryout: TBD("SRC courts"),
-  },
-  {
-    name: "Wrestling",
-    href: "https://www.csun.edu/as/departments/sport-clubs/available-sports/wrestling-club",
-    img: "/clubs/Wrestling.png",
-    desc:
-      "Folkstyle and freestyle fundamentals, live goes, and strength conditioning with optional competition.",
-    tryout: TBD("Mat room"),
-  },
-];
+import SrcAuroraBg from "@/components/StudentRecCenter/SrcBg";
+import ClubCard from "@/components/StudentRecCenter/SportClubs/ClubCard";
+import TryoutModal from "@/components/StudentRecCenter/SportClubs/TryoutModal";
+import { CLUBS } from "@/components/StudentRecCenter/SportClubs/data";
+import { ALL_CATS, CAT_COLORS, RED } from "@/components/StudentRecCenter/SportClubs/constants";
+import type { CatFilter } from "@/components/StudentRecCenter/SportClubs/constants";
+import CategoryIcon from "@/components/StudentRecCenter/SportClubs/CategoryIcon";
+import type { Club, Category } from "@/components/StudentRecCenter/SportClubs/types";
 
 export default function SportClubsPage() {
+  const [modal,  setModal]  = React.useState<Club | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [cat,    setCat]    = React.useState<CatFilter>("All");
 
-  // authorization (commented out to disable lockout)
-  // const router = useRouter();
-  // const { auth, user, token, loading } = useAuthorize();
-
-  // React.useEffect(() => {
-  //   if(loading) return;
-  //   
-  //   if (auth && token)
-  //     console.log("Stored user: ", user);
-  //   else {
-  //     console.log("User not logged in.");
-  //     console.log("auth: " + auth, ". token: " + token);
-  //     router.replace("/");
-  //   }
-  // }, [auth, token, user, loading, router]); 
-
-  const [dialog, setDialog] = React.useState<Club | null>(null);
+  const filtered = React.useMemo(
+    () =>
+      CLUBS.filter((c) => {
+        const q  = search.toLowerCase();
+        const ok = !q || c.name.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || c.tags.some((t) => t.toLowerCase().includes(q));
+        return ok && (cat === "All" || c.category === cat);
+      }),
+    [search, cat]
+  );
 
   return (
-    <Box sx={{ minHeight: "100vh"}}>
-      <Header value="/ToroSRC/SportClubs" />
+    <>
+      <style>{`.sc-card:hover .sc-img{transform:scale(1.09);}`}</style>
 
-      <Container sx={{ pt: 3, pb: 8 }}>
-        <Typography variant="h4" fontWeight={900} sx={{ color: "#fff", mb: 1 }}>
-          Sport Clubs
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.95)", mb: 3 }}>
-          Student led competitive and recreational organizations at CSUN. Clubs are separate from SRC classes and services.
-        </Typography>
+      {/* Full-page aurora background — same as home */}
+      <SrcAuroraBg />
 
-        <Box
-          sx={{
-            display: "grid",
-            gap: 2,
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" },
+      <div style={{ position: "relative", zIndex: 1, minHeight: "100vh" }}>
+        <Header value="/StudentRecCenter/SportClubs" />
+
+        {/* ── HERO ─────────────────────────────────────────────── */}
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "40px 16px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <div style={{ height: 1, width: 20, background: "rgba(255,255,255,0.35)" }} />
+            <span
+              style={{
+                color: "rgba(255,255,255,0.5)",
+                fontSize: 10,
+                fontWeight: 800,
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.22em",
+              }}
+            >
+              CSUN · Associated Students
+            </span>
+          </div>
+          <h1
+            style={{
+              color: "#fff",
+              fontSize: "clamp(2.4rem,5vw,3.5rem)",
+              fontWeight: 900,
+              lineHeight: 1,
+              margin: "0 0 10px",
+              letterSpacing: "-0.02em",
+              textShadow: "0 2px 32px rgba(0,0,0,0.25)",
+            }}
+          >
+            Sport Clubs
+          </h1>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.68)",
+              fontSize: 14,
+              maxWidth: 420,
+              lineHeight: 1.6,
+              margin: 0,
+            }}
+          >
+            Student-led competitive &amp; recreational organizations at CSUN. Separate from SRC
+            classes and services.
+          </p>
+          <div style={{ display: "flex", gap: 32, marginTop: 20 }}>
+            {(
+              [
+                ["Clubs", CLUBS.length],
+                ["Categories", 8],
+                ["Showing", filtered.length],
+              ] as [string, number][]
+            ).map(([l, v]) => (
+              <div key={l}>
+                <div
+                  style={{
+                    color: "#fff",
+                    fontSize: 28,
+                    fontWeight: 900,
+                    fontVariantNumeric: "tabular-nums",
+                    textShadow: "0 0 20px rgba(255,255,255,0.15)",
+                  }}
+                >
+                  {v}
+                </div>
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: 9,
+                    fontWeight: 800,
+                    textTransform: "uppercase" as const,
+                    letterSpacing: "0.18em",
+                    marginTop: 2,
+                  }}
+                >
+                  {l}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── FILTER BAR ───────────────────────────────────────── */}
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            background: "rgba(255,255,255,0.08)",
+            backdropFilter: "blur(24px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+            borderTop: "1px solid rgba(255,255,255,0.12)",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            padding: "10px 16px",
           }}
         >
-          {clubs.map((c) => (
-            <Card key={c.name} sx={{ bgcolor: "#fff", border: "3px solid rgba(0,0,0,0.12)", borderRadius: 3 }}>
-              <CardActionArea component={Link} href={c.href} target="_blank" rel="noopener">
-                <CardMedia component="img" height="140" image={c.img} alt={c.name} />
-              </CardActionArea>
-              <CardContent>
-                <Typography variant="h6" fontWeight={900}>{c.name}</Typography>
-                <Typography sx={{ mb: 1 }}>{c.desc}</Typography>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                  <Button variant="contained" sx={btnSolid} onClick={() => setDialog(c)}>
-                    Tryout Application
-                  </Button>
-                  <Button variant="outlined" sx={btnOutline} component={Link} href={c.href} target="_blank" rel="noopener">
-                    Learn more
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      </Container>
+          <div
+            style={{
+              maxWidth: 1280,
+              margin: "0 auto",
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* search */}
+            <div style={{ position: "relative", width: 220, flexShrink: 0 }}>
+              <svg
+                style={{
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 14,
+                  height: 14,
+                  color: "rgba(255,255,255,0.4)",
+                  pointerEvents: "none",
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search clubs or tags…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box" as const,
+                  paddingLeft: 30,
+                  paddingRight: search ? 28 : 12,
+                  paddingTop: 7,
+                  paddingBottom: 7,
+                  borderRadius: 10,
+                  fontSize: 12,
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.12)",
+                  border: `1px solid ${search ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)"}`,
+                  outline: "none",
+                  fontFamily: "inherit",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                }}
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "rgba(255,255,255,0.5)",
+                    padding: 0,
+                    display: "flex",
+                  }}
+                >
+                  <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
 
-      <Dialog open={!!dialog} onClose={() => setDialog(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Tryout Information — {dialog?.name}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={1.25}>
-            <TextField label="Day/Time" value={dialog?.tryout.dayTime ?? ""} InputProps={{ readOnly: true }} />
-            <TextField label="Location" value={dialog?.tryout.location ?? ""} InputProps={{ readOnly: true }} />
-            <TextField label="Cost" value={dialog?.tryout.cost ?? ""} InputProps={{ readOnly: true }} />
-            <TextField label="Notes" value={dialog?.tryout.notes ?? ""} multiline minRows={2} InputProps={{ readOnly: true }} />
-            <Typography variant="body2">
-              For the latest specifics (dates, times, fees), check the club page linked above.
-            </Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialog(null)}>Close</Button>
-          <Button variant="contained" sx={btnSolid} onClick={() => { setDialog(null); alert("Tryout added to your events"); }}>
-            Add Event
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            {/* category pills */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                overflowX: "auto",
+                flex: 1,
+                scrollbarWidth: "none" as const,
+              }}
+            >
+              {ALL_CATS.map((c) => {
+                const active = cat === c;
+                const color  = c === "All" ? RED : CAT_COLORS[c as keyof typeof CAT_COLORS];
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setCat(c)}
+                    style={{
+                      flexShrink: 0,
+                      cursor: "pointer",
+                      border: "none",
+                      fontFamily: "inherit",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      transition: "all 0.18s ease",
+                      ...(active
+                        ? {
+                            backgroundColor: c === "All" ? "#fff" : color,
+                            color: c === "All" ? RED : "#fff",
+                            boxShadow: `0 2px 10px ${color}55`,
+                            transform: "scale(1.06)",
+                          }
+                        : {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            color: "rgba(255,255,255,0.6)",
+                          }),
+                    }}
+                  >
+                    {c !== "All" && (
+                      <CategoryIcon
+                        category={c as Category}
+                        size={10}
+                        style={{ flexShrink: 0 }}
+                      />
+                    )}
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── GRID ─────────────────────────────────────────────── */}
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 16px 60px" }}>
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "80px 0" }}>
+              <div
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 16,
+                  background: "rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 24,
+                  margin: "0 auto 14px",
+                }}
+              >
+                🔍
+              </div>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.6)",
+                  fontWeight: 900,
+                  fontSize: 18,
+                  margin: "0 0 6px",
+                }}
+              >
+                No clubs found
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.35)",
+                  fontSize: 13,
+                  margin: "0 0 14px",
+                }}
+              >
+                Try different search terms or a different category
+              </p>
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setCat("All");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "rgba(255,255,255,0.5)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                  fontFamily: "inherit",
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gap: 16,
+                gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
+              }}
+            >
+              {filtered.map((club) => (
+                <ClubCard key={club.id} club={club} onTryout={setModal} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <TryoutModal club={modal} onClose={() => setModal(null)} />
+      </div>
+    </>
   );
 }

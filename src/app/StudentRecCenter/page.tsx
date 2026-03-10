@@ -9,9 +9,7 @@ import {
   CardActionArea,
   Snackbar,
   Alert,
-  Grid,
   Chip,
-  Divider,
 } from "@mui/material";
 import Link from "next/link";
 import Header from "@/components/StudentRecCenter/srcHeader";
@@ -19,7 +17,6 @@ import Carousel from "@/components/StudentRecCenter/Carousel";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import PoolIcon from "@mui/icons-material/Pool";
 import SportsBasketballIcon from "@mui/icons-material/SportsBasketball";
-import TerrainIcon from "@mui/icons-material/Terrain";
 import SelfImprovementIcon from "@mui/icons-material/SelfImprovement";
 import GroupIcon from "@mui/icons-material/Group";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -45,7 +42,7 @@ const quickStats = [
   { icon: <GroupIcon sx={{ fontSize: 18 }} />, label: "Sport Clubs", value: "40+" },
 ];
 
-export default function ToroSRC_HomePage() {
+export default function StudentRecCenterHomePage() {
   const [toast, setToast] = React.useState<string | null>(null);
 
   const post = (url: string, program: string) =>
@@ -263,12 +260,12 @@ export default function ToroSRC_HomePage() {
           }}
         >
           {[
-            { title: "Boxing", href: "/ToroSRC/programs#boxing" },
-            { title: "Yoga", href: "/ToroSRC/programs#yoga" },
-            { title: "Aquatics", href: "/ToroSRC/programs#aquatics" },
-            { title: "Recovery", href: "/ToroSRC/programs#recovery" },
-            { title: "Personal Training", href: "/ToroSRC/programs#pt" },
-            { title: "Sport Clubs", href: "/ToroSRC/SportClubs" },
+            { title: "Boxing", href: "/StudentRecCenter/programs#boxing" },
+            { title: "Yoga", href: "/StudentRecCenter/programs#yoga" },
+            { title: "Aquatics", href: "/StudentRecCenter/programs#aquatics" },
+            { title: "Recovery", href: "/StudentRecCenter/programs#recovery" },
+            { title: "Personal Training", href: "/StudentRecCenter/programs#pt" },
+            { title: "Sport Clubs", href: "/StudentRecCenter/SportClubs" },
           ].map((c, idx) => (
             <Card
               key={c.title}

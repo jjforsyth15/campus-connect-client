@@ -38,7 +38,7 @@ export default function FitQuestPage() {
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
-      <Header value="/ToroSRC/FitQuest" />
+      <Header value="/StudentRecCenter/FitQuest" />
       <Container sx={{ pt: 3, pb: 8 }}>
         <Typography
           variant="h4"

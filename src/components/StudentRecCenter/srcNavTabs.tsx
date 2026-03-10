@@ -8,10 +8,11 @@ import { Box, Tabs, Tab } from "@mui/material";
 const CSUN_RED = "#A80532";
 
 const tabs = [
-  { label: "Services",  href: "/StudentRecCenter/services" },
-  { label: "Schedule",  href: "/StudentRecCenter/GroupClasses" },
+  { label: "Home",        href: "/StudentRecCenter" },
+  { label: "Services",    href: "/StudentRecCenter/services" },
+  { label: "Schedule",    href: "/StudentRecCenter/Schedule" },
   { label: "Sport Clubs", href: "/StudentRecCenter/SportClubs" },
-  { label: "FitQuest",  href: "/StudentRecCenter/FitQuest" },
+  { label: "FitQuest",    href: "/StudentRecCenter/FitQuest" },
 ];
 
 export default function NavTabs({
@@ -26,19 +27,24 @@ export default function NavTabs({
   const pathname = usePathname();
 
   const resolved = React.useMemo(() => {
-    const v = (value ?? pathname ?? "").toLowerCase();
-    const match = tabs.find((t) => t.href.toLowerCase() === v);
-    return match?.href ?? false;
+    const normalise = (s: string) => s.toLowerCase().replace(/\/$/, "");
+    const current = normalise(value ?? pathname ?? "");
+
+    const exact = tabs.find((t) => normalise(t.href) === current);
+    if (exact) return exact.href;
+
+    const prefix = tabs
+      .filter((t) => t.href !== "/StudentRecCenter" && current.startsWith(normalise(t.href)))
+      .sort((a, b) => b.href.length - a.href.length)[0];
+    if (prefix) return prefix.href;
+
+    if (current === normalise("/StudentRecCenter")) return "/StudentRecCenter";
+
+    return false;
   }, [pathname, value]);
 
   return (
-    <Box
-      sx={{
-        overflow: "visible",
-        py: "4px",
-        my: "-4px",
-      }}
-    >
+    <Box sx={{ overflow: "visible", py: "4px", my: "-4px" }}>
       <Tabs
         value={resolved}
         variant="scrollable"
@@ -70,25 +76,22 @@ export default function NavTabs({
               fontWeight: 700,
               letterSpacing: 0.2,
               whiteSpace: "nowrap",
-              color: scrolled ? "#A80532" : "rgba(255,255,255,0.9)",
+              transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
+              overflow: "visible",
+
+              color: scrolled ? CSUN_RED : "rgba(255,255,255,0.9)",
               bgcolor: "transparent",
               border: scrolled
                 ? "1.5px solid rgba(168,5,50,0.18)"
                 : "1.5px solid rgba(255,255,255,0.22)",
-              transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-              overflow: "visible",
+
               "&:hover": {
                 transform: "translateY(-1px)",
                 bgcolor: scrolled ? "rgba(168,5,50,0.07)" : "rgba(255,255,255,0.14)",
                 borderColor: scrolled ? "rgba(168,5,50,0.35)" : "rgba(255,255,255,0.5)",
                 color: scrolled ? CSUN_RED : "#fff",
               },
-              "&.Mui-selected": {
-                color: "#fff",
-                bgcolor: CSUN_RED,
-                borderColor: CSUN_RED,
-                boxShadow: "0 3px 12px rgba(168,5,50,0.4)",
-              },
+
             }}
           />
         ))}

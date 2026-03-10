@@ -1,18 +1,18 @@
-// src/app/StudentRecCenter/GroupClasses/page.tsx
+// src/app/StudentRecCenter/Schedule/page.tsx
 "use client";
 
 import * as React from "react";
 import { Box, Container, Typography, Chip } from "@mui/material";
 import Header from "@/components/StudentRecCenter/srcHeader";
-import WeeklySchedule from "@/components/StudentRecCenter/GroupClasses/WeeklySchedule";
-import EventsBanner from "@/components/StudentRecCenter/GroupClasses/EventsBanner";
+import WeeklySchedule from "@/components/StudentRecCenter/Schedule/WeeklySchedule";
+import EventsBanner from "@/components/StudentRecCenter/Schedule/EventsBanner";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 
-export default function GroupClassesPage() {
+export default function SchedulePage() {
   return (
     <Box sx={{ minHeight: "100vh", position: "relative" }}>
       {/* Background + tint provided by layout.tsx */}
-      <Header value="/StudentRecCenter/GroupClasses" />
+      <Header value="/StudentRecCenter/Schedule" />
 
       <Container maxWidth="xl" sx={{ pt: 3, pb: 8 }}>
         {/* Page header */}
@@ -35,7 +35,7 @@ export default function GroupClassesPage() {
                 Student Recreation Center
               </Typography>
               <Typography variant="h4" fontWeight={900} sx={{ color: "#fff", letterSpacing: -0.5, lineHeight: 1.1 }}>
-                Group Classes
+                Group Classes & Events Schedule
               </Typography>
             </Box>
           </Box>
