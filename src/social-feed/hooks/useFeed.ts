@@ -1,16 +1,16 @@
 // =============================================================================
-// hooks/useFeed.ts
-//
+// hooks/useFeed.ts (v2)
 // Master hook for the social feed.
-// Owns: posts state, pagination, likes, reposts, and all API calls.
-// Uses optimistic updates so the UI feels instant — rolls back on error.
-//
-// Kept separate from the page component so the component only renders UI.
+// Matches SocialFeedPage v2 API:
+//   handleLike, handleCreate, handleDelete, handleSave, handleRepost,
+//   savedPostIds, isLoading, isLoadingMore, error, refresh, loadMore, posts
+// Uses optimistic updates — rolls back on error.
+// No backend/schema changes.
 // =============================================================================
 
 import { useState, useCallback, useRef } from 'react';
-import type { Post } from '../types';
-import * as api from '../api/posts';
+import type { Post } from '../types/feed.types';
+import * as feedApi from '../utils/feed.api';
 
 // Demo seed data used when backend is not yet connected.
 // Replace this with a real useEffect(() => { api.getFeed() }, []) call
@@ -102,23 +102,55 @@ const SEED: Post[] = [
   },
 ];
 
-export function useFeed(currentUserId: string) {
-  const [posts,      setPosts]      = useState<Post[]>(SEED);
-  const [loading,    setLoading]    = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore,    setHasMore]    = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
-  const inFlight = useRef(new Set<string>()); // tracks pending like/repost ops
+export function useFeed() {
+  const [posts,         setPosts]         = useState<Post[]>(SEED);
+  const [savedPostIds,  setSavedPostIds]  = useState<Set<string>>(new Set());
+  const [isLoading,     setIsLoading]     = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
+  const [nextCursor,    setNextCursor]    = useState<string | null>(null);
+  const [hasMore,       setHasMore]       = useState(false);
+  const inFlight = useRef(new Set<string>());
+
+  // ── Refresh / initial load ──────────────────────────────────────────────────
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await feedApi.getFeed();
+      setPosts(data.posts);
+      setNextCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } catch {
+      setError("Couldn't connect to server — showing local posts.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ── Load more (infinite scroll) ────────────────────────────────────────────
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const data = await feedApi.getFeed(nextCursor);
+      setPosts(prev => [...prev, ...data.posts]);
+      setNextCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } catch {
+      // silent
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, nextCursor]);
 
   // ── Optimistic like toggle ──────────────────────────────────────────────────
-  const toggleLike = useCallback(async (postId: string) => {
+  const handleLike = useCallback(async (postId: string) => {
     if (inFlight.current.has(`like_${postId}`)) return;
     inFlight.current.add(`like_${postId}`);
 
-    // Snapshot the current state for rollback — read directly from setter
     let snapshot: { wasLiked: boolean; prevCount: number } | null = null;
 
-    // Optimistic update — use functional form so we don't capture stale posts
     setPosts(prev => {
       const post = prev.find(p => p.id === postId);
       if (!post) return prev;
@@ -134,15 +166,14 @@ export function useFeed(currentUserId: string) {
     });
 
     try {
-      // Small delay to ensure snapshot is set before async call
       await new Promise(r => setTimeout(r, 0));
       if (!snapshot) return;
-      if ((snapshot as any).wasLiked) await api.unlikePost(postId);
-      else                             await api.likePost(postId);
+      const { wasLiked } = snapshot as { wasLiked: boolean; prevCount: number };
+      if (wasLiked) await feedApi.unlikePost(postId);
+      else          await feedApi.likePost(postId);
     } catch {
-      // Roll back using the snapshot
       if (snapshot) {
-        const { wasLiked, prevCount } = snapshot as any;
+        const { wasLiked, prevCount } = snapshot as { wasLiked: boolean; prevCount: number };
         setPosts(prev => prev.map(p =>
           p.id !== postId ? p : {
             ...p,
@@ -156,65 +187,72 @@ export function useFeed(currentUserId: string) {
     }
   }, []);
 
-  // ── Create post (prepend to feed) ──────────────────────────────────────────
-  const addPost = useCallback((post: Post) => {
-    setPosts(prev => [post, ...prev]);
+  // ── Create post ─────────────────────────────────────────────────────────────
+  const handleCreate = useCallback(async (content: string, images?: string[]) => {
+    try {
+      const data = await feedApi.createPost(content, images ?? []);
+      setPosts(prev => [data.post, ...prev]);
+    } catch {
+      const localPost: Post = {
+        id:             `local-${Date.now()}`,
+        content,
+        images:         images ?? [],
+        tags:           [],
+        isRepost:       false,
+        originalPostId: null,
+        repostComment:  null,
+        createdAt:      new Date().toISOString(),
+        updatedAt:      new Date().toISOString(),
+        User:           { id: 'u-sarah', firstName: 'Sara', lastName: 'Medhat', profilePicture: null, userType: 'student' },
+        _count:         { Like: 0, Comment: 0, other_Post: 0 },
+        isLikedByUser:  false,
+      };
+      setPosts(prev => [localPost, ...prev]);
+    }
   }, []);
 
-  // ── Delete own post ────────────────────────────────────────────────────────
-  const removePost = useCallback(async (postId: string) => {
+  // ── Delete post ─────────────────────────────────────────────────────────────
+  const handleDelete = useCallback(async (postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
+    try { await feedApi.deletePost(postId); } catch { /* silent */ }
+  }, []);
+
+  // ── Save / unsave ───────────────────────────────────────────────────────────
+  const handleSave = useCallback(async (postId: string) => {
+    setSavedPostIds(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+    // TODO: call /api/v1/posts/:id/save when backend endpoint is ready
+  }, []);
+
+  // ── Repost ──────────────────────────────────────────────────────────────────
+  const handleRepost = useCallback(async (postId: string, comment?: string) => {
     try {
-      await api.deletePost(postId);
-    } catch {
-      setError('Failed to delete post. Please try again.');
-    }
+      const data = await feedApi.repost(postId, comment);
+      setPosts(prev => [
+        data.post,
+        ...prev.map(p =>
+          p.id !== postId ? p : { ...p, _count: { ...p._count, other_Post: p._count.other_Post + 1 } }
+        ),
+      ]);
+    } catch { /* silent in demo */ }
   }, []);
-
-  // ── Increment comment count (called after successful comment submit) ────────
-  const incrementComments = useCallback((postId: string) => {
-    setPosts(prev => prev.map(p =>
-      p.id !== postId ? p : {
-        ...p, _count: { ...p._count, Comment: p._count.Comment + 1 },
-      }
-    ));
-  }, []);
-
-  // ── Increment repost count ─────────────────────────────────────────────────
-  const incrementReposts = useCallback((postId: string) => {
-    setPosts(prev => prev.map(p =>
-      p.id !== postId ? p : {
-        ...p, _count: { ...p._count, other_Post: p._count.other_Post + 1 },
-      }
-    ));
-  }, []);
-
-  // ── Load more (pagination) ─────────────────────────────────────────────────
-  const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
-    setLoading(true);
-    try {
-      const data = await api.getFeed(nextCursor ?? undefined);
-      setPosts(prev => [...prev, ...data.posts]);
-      setNextCursor(data.nextCursor);
-      setHasMore(data.hasMore);
-    } catch {
-      setError('Failed to load more posts.');
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, hasMore, nextCursor]);
 
   return {
     posts,
-    loading,
-    hasMore,
+    savedPostIds,
+    isLoading,
+    isLoadingMore,
     error,
-    toggleLike,
-    addPost,
-    removePost,
-    incrementComments,
-    incrementReposts,
+    refresh,
     loadMore,
+    handleLike,
+    handleCreate,
+    handleDelete,
+    handleSave,
+    handleRepost,
   };
 }
