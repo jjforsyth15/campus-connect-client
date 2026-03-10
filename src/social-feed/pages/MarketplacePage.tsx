@@ -16,15 +16,42 @@ const MOCK_ITEMS: MarketItem[] = [
 
 interface MarketplacePageProps {
   onToast: (msg: string, type?: "success" | "error" | "info") => void;
+  onNavigate?: (page: string) => void;
 }
 
-export function MarketplacePage({ onToast }: MarketplacePageProps) {
+export function MarketplacePage({ onToast, onNavigate }: MarketplacePageProps) {
   return (
     <div style={{ padding:16, animation:"fadeUp 240ms ease both" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Campus Marketplace</h2>
+          <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>Buy and sell with fellow Matadors</p>
+        </div>
+        <a
+          href="/marketplace"
+          style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
+        >
+          Browse Full Marketplace →
+        </a>
+      </div>
+
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
         {MOCK_ITEMS.map((item, i) => (
           <MarketCard key={item.id} item={item} delay={i * 50} onToast={onToast} />
         ))}
+      </div>
+
+      {/* Footer CTA */}
+      <div style={{ marginTop:16, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
+        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
+          Want to post an item?{" "}
+          <a href="/marketplace" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>
+            Visit the full Marketplace →
+          </a>
+        </p>
       </div>
     </div>
   );

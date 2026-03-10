@@ -208,6 +208,55 @@ function ClubsTabView() {
 // Shown when the user clicks the Campus feed tab.
 // A curated student resource hub — links to the most useful CSUN services.
 
+// SVG icons for campus resources — keyed by resource id
+const RESOURCE_ICONS: Record<string, JSX.Element> = {
+  "academic-cal": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  "tutoring": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  ),
+  "financial-aid": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+  ),
+  "health": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+  ),
+  "career": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+    </svg>
+  ),
+  "library": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  ),
+  "disability": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="2"/><path d="M12 22a7 7 0 1 0 0-14 7 7 0 0 0 0 14z" strokeDasharray="1 0"/><path d="M12 8v5l3 3"/>
+    </svg>
+  ),
+  "housing": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  "it-help": (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+};
+
 const CAMPUS_RESOURCES = [
   {
     id: "academic-cal",
@@ -215,8 +264,7 @@ const CAMPUS_RESOURCES = [
     color: "#2563eb",
     title: "Academic Calendar",
     desc: "Key dates: registration, finals, holidays, and semester deadlines.",
-    url: "https://www.csun.edu/registrar/academic-calendar",
-    icon: "📅",
+    url: "https://www.csun.edu/academics/academic-calendar",
   },
   {
     id: "tutoring",
@@ -224,8 +272,7 @@ const CAMPUS_RESOURCES = [
     color: "#7c3aed",
     title: "Tutoring & Learning Resources",
     desc: "Free tutoring, writing workshops, and supplemental instruction at the Learning Resource Center.",
-    url: "https://www.csun.edu/educational-opportunity-programs/learning-resource-center",
-    icon: "📚",
+    url: "https://www.csun.edu/undergraduate-studies/learning-resource-center",
   },
   {
     id: "financial-aid",
@@ -233,8 +280,7 @@ const CAMPUS_RESOURCES = [
     color: "#16a34a",
     title: "Financial Aid & Scholarships",
     desc: "Apply for grants, loans, scholarships, and check your aid status via SOLAR.",
-    url: "https://www.csun.edu/financialaid",
-    icon: "💰",
+    url: "https://www.csun.edu/financial-aid",
   },
   {
     id: "health",
@@ -242,8 +288,7 @@ const CAMPUS_RESOURCES = [
     color: "#dc2626",
     title: "Student Health Center",
     desc: "Medical appointments, mental health counseling, wellness programs, and urgent care on campus.",
-    url: "https://www.csun.edu/studenthealthcenter",
-    icon: "🏥",
+    url: "https://www.csun.edu/student-health-center",
   },
   {
     id: "career",
@@ -251,8 +296,7 @@ const CAMPUS_RESOURCES = [
     color: "#0891b2",
     title: "Career Center",
     desc: "Resume reviews, interview prep, job/internship postings, and employer fairs via Handshake.",
-    url: "https://www.csun.edu/career",
-    icon: "💼",
+    url: "https://www.csun.edu/career-center",
   },
   {
     id: "library",
@@ -261,7 +305,6 @@ const CAMPUS_RESOURCES = [
     title: "Oviatt Library",
     desc: "Research databases, study rooms, 3D printing, media lab, and 24/7 online resources.",
     url: "https://library.csun.edu",
-    icon: "🔬",
   },
   {
     id: "disability",
@@ -269,8 +312,7 @@ const CAMPUS_RESOURCES = [
     color: "#4f46e5",
     title: "Disability Resources & Educational Services",
     desc: "Accommodations, adaptive technology, testing services, and support for students with disabilities.",
-    url: "https://www.csun.edu/dres",
-    icon: "♿",
+    url: "https://www.csun.edu/disability-resources-educational-services",
   },
   {
     id: "housing",
@@ -278,8 +320,7 @@ const CAMPUS_RESOURCES = [
     color: "#e11d48",
     title: "Housing & Residential Life",
     desc: "On-campus housing applications, move-in info, and residential community resources.",
-    url: "https://www.csun.edu/housing",
-    icon: "🏠",
+    url: "https://www.csun.edu/student-affairs/housing",
   },
   {
     id: "it-help",
@@ -287,8 +328,7 @@ const CAMPUS_RESOURCES = [
     color: "#0e7490",
     title: "IT Help Center",
     desc: "Wi-Fi, software downloads, laptop loaner program, and tech support for all Matadors.",
-    url: "https://www.csun.edu/it",
-    icon: "💻",
+    url: "https://www.csun.edu/it/helpdesk",
   },
 ];
 
@@ -318,8 +358,8 @@ function CampusResourcesView() {
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-surface)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)"; }}
           >
             {/* Icon chip */}
-            <div style={{ width:42, height:42, borderRadius:12, background:`${r.color}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>
-              {r.icon}
+            <div style={{ width:42, height:42, borderRadius:12, background:`${r.color}18`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:r.color }}>
+              {RESOURCE_ICONS[r.id]}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
@@ -336,199 +376,6 @@ function CampusResourcesView() {
       <div style={{ marginTop:16, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
         <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
           Need help? Visit <a href="https://www.csun.edu/students" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>csun.edu/students →</a>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-
-  {
-    id: "cn1",
-    title: "CSUN Receives $2.5M Grant for STEM Education Initiative",
-    category: "Academics",
-    date: "2025-03-12",
-    summary: "The California State University, Northridge has been awarded a significant federal grant to expand STEM programs and increase access for underrepresented students.",
-    url: "https://news.csun.edu",
-  },
-  {
-    id: "cn2",
-    title: "Matador Athletics: Baseball Team Opens Home Season Friday",
-    category: "Athletics",
-    date: "2025-03-10",
-    summary: "The CSUN Matadors baseball team opens its home schedule at Matador Field this Friday at 6 PM. Student admission is free with a valid CSUN ID.",
-    url: "https://gomatadors.com",
-  },
-  {
-    id: "cn3",
-    title: "New Research Center for Sustainability Opens on Campus",
-    category: "Research",
-    date: "2025-03-08",
-    summary: "CSUN's newly established Center for Sustainability Research will focus on climate resilience, renewable energy, and green campus initiatives.",
-    url: "https://news.csun.edu",
-  },
-  {
-    id: "cn4",
-    title: "Campus Art Galleries to Host Spring Exhibition Next Week",
-    category: "Arts & Culture",
-    date: "2025-03-06",
-    summary: "The CSUN University Art Galleries will open 'Visions of the Valley,' a juried exhibition featuring student and alumni work, starting March 15.",
-    url: "https://www.csun.edu/arts",
-  },
-  {
-    id: "cn5",
-    title: "Career Center: Spring Job & Internship Fair — Register Now",
-    category: "Career",
-    date: "2025-03-04",
-    summary: "Over 150 employers will attend CSUN's Spring Career Fair on March 20 in the Matadome. Registration through Handshake is required.",
-    url: "https://www.csun.edu/career",
-  },
-  {
-    id: "cn6",
-    title: "Housing & Residential Life Opens Fall 2025 Applications",
-    category: "Student Life",
-    date: "2025-03-02",
-    summary: "Applications for on-campus housing for Fall 2025 are now open. Priority deadline is April 1. Apply through the Housing Portal on MyNorthridge.",
-    url: "https://www.csun.edu/housing",
-  },
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Academics:     "#2563eb",
-  Athletics:     "#16a34a",
-  Research:      "#7c3aed",
-  "Arts & Culture": "#b45309",
-  Career:        "#0891b2",
-  "Student Life": "var(--csun-red)",
-};
-
-interface CampusNewsItem {
-  id: string;
-  title: string;
-  category: string;
-  date: string;
-  summary: string;
-  url: string;
-}
-
-function CampusNewsView() {
-  const [items,     setItems]     = useState<CampusNewsItem[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [usingFallback, setFallback] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch("/api/csun-events");
-        if (!res.ok) throw new Error("not ok");
-        const xml  = await res.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, "text/xml");
-        const rssItems = Array.from(doc.querySelectorAll("item")).slice(0, 6);
-        if (rssItems.length === 0) throw new Error("empty");
-        const parsed: CampusNewsItem[] = rssItems.map((el, i) => {
-          const title   = el.querySelector("title")?.textContent?.trim() ?? "CSUN News";
-          const link    = el.querySelector("link")?.textContent?.trim() ?? "https://news.csun.edu";
-          const pubDate = el.querySelector("pubDate")?.textContent?.trim();
-          const desc    = el.querySelector("description")?.textContent ?? "";
-          // Strip HTML tags and decode entities for summary
-          const clean = desc
-            .replace(/<[^>]*>/g, " ")
-            .replace(/&nbsp;/g, " ")
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&quot;/g, '"')
-            .replace(/&#\d+;/g, "")
-            .replace(/\s{2,}/g, " ")
-            .trim()
-            .slice(0, 180);
-          const dateStr = pubDate
-            ? new Date(pubDate).toISOString().split("T")[0]
-            : new Date().toISOString().split("T")[0];
-          const cats = ["Academics","Athletics","Research","Arts & Culture","Career","Student Life"];
-          const category = cats[i % cats.length];
-          return { id: `rss-${i}`, title, category, date: dateStr, summary: clean || "Read the full story on CSUN News.", url: link };
-        });
-        if (!cancelled) { setItems(parsed); setFallback(false); }
-      } catch {
-        if (!cancelled) { setItems(CAMPUS_FALLBACK); setFallback(true); }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  function fmtDate(iso: string) {
-    const d = new Date(iso);
-    return d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
-  }
-
-  return (
-    <div style={{ padding:20 }}>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
-        <div>
-          <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Campus News</h2>
-          <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>
-            {usingFallback ? "Latest from CSUN" : "Live from CSUN News"}
-          </p>
-        </div>
-        <a href="https://news.csun.edu" target="_blank" rel="noreferrer"
-          style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
-        >
-          CSUN Newsroom →
-        </a>
-      </div>
-
-      {loading ? (
-        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          {[1,2,3].map(n => (
-            <div key={n} style={{ padding:"16px 18px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)" }}>
-              <div className="skeleton" style={{ width:"30%", height:10, borderRadius:6, marginBottom:10 }} />
-              <div className="skeleton" style={{ width:"85%", height:14, borderRadius:6, marginBottom:8 }} />
-              <div className="skeleton" style={{ width:"100%", height:11, borderRadius:6, marginBottom:6 }} />
-              <div className="skeleton" style={{ width:"70%", height:11, borderRadius:6 }} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          {items.map(item => {
-            const color = CATEGORY_COLORS[item.category] ?? "var(--csun-red)";
-            return (
-              <a key={item.id} href={item.url} target="_blank" rel="noreferrer"
-                style={{ display:"block", padding:"16px 18px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", textDecoration:"none", transition:"background 150ms, border-color 150ms" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; (e.currentTarget as HTMLElement).style.borderColor = color; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-surface)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)"; }}
-              >
-                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color, background:`${color}20`, padding:"2px 8px", borderRadius:99 }}>{item.category}</span>
-                      <span style={{ fontSize:11, color:"var(--text-muted)" }}>{fmtDate(item.date)}</span>
-                    </div>
-                    <div style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--text-primary)", marginBottom:6, lineHeight:1.4 }}>{item.title}</div>
-                    {item.summary && <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.6 }}>{item.summary}{item.summary.length >= 180 ? "…" : ""}</div>}
-                  </div>
-                  <svg width="14" height="14" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0, marginTop:2 }}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ marginTop:20, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
-        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
-          More stories at{" "}
-          <a href="https://news.csun.edu" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>news.csun.edu →</a>
         </p>
       </div>
     </div>
@@ -722,12 +569,12 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Campus tab: dedicated CSUN news view ─────────────────────────────────
+    // ── Campus tab: student resource hub ─────────────────────────────────────
     if (feedTab === "campus") {
       return (
         <>
           {tabs}
-          <CampusNewsView />
+          <CampusResourcesView />
         </>
       );
     }
@@ -972,7 +819,7 @@ export default function SocialFeedPage() {
           </div>
 
           <div style={{ marginTop:16, fontSize:11, color:"var(--text-muted)", textAlign:"center" }}>
-            Matador Connect &copy; 2026 &mdash; CSUN
+            Matador Connect &copy; 2025 &mdash; CSUN
           </div>
         </aside>
       </div>

@@ -70,9 +70,15 @@ export default function ProfilePage({
           </div>
         </div>
         <button
-          className="btn-secondary"
           onClick={onNavigateSettings}
-          style={{ marginBottom:4, padding:"7px 18px" }}
+          style={{
+            marginBottom:4, padding:"7px 18px", borderRadius:99,
+            border:"1px solid var(--border-medium)", background:"var(--bg-surface)",
+            color:"var(--text-primary)", fontSize:13, fontWeight:600,
+            cursor:"pointer", transition:"all 150ms", lineHeight:1.4,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.borderColor = "var(--text-muted)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-surface)"; e.currentTarget.style.borderColor = "var(--border-medium)"; }}
         >
           Edit Profile
         </button>

@@ -9,30 +9,30 @@
 import { useState, useEffect } from "react";
 import type { CampusEvent } from "../types/feed.types";
 
-// Tag colours mapped by category keyword
+// Tag colours mapped by category keyword — all hex so ${color}22 alpha trick works
 const TAG_COLOR_MAP: Record<string, string> = {
-  academic:    "var(--csun-red)",
-  recreation:  "var(--success)",
-  clubs:       "var(--info)",
-  community:   "var(--accent-gold)",
-  career:      "#78BAFF",
+  academic:    "#a80532",
+  recreation:  "#16a34a",
+  clubs:       "#2563eb",
+  community:   "#b45309",
+  career:      "#0891b2",
   arts:        "#c084fc",
-  sports:      "var(--success)",
-  event:       "var(--text-muted)",
+  sports:      "#16a34a",
+  event:       "#6b7280",
 };
 function tagColorFor(tag: string): string {
   const key = tag.toLowerCase();
   for (const k of Object.keys(TAG_COLOR_MAP)) if (key.includes(k)) return TAG_COLOR_MAP[k];
-  return "var(--text-muted)";
+  return "#6b7280";
 }
 
 const MOCK_EVENTS: CampusEvent[] = [
-  { id:"e1", title:"COMP 490 Project Demo Day",   date:"Sep 25, 2025", time:"2:00 PM – 5:00 PM",  location:"JD 1600",                  tag:"Academic",    tagColor:"var(--csun-red)",    attendees:24,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Senior capstone project demonstrations. Come see what CSUN CS seniors have been building all semester." },
-  { id:"e2", title:"SRC Open Gym Night",           date:"Mar 15, 2026", time:"6:00 PM – 10:00 PM", location:"SRC Main Floor",            tag:"Recreation",  tagColor:"var(--success)",     attendees:89,  isRsvped:false, csunUrl:"https://www.csun.edu/src",      description:"Open gym hours at the Student Recreation Center. All students, faculty, and staff welcome." },
-  { id:"e3", title:"Tech Club Hackathon Kickoff",  date:"Mar 20, 2026", time:"10:00 AM – 12:00 PM",location:"Oviatt Library 16",          tag:"Clubs",       tagColor:"var(--info)",        attendees:41,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Kick off the semester-long hackathon with the CSUN Tech Club. Teams of 2–4. Prizes for top 3 teams." },
-  { id:"e4", title:"Campus Sustainability Fair",   date:"Apr 5, 2026",  time:"11:00 AM – 3:00 PM", location:"University Student Union",  tag:"Community",   tagColor:"var(--accent-gold)", attendees:130, isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Learn about sustainability initiatives on campus and meet environmental organizations." },
-  { id:"e5", title:"Spring Career Fair 2026",      date:"Apr 10, 2026", time:"10:00 AM – 4:00 PM", location:"Matadome",                  tag:"Career",      tagColor:"#78BAFF",            attendees:450, isRsvped:false, csunUrl:"https://career.csun.edu",       description:"Meet hundreds of employers hiring CSUN students and alumni. Bring your resume and dress professionally." },
-  { id:"e6", title:"AI Research Symposium",        date:"Apr 18, 2026", time:"1:00 PM – 4:00 PM",  location:"Bookstein Hall 1250",       tag:"Academic",    tagColor:"var(--csun-red)",    attendees:67,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"CSUN faculty and students present current AI research projects. Open to all." },
+  { id:"e1", title:"COMP 490 Project Demo Day",   date:"Sep 25, 2025", time:"2:00 PM – 5:00 PM",  location:"JD 1600",                  tag:"Academic",    tagColor:"#a80532",  attendees:24,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Senior capstone project demonstrations. Come see what CSUN CS seniors have been building all semester." },
+  { id:"e2", title:"SRC Open Gym Night",           date:"Mar 15, 2026", time:"6:00 PM – 10:00 PM", location:"SRC Main Floor",            tag:"Recreation",  tagColor:"#16a34a",  attendees:89,  isRsvped:false, csunUrl:"https://www.csun.edu/src",      description:"Open gym hours at the Student Recreation Center. All students, faculty, and staff welcome." },
+  { id:"e3", title:"Tech Club Hackathon Kickoff",  date:"Mar 20, 2026", time:"10:00 AM – 12:00 PM",location:"Oviatt Library 16",          tag:"Clubs",       tagColor:"#2563eb",  attendees:41,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Kick off the semester-long hackathon with the CSUN Tech Club. Teams of 2–4. Prizes for top 3 teams." },
+  { id:"e4", title:"Campus Sustainability Fair",   date:"Apr 5, 2026",  time:"11:00 AM – 3:00 PM", location:"University Student Union",  tag:"Community",   tagColor:"#b45309",  attendees:130, isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"Learn about sustainability initiatives on campus and meet environmental organizations." },
+  { id:"e5", title:"Spring Career Fair 2026",      date:"Apr 10, 2026", time:"10:00 AM – 4:00 PM", location:"Matadome",                  tag:"Career",      tagColor:"#0891b2",  attendees:450, isRsvped:false, csunUrl:"https://career.csun.edu",       description:"Meet hundreds of employers hiring CSUN students and alumni. Bring your resume and dress professionally." },
+  { id:"e6", title:"AI Research Symposium",        date:"Apr 18, 2026", time:"1:00 PM – 4:00 PM",  location:"Bookstein Hall 1250",       tag:"Academic",    tagColor:"#a80532",  attendees:67,  isRsvped:false, csunUrl:"https://news.csun.edu/events",  description:"CSUN faculty and students present current AI research projects. Open to all." },
 ];
 
 interface EventsPageProps {
