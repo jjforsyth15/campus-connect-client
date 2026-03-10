@@ -53,12 +53,14 @@ const NAV_ITEMS: { page: AppPage; Icon: () => React.ReactElement; label: string 
 ];
 
 const TRENDING = [
-  { tag: "FinalsWeek",     count: "412 posts" },
-  { tag: "CSUNDining",     count: "287 posts" },
-  { tag: "MatadorNetwork", count: "201 posts" },
-  { tag: "CompSci490",     count: "178 posts" },
-  { tag: "LibraryHours",   count: "134 posts" },
-  { tag: "CampusEvents",   count: "96 posts"  },
+  { tag: "FinalsWeek",          count: "2.1K posts"              },
+  { tag: "SpringCareerFair",    count: "Trending · Career"       },
+  { tag: "CSUNEvents",          count: "1.4K posts"              },
+  { tag: "MatadorPride",        count: "Trending · CSUN"         },
+  { tag: "COMP490",             count: "Trending · Academics"    },
+  { tag: "OviattLibrary",       count: "612 posts"               },
+  { tag: "SRCOpenGym",          count: "Trending · Recreation"   },
+  { tag: "HousingApplications", count: "Trending · Student Life" },
 ];
 
 // SVG icons for Quick Links — matching the screenshot design

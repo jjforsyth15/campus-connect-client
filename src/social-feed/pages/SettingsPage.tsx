@@ -187,7 +187,7 @@ export default function SettingsPage({ onToast, blockedUsers = [], onUnblock }: 
           iconColor="var(--csun-red)"
           label="myNorthridge Portal"
           sub="SOLAR, class registration, finances"
-          onClick={() => openUrl("https://my.csun.edu")}
+          onClick={() => openUrl("https://www.csun.edu/it/software-services/services/solar")}
           chevron
         />
         <SettingsItem
