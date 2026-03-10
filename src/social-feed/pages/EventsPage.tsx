@@ -18,9 +18,10 @@ const TAG_COLOR_MAP: Record<string, string> = {
   career:      "#78BAFF",
   arts:        "#c084fc",
   sports:      "var(--success)",
+  event:       "var(--text-muted)",
 };
-function tagColorFor(cat: string): string {
-  const key = cat.toLowerCase();
+function tagColorFor(tag: string): string {
+  const key = tag.toLowerCase();
   for (const k of Object.keys(TAG_COLOR_MAP)) if (key.includes(k)) return TAG_COLOR_MAP[k];
   return "var(--text-muted)";
 }
@@ -38,44 +39,94 @@ interface EventsPageProps {
   onToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
+// Map raw category strings to friendlier display tags
+function friendlyTag(cat: string): string {
+  const c = cat.toLowerCase();
+  if (c.includes("src") || c.includes("recreation")) return "Recreation";
+  if (c.includes("arts") || c.includes("art") || c.includes("ixla") || c.includes("curb") || c.includes("media") || c.includes("communication")) return "Arts";
+  if (c.includes("career")) return "Career";
+  if (c.includes("club") || c.includes("usu") || c.includes("student union")) return "Clubs";
+  if (c.includes("academic") || c.includes("research") || c.includes("science") || c.includes("engineering")) return "Academic";
+  if (c.includes("sport") || c.includes("athletic")) return "Sports";
+  if (c.includes("community") || c.includes("sustainability")) return "Community";
+  return "Event";
+}
+
 // Parse an RSS <item> element into a CampusEvent
 function parseRssItem(item: Element, idx: number): CampusEvent {
   const get = (tag: string) => item.querySelector(tag)?.textContent?.trim() ?? "";
-  const title = get("title");
-  const pubDate = get("pubDate");
-  const cat = get("category") || "Event";
-  const location = get("location") || item.querySelector("ev\\:location")?.textContent?.trim() || "CSUN Campus";
+  const title = get("title").replace(/&#038;/g, "&").replace(/&amp;/g, "&");
+
+  // Categories — take the first one and map to a friendlier label
+  const cats = Array.from(item.querySelectorAll("category")).map(el => el.textContent?.trim() ?? "");
+  const cat = cats.find(c => c.length > 0) ?? "Event";
+  const tag = friendlyTag(cats.join(" "));
+
   const link = get("link") || "https://news.csun.edu/events";
-  const rawDesc = get("description").replace(/<[^>]*>/g, "").trim();
-  // Strip RSS artifacts: "#123" patterns, leading/trailing whitespace
+
+  // Description: strip HTML tags, "Continue reading" link, and other artifacts
+  const rawDesc = get("description");
   const cleanDesc = rawDesc
-    .replace(/#\d+\s*/g, "")        // remove #number tokens anywhere
-    .replace(/\s{2,}/g, " ")        // collapse multiple spaces
-    .split(/\n|\r/)
-    .filter(line => line.trim().length > 0)
-    .join(" ")
+    .replace(/<a[^>]*class="more-link"[^>]*>.*?<\/a>/gi, "")  // remove "Continue reading" link
+    .replace(/<[^>]*>/g, " ")                                   // strip all HTML tags
+    .replace(/&amp;/g, "&").replace(/&#038;/g, "&")             // decode entities
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&#8211;/g, "–").replace(/&#8212;/g, "—")
+    .replace(/&#8217;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/\s{2,}/g, " ")                                    // collapse whitespace
     .trim()
-    .slice(0, 220);
-  const description = cleanDesc || undefined;
+    .slice(0, 240);
+
+  // Try to extract date/time from the description text
+  // CSUN descriptions often start with "Month Day – Month Day, Year" or similar
   let date = "";
   let time = "";
-  if (pubDate) {
-    const d = new Date(pubDate);
-    date = d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
-    time = d.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" });
+
+  // Patterns like "January 20 – March 12, 2026" or "Thursday, January 29 from 5:00 – 7:30pm"
+  const dateRangeMatch = cleanDesc.match(/([A-Z][a-z]+\s+\d{1,2})\s*[–\-]\s*([A-Z][a-z]+\s+\d{1,2},\s*\d{4})/);
+  const singleDateMatch = cleanDesc.match(/([A-Z][a-z]+,\s+)?([A-Z][a-z]+\s+\d{1,2}(?:,\s*\d{4})?)/);
+  const timeMatch = cleanDesc.match(/(\d{1,2}:\d{2}\s*(?:–|-)\s*\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))/i) ||
+                   cleanDesc.match(/(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))/i) ||
+                   cleanDesc.match(/from\s+(\d{1,2}:\d{2}\s*(?:–|-)\s*\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))/i);
+
+  if (dateRangeMatch) {
+    date = `${dateRangeMatch[1]} – ${dateRangeMatch[2]}`;
+  } else if (singleDateMatch) {
+    date = singleDateMatch[0].replace(/^[A-Z][a-z]+,\s+/, "").trim();
+    if (!/\d{4}/.test(date)) date += ", 2026"; // assume current year if missing
+  } else {
+    // Fall back to pubDate but format nicely
+    const pubDate = get("pubDate");
+    if (pubDate) {
+      const d = new Date(pubDate);
+      date = d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+    }
   }
+
+  if (timeMatch) {
+    time = timeMatch[1] || timeMatch[0];
+  }
+
+  // A short teaser description (strip the date/time lines at the start)
+  const descBody = cleanDesc
+    .replace(/^[A-Z][a-z]+\s+\d{1,2}\s*[–\-]\s*[A-Z][a-z]+\s+\d{1,2},\s*\d{4}\s*/i, "")
+    .replace(/^Reception:.*$/im, "")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    .slice(0, 200);
+
   return {
     id: `rss-${idx}`,
     title,
     date,
     time,
-    location,
-    tag: cat.split(",")[0].trim(),
-    tagColor: tagColorFor(cat),
-    attendees: Math.floor(20 + Math.random() * 200),
+    location: "CSUN Campus",
+    tag,
+    tagColor: tagColorFor(tag),
+    attendees: 0,
     isRsvped: false,
     csunUrl: link,
-    description,
+    description: descBody || undefined,
   };
 }
 
