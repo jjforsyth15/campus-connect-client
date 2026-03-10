@@ -262,6 +262,7 @@ export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelet
             type="text"
             value={repostInput}
             onChange={e => setRepostInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleRepostSubmit(); } }}
             placeholder="Add a comment (optional)…"
             maxLength={280}
             style={{ flex:1, padding:"8px 14px", borderRadius:99, border:"1px solid var(--border-subtle)", background:"var(--bg-input)", color:"var(--text-primary)", fontSize:13, outline:"none" }}
