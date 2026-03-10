@@ -399,12 +399,7 @@ export default function SocialFeedPage() {
             <a href="https://news.csun.edu" target="_blank" rel="noreferrer" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", whiteSpace:"nowrap" }}>CSUN News →</a>
           </div>
         )}
-        {feedTab === "clubs" && (
-          <div style={{ padding:"10px 20px", background:"var(--bg-elevated)", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
-            <span style={{ fontSize:13, color:"var(--text-muted)" }}>Find clubs and organizations.</span>
-            <Link href="/clubs" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", whiteSpace:"nowrap" }}>Browse Clubs →</Link>
-          </div>
-        )}
+
 
         {/* Composer */}
         <div style={{ padding:"16px 20px 0" }}>

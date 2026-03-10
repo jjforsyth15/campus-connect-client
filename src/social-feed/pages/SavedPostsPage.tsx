@@ -14,7 +14,7 @@ interface SavedPostsPageProps {
   onSave: (id: string) => void;
   onDelete: (id: string) => void;
   onRepost: (id: string, comment?: string) => void;
-  onViewProfile?: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 export default function SavedPostsPage({
@@ -51,7 +51,7 @@ export default function SavedPostsPage({
           onSave={onSave}
           onDelete={onDelete}
           onRepost={onRepost}
-          onViewProfile={onViewProfile ? () => onViewProfile() : undefined}
+          onViewProfile={onViewProfile}
           style={{ animationDelay: `${i * 40}ms` }}
         />
       ))}

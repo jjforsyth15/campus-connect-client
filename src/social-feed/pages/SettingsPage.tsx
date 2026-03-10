@@ -238,6 +238,32 @@ const MAJORS = [
 const YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"];
 const ROLES = ["STUDENT", "FACULTY", "ALUMNI", "STAFF"];
 
+// ── BlockedAccountsPanel ──────────────────────────────────────────────────────
+function BlockedAccountsPanel({ onBack }: { onBack: () => void }) {
+  return (
+    <div style={{ padding: 20, animation: "fadeUp 220ms ease both" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <button
+          onClick={onBack}
+          style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "transparent", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <ChevronLeftIcon />
+        </button>
+        <span style={{ fontSize: 18, fontWeight: 600, color: "var(--text-primary)" }}>Blocked Accounts</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", textAlign: "center", gap: 12 }}>
+        <svg width="48" height="48" fill="none" stroke="var(--text-muted)" strokeWidth="1.3" viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
+          <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        </svg>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>No blocked accounts</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 260, lineHeight: 1.6 }}>
+          Users you block will appear here. To block someone, tap the ⋯ menu on their post.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EditProfilePanel({
   form, isSaving, onChange, onSave, onBack,
 }: {
