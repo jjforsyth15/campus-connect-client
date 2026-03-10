@@ -48,13 +48,24 @@ export default function ProfilePage({
       <div style={{ height:140, background:"linear-gradient(135deg,#7B0124 0%,var(--csun-red) 40%,#3A0A18 100%)", position:"relative" }} />
 
       {/* Avatar + Edit */}
-      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", padding:"0 20px", marginTop:-36, marginBottom:12 }}>
-        {/* Outer ring wrapper keeps the outline away from overflow:hidden */}
-        <div style={{ borderRadius:"50%", outline:"4px solid var(--bg-base)", flexShrink:0 }}>
-          <div className="avatar" style={{ width:72, height:72, fontSize:26 }}>
+      {/* Pull the row up so the avatar overlaps the banner.
+          Use padding-top on the outer row so the row itself starts
+          just below the banner bottom, while the avatar uses a negative
+          margin to reach into it. */}
+      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", padding:"0 20px 12px", marginTop:-36, position:"relative", zIndex:2 }}>
+        {/* Ring wrapper keeps outline away from overflow:hidden on the inner circle */}
+        <div style={{ borderRadius:"50%", outline:"4px solid var(--bg-base)", flexShrink:0, lineHeight:0 }}>
+          <div style={{
+            width:72, height:72, borderRadius:"50%",
+            background:"var(--csun-red)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            flexShrink:0,
+          }}>
             {profile.profilePicture
-              ? <img src={profile.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-              : <span className="avatar-initials">{profile.firstName[0]}{profile.lastName[0]}</span>
+              ? <img src={profile.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:"50%" }} />
+              : <span style={{ color:"#fff", fontWeight:700, fontSize:26, lineHeight:1, userSelect:"none" }}>
+                  {profile.firstName[0]}{profile.lastName[0]}
+                </span>
             }
           </div>
         </div>

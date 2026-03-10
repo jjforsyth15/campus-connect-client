@@ -16,12 +16,14 @@ import type { ProfileUpdatePayload } from "../types/feed.types";
 
 interface SettingsPageProps {
   onToast: (msg: string, type?: "success" | "error" | "info") => void;
+  blockedUsers?: { id: string; name: string; initials: string }[];
+  onUnblock?: (uid: string) => void;
 }
 
 /** Open an external URL in a new tab */
 function openUrl(url: string) { window.open(url, "_blank", "noreferrer"); }
 
-export default function SettingsPage({ onToast }: SettingsPageProps) {
+export default function SettingsPage({ onToast, blockedUsers = [], onUnblock }: SettingsPageProps) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { profile, isSaving, updateProfile } = useProfile();
@@ -62,7 +64,7 @@ export default function SettingsPage({ onToast }: SettingsPageProps) {
   }
 
   if (view === "blocked") {
-    return <BlockedAccountsPanel onBack={() => setView("main")} />;
+    return <BlockedAccountsPanel blockedUsers={blockedUsers} onUnblock={uid => { onUnblock?.(uid); onToast("User unblocked", "success"); }} onBack={() => setView("main")} />;
   }
 
   return (
@@ -239,27 +241,76 @@ const YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"];
 const ROLES = ["STUDENT", "FACULTY", "ALUMNI", "STAFF"];
 
 // ── BlockedAccountsPanel ──────────────────────────────────────────────────────
-function BlockedAccountsPanel({ onBack }: { onBack: () => void }) {
+function BlockedAccountsPanel({
+  blockedUsers,
+  onUnblock,
+  onBack,
+}: {
+  blockedUsers: { id: string; name: string; initials: string }[];
+  onUnblock: (uid: string) => void;
+  onBack: () => void;
+}) {
   return (
     <div style={{ padding: 20, animation: "fadeUp 220ms ease both" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
         <button
           onClick={onBack}
           style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "transparent", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           <ChevronLeftIcon />
         </button>
         <span style={{ fontSize: 18, fontWeight: 600, color: "var(--text-primary)" }}>Blocked Accounts</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-muted)" }}>{blockedUsers.length} blocked</span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", textAlign: "center", gap: 12 }}>
-        <svg width="48" height="48" fill="none" stroke="var(--text-muted)" strokeWidth="1.3" viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
-          <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-        </svg>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>No blocked accounts</div>
-        <div style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 260, lineHeight: 1.6 }}>
-          Users you block will appear here. To block someone, tap the ⋯ menu on their post.
+
+      {blockedUsers.length === 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", textAlign: "center", gap: 12 }}>
+          <svg width="48" height="48" fill="none" stroke="var(--text-muted)" strokeWidth="1.3" viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
+            <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+          </svg>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>No blocked accounts</div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 260, lineHeight: 1.6 }}>
+            Users you block will appear here. To block someone, tap the ⋯ menu on their post.
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
+          {blockedUsers.map((u, i) => (
+            <div key={u.id} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+              borderBottom: i < blockedUsers.length - 1 ? "1px solid var(--border-subtle)" : "none",
+            }}>
+              {/* Avatar */}
+              <div style={{
+                width: 44, height: 44, borderRadius: "50%", background: "var(--bg-elevated)",
+                border: "1px solid var(--border-subtle)", display: "flex", alignItems: "center",
+                justifyContent: "center", flexShrink: 0, fontSize: 14, fontWeight: 700,
+                color: "var(--text-muted)",
+              }}>
+                {u.initials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>Blocked · their posts are hidden</div>
+              </div>
+              <button
+                onClick={() => onUnblock(u.id)}
+                style={{
+                  padding: "7px 16px", borderRadius: 99, border: "1px solid var(--border-medium)",
+                  background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", transition: "all 150ms", flexShrink: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--csun-red)"; e.currentTarget.style.color = "var(--csun-red)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-medium)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+              >
+                Unblock
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

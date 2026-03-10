@@ -25,7 +25,7 @@ import ProfilePage           from "../pages/ProfilePage";
 import SettingsPage          from "../pages/SettingsPage";
 
 const CURRENT_USER_ID       = "u-sarah";
-const CURRENT_USER_INITIALS = "SM";
+const CURRENT_USER_INITIALS = "SH";
 
 type FeedTab = "for-you" | "campus" | "clubs" | "following";
 
@@ -204,7 +204,338 @@ function ClubsTabView() {
   );
 }
 
-// ── UserProfileView ────────────────────────────────────────────────────────────
+// ── CampusResourcesView ────────────────────────────────────────────────────
+// Shown when the user clicks the Campus feed tab.
+// A curated student resource hub — links to the most useful CSUN services.
+
+const CAMPUS_RESOURCES = [
+  {
+    id: "academic-cal",
+    category: "Academics",
+    color: "#2563eb",
+    title: "Academic Calendar",
+    desc: "Key dates: registration, finals, holidays, and semester deadlines.",
+    url: "https://www.csun.edu/registrar/academic-calendar",
+    icon: "📅",
+  },
+  {
+    id: "tutoring",
+    category: "Learning Support",
+    color: "#7c3aed",
+    title: "Tutoring & Learning Resources",
+    desc: "Free tutoring, writing workshops, and supplemental instruction at the Learning Resource Center.",
+    url: "https://www.csun.edu/educational-opportunity-programs/learning-resource-center",
+    icon: "📚",
+  },
+  {
+    id: "financial-aid",
+    category: "Financial Aid",
+    color: "#16a34a",
+    title: "Financial Aid & Scholarships",
+    desc: "Apply for grants, loans, scholarships, and check your aid status via SOLAR.",
+    url: "https://www.csun.edu/financialaid",
+    icon: "💰",
+  },
+  {
+    id: "health",
+    category: "Health & Wellness",
+    color: "#dc2626",
+    title: "Student Health Center",
+    desc: "Medical appointments, mental health counseling, wellness programs, and urgent care on campus.",
+    url: "https://www.csun.edu/studenthealthcenter",
+    icon: "🏥",
+  },
+  {
+    id: "career",
+    category: "Career",
+    color: "#0891b2",
+    title: "Career Center",
+    desc: "Resume reviews, interview prep, job/internship postings, and employer fairs via Handshake.",
+    url: "https://www.csun.edu/career",
+    icon: "💼",
+  },
+  {
+    id: "library",
+    category: "Research",
+    color: "#b45309",
+    title: "Oviatt Library",
+    desc: "Research databases, study rooms, 3D printing, media lab, and 24/7 online resources.",
+    url: "https://library.csun.edu",
+    icon: "🔬",
+  },
+  {
+    id: "disability",
+    category: "Accessibility",
+    color: "#4f46e5",
+    title: "Disability Resources & Educational Services",
+    desc: "Accommodations, adaptive technology, testing services, and support for students with disabilities.",
+    url: "https://www.csun.edu/dres",
+    icon: "♿",
+  },
+  {
+    id: "housing",
+    category: "Student Life",
+    color: "#e11d48",
+    title: "Housing & Residential Life",
+    desc: "On-campus housing applications, move-in info, and residential community resources.",
+    url: "https://www.csun.edu/housing",
+    icon: "🏠",
+  },
+  {
+    id: "it-help",
+    category: "Technology",
+    color: "#0e7490",
+    title: "IT Help Center",
+    desc: "Wi-Fi, software downloads, laptop loaner program, and tech support for all Matadors.",
+    url: "https://www.csun.edu/it",
+    icon: "💻",
+  },
+];
+
+function CampusResourcesView() {
+  return (
+    <div style={{ padding:20 }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Student Resources</h2>
+          <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>Everything you need at CSUN, in one place</p>
+        </div>
+        <a href="https://www.csun.edu/students" target="_blank" rel="noreferrer"
+          style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
+        >
+          All Resources →
+        </a>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        {CAMPUS_RESOURCES.map(r => (
+          <a key={r.id} href={r.url} target="_blank" rel="noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", textDecoration:"none", transition:"background 150ms, border-color 150ms" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; (e.currentTarget as HTMLElement).style.borderColor = r.color; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-surface)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)"; }}
+          >
+            {/* Icon chip */}
+            <div style={{ width:42, height:42, borderRadius:12, background:`${r.color}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>
+              {r.icon}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+                <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:r.color }}>{r.category}</span>
+              </div>
+              <div style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--text-primary)", marginBottom:3, lineHeight:1.3 }}>{r.title}</div>
+              <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.5 }}>{r.desc}</div>
+            </div>
+            <svg width="14" height="14" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0 }}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        ))}
+      </div>
+
+      <div style={{ marginTop:16, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
+        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
+          Need help? Visit <a href="https://www.csun.edu/students" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>csun.edu/students →</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+  {
+    id: "cn1",
+    title: "CSUN Receives $2.5M Grant for STEM Education Initiative",
+    category: "Academics",
+    date: "2025-03-12",
+    summary: "The California State University, Northridge has been awarded a significant federal grant to expand STEM programs and increase access for underrepresented students.",
+    url: "https://news.csun.edu",
+  },
+  {
+    id: "cn2",
+    title: "Matador Athletics: Baseball Team Opens Home Season Friday",
+    category: "Athletics",
+    date: "2025-03-10",
+    summary: "The CSUN Matadors baseball team opens its home schedule at Matador Field this Friday at 6 PM. Student admission is free with a valid CSUN ID.",
+    url: "https://gomatadors.com",
+  },
+  {
+    id: "cn3",
+    title: "New Research Center for Sustainability Opens on Campus",
+    category: "Research",
+    date: "2025-03-08",
+    summary: "CSUN's newly established Center for Sustainability Research will focus on climate resilience, renewable energy, and green campus initiatives.",
+    url: "https://news.csun.edu",
+  },
+  {
+    id: "cn4",
+    title: "Campus Art Galleries to Host Spring Exhibition Next Week",
+    category: "Arts & Culture",
+    date: "2025-03-06",
+    summary: "The CSUN University Art Galleries will open 'Visions of the Valley,' a juried exhibition featuring student and alumni work, starting March 15.",
+    url: "https://www.csun.edu/arts",
+  },
+  {
+    id: "cn5",
+    title: "Career Center: Spring Job & Internship Fair — Register Now",
+    category: "Career",
+    date: "2025-03-04",
+    summary: "Over 150 employers will attend CSUN's Spring Career Fair on March 20 in the Matadome. Registration through Handshake is required.",
+    url: "https://www.csun.edu/career",
+  },
+  {
+    id: "cn6",
+    title: "Housing & Residential Life Opens Fall 2025 Applications",
+    category: "Student Life",
+    date: "2025-03-02",
+    summary: "Applications for on-campus housing for Fall 2025 are now open. Priority deadline is April 1. Apply through the Housing Portal on MyNorthridge.",
+    url: "https://www.csun.edu/housing",
+  },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Academics:     "#2563eb",
+  Athletics:     "#16a34a",
+  Research:      "#7c3aed",
+  "Arts & Culture": "#b45309",
+  Career:        "#0891b2",
+  "Student Life": "var(--csun-red)",
+};
+
+interface CampusNewsItem {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  summary: string;
+  url: string;
+}
+
+function CampusNewsView() {
+  const [items,     setItems]     = useState<CampusNewsItem[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [usingFallback, setFallback] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/csun-events");
+        if (!res.ok) throw new Error("not ok");
+        const xml  = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, "text/xml");
+        const rssItems = Array.from(doc.querySelectorAll("item")).slice(0, 6);
+        if (rssItems.length === 0) throw new Error("empty");
+        const parsed: CampusNewsItem[] = rssItems.map((el, i) => {
+          const title   = el.querySelector("title")?.textContent?.trim() ?? "CSUN News";
+          const link    = el.querySelector("link")?.textContent?.trim() ?? "https://news.csun.edu";
+          const pubDate = el.querySelector("pubDate")?.textContent?.trim();
+          const desc    = el.querySelector("description")?.textContent ?? "";
+          // Strip HTML tags and decode entities for summary
+          const clean = desc
+            .replace(/<[^>]*>/g, " ")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#\d+;/g, "")
+            .replace(/\s{2,}/g, " ")
+            .trim()
+            .slice(0, 180);
+          const dateStr = pubDate
+            ? new Date(pubDate).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0];
+          const cats = ["Academics","Athletics","Research","Arts & Culture","Career","Student Life"];
+          const category = cats[i % cats.length];
+          return { id: `rss-${i}`, title, category, date: dateStr, summary: clean || "Read the full story on CSUN News.", url: link };
+        });
+        if (!cancelled) { setItems(parsed); setFallback(false); }
+      } catch {
+        if (!cancelled) { setItems(CAMPUS_FALLBACK); setFallback(true); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  function fmtDate(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  }
+
+  return (
+    <div style={{ padding:20 }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Campus News</h2>
+          <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>
+            {usingFallback ? "Latest from CSUN" : "Live from CSUN News"}
+          </p>
+        </div>
+        <a href="https://news.csun.edu" target="_blank" rel="noreferrer"
+          style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
+        >
+          CSUN Newsroom →
+        </a>
+      </div>
+
+      {loading ? (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {[1,2,3].map(n => (
+            <div key={n} style={{ padding:"16px 18px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)" }}>
+              <div className="skeleton" style={{ width:"30%", height:10, borderRadius:6, marginBottom:10 }} />
+              <div className="skeleton" style={{ width:"85%", height:14, borderRadius:6, marginBottom:8 }} />
+              <div className="skeleton" style={{ width:"100%", height:11, borderRadius:6, marginBottom:6 }} />
+              <div className="skeleton" style={{ width:"70%", height:11, borderRadius:6 }} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {items.map(item => {
+            const color = CATEGORY_COLORS[item.category] ?? "var(--csun-red)";
+            return (
+              <a key={item.id} href={item.url} target="_blank" rel="noreferrer"
+                style={{ display:"block", padding:"16px 18px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", textDecoration:"none", transition:"background 150ms, border-color 150ms" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; (e.currentTarget as HTMLElement).style.borderColor = color; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-surface)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)"; }}
+              >
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
+                      <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color, background:`${color}20`, padding:"2px 8px", borderRadius:99 }}>{item.category}</span>
+                      <span style={{ fontSize:11, color:"var(--text-muted)" }}>{fmtDate(item.date)}</span>
+                    </div>
+                    <div style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--text-primary)", marginBottom:6, lineHeight:1.4 }}>{item.title}</div>
+                    {item.summary && <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.6 }}>{item.summary}{item.summary.length >= 180 ? "…" : ""}</div>}
+                  </div>
+                  <svg width="14" height="14" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0, marginTop:2 }}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ marginTop:20, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
+        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
+          More stories at{" "}
+          <a href="https://news.csun.edu" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>news.csun.edu →</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
 // Shown when clicking another user's name in a post.
 function UserProfileView({
   userId,
@@ -215,6 +546,7 @@ function UserProfileView({
   onDelete,
   onSave,
   onRepost,
+  onBlock,
   onBack,
 }: {
   userId: string;
@@ -225,6 +557,7 @@ function UserProfileView({
   onDelete: ReturnType<typeof useFeed>["handleDelete"];
   onSave: ReturnType<typeof useFeed>["handleSave"];
   onRepost: ReturnType<typeof useFeed>["handleRepost"];
+  onBlock: (uid: string) => void;
   onBack: () => void;
 }) {
   const userPosts = posts.filter(p => p.User.id === userId);
@@ -270,7 +603,7 @@ function UserProfileView({
           <PostCard key={p.id} post={p} currentUserId={currentUserId}
             isSaved={savedPostIds.has(p.id)}
             onLike={onLike} onDelete={onDelete} onSave={onSave} onRepost={onRepost}
-            onViewProfile={onBack}
+            onViewProfile={onBack} onBlock={onBlock}
           />
         ))
       )}
@@ -293,6 +626,7 @@ export default function SocialFeedPage() {
   const [searchFocused, setFocused] = useState(false);
   const [searchIdx,     setSearchIdx] = useState(-1);
   const [toasts,        setToasts]  = useState<Toast[]>([]);
+  const [blockedIds,    setBlockedIds] = useState<Set<string>>(new Set());
   const toastId     = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -333,20 +667,31 @@ export default function SocialFeedPage() {
     setSearch("");
   }, []);
 
+  const handleBlock = useCallback((uid: string) => {
+    setBlockedIds(prev => {
+      const next = new Set(prev);
+      next.add(uid);
+      return next;
+    });
+    showToast("User blocked — their posts are hidden.", "info");
+  }, [showToast]);
+
+  const handleUnblock = useCallback((uid: string) => {
+    setBlockedIds(prev => {
+      const next = new Set(prev);
+      next.delete(uid);
+      return next;
+    });
+  }, []);
+
   function renderFeed() {
     const TAB_LABELS: Record<FeedTab, string> = {
       "for-you": "For You", "campus": "Campus", "clubs": "Clubs", "following": "Following",
     };
 
-    // Filter posts per tab
-    const CAMPUS_TAGS  = ["campus", "ar", "src", "csun", "greentech", "events"];
-    const CLUBS_TAGS   = ["src", "ai", "design", "dev"];
-
-    const filteredPosts =
-      feedTab === "for-you"   ? posts :
-      feedTab === "campus"    ? posts.filter(p => p.tags.some(t => CAMPUS_TAGS.includes(t.toLowerCase())) || p.User.userType === "faculty") :
-      feedTab === "clubs"     ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
-      /* following */           posts.filter(p => ["u1","u2","u3","u4","u5","u6","u7"].includes(p.User.id));
+    // Filter posts per tab (for-you only — other tabs handled above)
+    // Also exclude posts from blocked users
+    const filteredPosts = posts.filter(p => !blockedIds.has(p.User.id));
 
     const tabs = (
       <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
@@ -377,6 +722,16 @@ export default function SocialFeedPage() {
       );
     }
 
+    // ── Campus tab: dedicated CSUN news view ─────────────────────────────────
+    if (feedTab === "campus") {
+      return (
+        <>
+          {tabs}
+          <CampusNewsView />
+        </>
+      );
+    }
+
     // ── Clubs tab: dedicated clubs view ─────────────────────────────────────
     if (feedTab === "clubs") {
       return (
@@ -387,19 +742,10 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Normal post feed (for-you / campus) ─────────────────────────────────
+    // ── Normal post feed (for-you only now; campus/clubs/following handled above) ──
     return (
       <>
         {tabs}
-
-        {/* Tab resource banners */}
-        {feedTab === "campus" && (
-          <div style={{ padding:"10px 20px", background:"var(--bg-elevated)", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
-            <span style={{ fontSize:13, color:"var(--text-muted)" }}>Stay connected with campus.</span>
-            <a href="https://news.csun.edu" target="_blank" rel="noreferrer" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", whiteSpace:"nowrap" }}>CSUN News →</a>
-          </div>
-        )}
-
 
         {/* Composer */}
         <div style={{ padding:"16px 20px 0" }}>
@@ -425,7 +771,7 @@ export default function SocialFeedPage() {
                 <PostCard key={p.id} post={p} currentUserId={CURRENT_USER_ID}
                   isSaved={savedPostIds.has(p.id)}
                   onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost}
-                  onViewProfile={handleViewProfile} />
+                  onViewProfile={handleViewProfile} onBlock={handleBlock} />
               ))}
               <div ref={sentinelRef} style={{ height:1 }} />
               {isLoadingMore && <div style={{ padding:"0 20px" }}><SkeletonPost count={2} /></div>}
@@ -448,6 +794,7 @@ export default function SocialFeedPage() {
           onDelete={handleDelete}
           onSave={handleSave}
           onRepost={handleRepost}
+          onBlock={handleBlock}
           onBack={() => { setViewedUserId(null); }}
         />
       );
@@ -459,7 +806,18 @@ export default function SocialFeedPage() {
       case "events":        return <EventsPage onToast={showToast} />;
       case "marketplace":   return <MarketplacePage onToast={showToast} />;
       case "profile":       return <ProfilePage currentUserId={CURRENT_USER_ID} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;
-      case "settings":      return <SettingsPage onToast={showToast} />;
+      case "settings": {
+        // Build the blocked users list from posts data (users whose posts we've seen)
+        const blockedUsersList = Array.from(blockedIds).map(uid => {
+          const user = posts.find(p => p.User.id === uid)?.User;
+          const name = user ? `${user.firstName} ${user.lastName}` : uid;
+          const initials = user
+            ? `${(user.firstName[0] ?? "").toUpperCase()}${(user.lastName[0] ?? "").toUpperCase()}`
+            : "??";
+          return { id: uid, name, initials };
+        });
+        return <SettingsPage onToast={showToast} blockedUsers={blockedUsersList} onUnblock={handleUnblock} />;
+      }
       default:              return renderFeed();
     }
   }
@@ -528,7 +886,7 @@ export default function SocialFeedPage() {
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               <div className="avatar" style={{ width:32, height:32, fontSize:12, flexShrink:0 }}>
-                <span className="avatar-initials">SM</span>
+                <span className="avatar-initials">SH</span>
               </div>
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>Sara Hussein</div>
@@ -614,7 +972,7 @@ export default function SocialFeedPage() {
           </div>
 
           <div style={{ marginTop:16, fontSize:11, color:"var(--text-muted)", textAlign:"center" }}>
-            Campus Connect &copy; 2026 &mdash; CSUN
+            Matador Connect &copy; 2026 &mdash; CSUN
           </div>
         </aside>
       </div>

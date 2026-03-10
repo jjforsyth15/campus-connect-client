@@ -298,47 +298,64 @@ export function EventsPage({ onToast }: EventsPageProps) {
             key={ev.id}
             style={{
               background:"var(--bg-surface)", border:"1px solid var(--border-subtle)",
-              borderRadius:"var(--radius-lg)", padding:18,
+              borderRadius:"var(--radius-lg)", padding:"16px 18px",
               animation:"fadeUp 240ms ease both", animationDelay:`${i*50}ms`,
-              transition:"background 150ms",
+              transition:"background 150ms, border-color 150ms",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-surface)")}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.borderColor = ev.tagColor; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-surface)"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}
           >
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:10 }}>
-              <div style={{ minWidth:0 }}>
-                <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:ev.tagColor, background:`${ev.tagColor}22`, padding:"2px 8px", borderRadius:99, whiteSpace:"nowrap" }}>
-                  {ev.tag}
-                </span>
-                <h3
-                  onClick={() => window.open(ev.csunUrl ?? "https://news.csun.edu/events", "_blank", "noreferrer")}
-                  onMouseEnter={e => { e.currentTarget.style.textDecoration = "underline"; e.currentTarget.style.color = "var(--csun-red)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.textDecoration = "none"; e.currentTarget.style.color = "var(--text-primary)"; }}
-                  style={{ fontFamily:"var(--font-display)", fontSize:16, fontWeight:600, color:"var(--text-primary)", marginTop:8, marginBottom:0, cursor:"pointer" }}
-                >
-                  {ev.title}
-                </h3>
+            {/* Top row: badge + date + RSVP */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, flexWrap:"wrap" }}>
+              <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:ev.tagColor, background:`${ev.tagColor}22`, padding:"2px 8px", borderRadius:99, whiteSpace:"nowrap" }}>
+                {ev.tag}
+              </span>
+              {ev.date && <span style={{ fontSize:11, color:"var(--text-muted)" }}>{ev.date}</span>}
+              <div style={{ marginLeft:"auto", flexShrink:0 }}>
+                {ev.isRsvped ? (
+                  <button
+                    onClick={() => handleCancelRsvp(ev.id)}
+                    style={{ padding:"6px 16px", borderRadius:99, border:"1px solid var(--border-medium)", background:"transparent", color:"var(--text-secondary)", fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms" }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--csun-red)")}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-medium)")}
+                  >
+                    Going ✓
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setRsvpFor(ev)}
+                    style={{ padding:"6px 16px", borderRadius:99, border:"none", background:"var(--csun-red)", color:"#fff", fontSize:12, fontWeight:600, boxShadow:"0 2px 8px var(--csun-red-glow)", cursor:"pointer", transition:"all 150ms" }}
+                    onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.1)")}
+                    onMouseLeave={e => (e.currentTarget.style.filter = "none")}
+                  >
+                    RSVP
+                  </button>
+                )}
               </div>
-              {ev.isRsvped ? (
-                <button
-                  onClick={() => handleCancelRsvp(ev.id)}
-                  style={{ padding:"7px 16px", borderRadius:99, flexShrink:0, border:"1px solid var(--border-medium)", background:"transparent", color:"var(--text-secondary)", fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 150ms" }}
-                >
-                  Going
-                </button>
-              ) : (
-                <button
-                  onClick={() => setRsvpFor(ev)}
-                  style={{ padding:"7px 16px", borderRadius:99, flexShrink:0, border:"none", background:"var(--csun-red)", color:"#fff", fontSize:12, fontWeight:600, boxShadow:"0 2px 10px var(--csun-red-glow)", cursor:"pointer", transition:"all 150ms" }}
-                  onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.1)")}
-                  onMouseLeave={e => (e.currentTarget.style.filter = "none")}
-                >
-                  RSVP
-                </button>
-              )}
             </div>
+
+            {/* Title — clickable to open CSUN page */}
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
+              <h3
+                onClick={() => window.open(ev.csunUrl ?? "https://news.csun.edu/events", "_blank", "noreferrer")}
+                style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"var(--text-primary)", margin:"0 0 6px", lineHeight:1.35, cursor:"pointer" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--csun-red)"; e.currentTarget.style.textDecoration = "underline"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.textDecoration = "none"; }}
+              >
+                {ev.title}
+              </h3>
+              <svg width="13" height="13" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0, marginTop:3, cursor:"pointer" }} onClick={() => window.open(ev.csunUrl ?? "https://news.csun.edu/events", "_blank", "noreferrer")}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </div>
+
+            {/* Description */}
+            {ev.description && (
+              <p style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.6, margin:"0 0 10px" }}>
+                {ev.description.slice(0, 180)}{ev.description.length > 180 ? "…" : ""}
+              </p>
+            )}
+
+            {/* Meta: time + location */}
             <div style={{ display:"flex", flexWrap:"wrap", gap:12 }}>
-              {ev.date     && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><CalIcon/>{ev.date}</span>}
               {ev.time     && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><ClockIcon/>{ev.time}</span>}
               {ev.location && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text-muted)" }}><PinIcon/>{ev.location}</span>}
             </div>

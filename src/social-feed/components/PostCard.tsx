@@ -17,6 +17,7 @@ interface PostCardProps {
   onDelete: (id: string) => void;
   onRepost: (id: string, comment?: string) => void;
   onViewProfile?: (userId: string) => void;
+  onBlock?: (userId: string) => void;
   style?: CSSProperties;
 }
 
@@ -40,7 +41,7 @@ function fmtCount(n: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelete, onRepost, onViewProfile, style }: PostCardProps) {
+export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelete, onRepost, onViewProfile, onBlock, style }: PostCardProps) {
   const [showComments,  setShowComments]  = useState(false);
   const [menuOpen,      setMenuOpen]      = useState(false);
   const [likeAnim,      setLikeAnim]      = useState(false);
@@ -151,6 +152,12 @@ export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelet
               <button onClick={() => { onSave(post.id); setMenuOpen(false); }} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--text-secondary)", fontSize:13, cursor:"pointer", transition:"background 150ms" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 {isSaved ? "Remove from saved" : "Save post"}
               </button>
+              {!isOwner && onBlock && (
+                <button onClick={() => { onBlock(post.User.id); setMenuOpen(false); }} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--danger)", fontSize:13, cursor:"pointer", transition:"background 150ms" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--danger-dim)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                  Block {post.User.firstName}
+                </button>
+              )}
               {isOwner && (
                 <button onClick={() => { onDelete(post.id); setMenuOpen(false); }} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--danger)", fontSize:13, cursor:"pointer", transition:"background 150ms" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--danger-dim)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                   Delete post
