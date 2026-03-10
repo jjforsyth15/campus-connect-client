@@ -156,13 +156,8 @@ export function useFeed() {
       const wasLiked = post.isLikedByUser ?? false;
       // Fire the API call in the background from here
       const apiFn = wasLiked ? feedApi.unlikePost : feedApi.likePost;
-      const prevCount = post._count.Like;
-      apiFn(postId).catch(() => {
-        // Roll back on failure
-        setPosts(curr => curr.map(p =>
-          p.id !== postId ? p : { ...p, isLikedByUser: wasLiked, _count: { ...p._count, Like: prevCount } }
-        ));
-      }).finally(() => {
+      // Fire API in the background — do NOT roll back on failure (demo / offline mode keeps optimistic state)
+      apiFn(postId).catch(() => { /* keep optimistic update */ }).finally(() => {
         inFlight.current.delete(`like_${postId}`);
       });
       // Return optimistic update immediately

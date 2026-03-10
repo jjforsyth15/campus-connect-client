@@ -48,12 +48,15 @@ export default function ProfilePage({
       <div style={{ height:140, background:"linear-gradient(135deg,#7B0124 0%,var(--csun-red) 40%,#3A0A18 100%)", position:"relative" }} />
 
       {/* Avatar + Edit */}
-      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", padding:"0 20px", marginTop:-32, marginBottom:12 }}>
-        <div className="avatar" style={{ width:72, height:72, fontSize:26, outline:"4px solid var(--bg-base)" }}>
-          {profile.profilePicture
-            ? <img src={profile.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-            : <span className="avatar-initials">{profile.firstName[0]}{profile.lastName[0]}</span>
-          }
+      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", padding:"0 20px", marginTop:-36, marginBottom:12 }}>
+        {/* Outer ring wrapper keeps the outline away from overflow:hidden */}
+        <div style={{ borderRadius:"50%", outline:"4px solid var(--bg-base)", flexShrink:0 }}>
+          <div className="avatar" style={{ width:72, height:72, fontSize:26 }}>
+            {profile.profilePicture
+              ? <img src={profile.profilePicture} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+              : <span className="avatar-initials">{profile.firstName[0]}{profile.lastName[0]}</span>
+            }
+          </div>
         </div>
         <button
           className="btn-secondary"
