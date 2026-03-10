@@ -72,7 +72,7 @@ function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="c
 const QUICK_LINKS = [
   { label: "SRC",     href: "/ToroSRC",                      Icon: IcoPhone,    internal: true  },
   { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
-  { label: "SOLAR",   href: "https://my.csun.edu",           Icon: IcoClock,    internal: false },
+  { label: "SOLAR",   href: "https://www.csun.edu/it/software-services/services/solar", Icon: IcoClock, internal: false },
   { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap,  internal: false },
   { label: "Dining",  href: "https://dineoncampus.com/CSUN", Icon: IcoCoffee,   internal: false },
   { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck,    internal: false },
@@ -94,10 +94,13 @@ interface Toast { id: number; msg: string; type: ToastType; }
 // ── FollowingPeopleView ────────────────────────────────────────────────────────
 // Extracted as a proper component to avoid calling useState inside a conditional.
 const FOLLOWING_USERS = [
-  { id:"u1", name:"Justin Ayson",    role:"Student",  initials:"JA" },
+  { id:"u1", name:"Sara Hussein",    role:"Student",  initials:"SH" },
+  { id:"u2", name:"Justin Ayson",    role:"Student",  initials:"JA" },
   { id:"u3", name:"Joseph Forsyth",  role:"Student",  initials:"JF" },
-  { id:"u5", name:"Emily Rodriguez", role:"Student",  initials:"ER" },
-  { id:"u7", name:"Dr. Chen",        role:"Faculty",  initials:"DC" },
+  { id:"u4", name:"Elijah Cortez",   role:"Student",  initials:"EC" },
+  { id:"u5", name:"Ivan Juarez",     role:"Student",  initials:"IJ" },
+  { id:"u6", name:"Vram Ghazourian", role:"Student",  initials:"VG" },
+  { id:"u7", name:"Gisselle Burgos", role:"Student",  initials:"GB" },
 ];
 
 function FollowingPeopleView() {
@@ -107,7 +110,7 @@ function FollowingPeopleView() {
   return (
     <div style={{ padding:"20px" }}>
       <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", marginBottom:4 }}>People You Follow</h2>
-      <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} people · their posts appear in your For You feed</p>
+      <p style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18 }}>{FOLLOWING_USERS.length} teammates · their posts appear in your For You feed</p>
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {FOLLOWING_USERS.map(u => (
           <div key={u.id}
@@ -146,6 +149,135 @@ function FollowingPeopleView() {
   );
 }
 
+// ── ClubsTabView ──────────────────────────────────────────────────────────────
+// Shown when the user clicks the Clubs feed tab. Lists CSUN club highlights
+// and links to the full clubs page (Vram's /clubs route).
+const CLUBS_PREVIEW = [
+  { id:"acm",  name:"ACM @ CSUN",       category:"Computer Science", tagline:"Software, workshops, and networking." },
+  { id:"ieee", name:"IEEE Student Branch", category:"Engineering",   tagline:"Projects, competitions, and speaker events." },
+  { id:"gdc",  name:"Game Dev Club",    category:"Creative Tech",    tagline:"Build games and ship projects together." },
+  { id:"ai",   name:"AI / ML Club",     category:"Computer Science", tagline:"Machine learning, deep dives, and research projects." },
+];
+
+function ClubsTabView() {
+  return (
+    <div style={{ padding:20 }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Campus Clubs</h2>
+          <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>Discover clubs and organizations at CSUN</p>
+        </div>
+        <a href="/clubs" style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
+        >
+          Browse All Clubs →
+        </a>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {CLUBS_PREVIEW.map(club => (
+          <a key={club.id} href={`/clubs?slug=${club.id}`}
+            style={{ display:"block", padding:"16px 18px", background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-lg)", textDecoration:"none", transition:"background 150ms, border-color 150ms" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--csun-red)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-surface)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)"; }}
+          >
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10 }}>
+              <div style={{ minWidth:0 }}>
+                <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:"var(--csun-red)", background:"rgba(168,5,50,.12)", padding:"2px 8px", borderRadius:99 }}>{club.category}</span>
+                <div style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"var(--text-primary)", marginTop:7, marginBottom:4 }}>{club.name}</div>
+                <div style={{ fontSize:13, color:"var(--text-muted)", lineHeight:1.5 }}>{club.tagline}</div>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0, marginTop:4 }}><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <div style={{ marginTop:20, padding:"16px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
+        <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
+          Want to see all clubs?{" "}
+          <a href="/clubs" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>Visit the Clubs Hub →</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── UserProfileView ────────────────────────────────────────────────────────────
+// Shown when clicking another user's name in a post.
+function UserProfileView({
+  userId,
+  posts,
+  savedPostIds,
+  currentUserId,
+  onLike,
+  onDelete,
+  onSave,
+  onRepost,
+  onBack,
+}: {
+  userId: string;
+  posts: ReturnType<typeof useFeed>["posts"];
+  savedPostIds: Set<string>;
+  currentUserId: string;
+  onLike: ReturnType<typeof useFeed>["handleLike"];
+  onDelete: ReturnType<typeof useFeed>["handleDelete"];
+  onSave: ReturnType<typeof useFeed>["handleSave"];
+  onRepost: ReturnType<typeof useFeed>["handleRepost"];
+  onBack: () => void;
+}) {
+  const userPosts = posts.filter(p => p.User.id === userId);
+  const user = userPosts[0]?.User;
+  const initials = user ? `${(user.firstName[0] ?? "").toUpperCase()}${(user.lastName[0] ?? "").toUpperCase()}` : "?";
+  const name = user ? `${user.firstName} ${user.lastName}` : "User";
+
+  return (
+    <div>
+      {/* Back bar */}
+      <div style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
+        <button
+          onClick={onBack}
+          style={{ width:32, height:32, borderRadius:"50%", border:"none", background:"transparent", color:"var(--text-secondary)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"background 150ms" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-elevated)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span style={{ fontFamily:"var(--font-display)", fontSize:16, fontWeight:700, color:"var(--text-primary)" }}>{name}</span>
+      </div>
+
+      {/* Mini profile header */}
+      <div style={{ padding:"20px 20px 16px", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <div className="avatar" style={{ width:56, height:56, fontSize:20, flexShrink:0 }}>
+            <span className="avatar-initials">{initials}</span>
+          </div>
+          <div>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:17, fontWeight:700, color:"var(--text-primary)" }}>{name}</div>
+            <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>{user?.userType === "faculty" ? "Faculty" : "Student"}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Their posts */}
+      {userPosts.length === 0 ? (
+        <div style={{ padding:"60px 20px", textAlign:"center", color:"var(--text-muted)" }}>
+          <p style={{ fontWeight:600, fontSize:15 }}>No posts yet</p>
+        </div>
+      ) : (
+        userPosts.map(p => (
+          <PostCard key={p.id} post={p} currentUserId={currentUserId}
+            isSaved={savedPostIds.has(p.id)}
+            onLike={onLike} onDelete={onDelete} onSave={onSave} onRepost={onRepost}
+            onViewProfile={onBack}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
 export default function SocialFeedPage() {
   const { isDark, toggleTheme } = useTheme();
   const {
@@ -156,6 +288,7 @@ export default function SocialFeedPage() {
 
   const [page,          setPage]    = useState<AppPage>("feed");
   const [feedTab,       setFeedTab] = useState<FeedTab>("for-you");
+  const [viewedUserId,  setViewedUserId] = useState<string | null>(null);
   const [searchQuery,   setSearch]  = useState("");
   const [searchFocused, setFocused] = useState(false);
   const [searchIdx,     setSearchIdx] = useState(-1);
@@ -186,6 +319,18 @@ export default function SocialFeedPage() {
   const navTo = useCallback((p: AppPage) => {
     setPage(p);
     setSearch("");
+    setViewedUserId(null);
+  }, []);
+
+  const handleViewProfile = useCallback((uid: string) => {
+    if (uid === CURRENT_USER_ID) {
+      setViewedUserId(null);
+      setPage("profile");
+    } else {
+      setViewedUserId(uid);
+      setPage("feed");
+    }
+    setSearch("");
   }, []);
 
   function renderFeed() {
@@ -201,7 +346,7 @@ export default function SocialFeedPage() {
       feedTab === "for-you"   ? posts :
       feedTab === "campus"    ? posts.filter(p => p.tags.some(t => CAMPUS_TAGS.includes(t.toLowerCase())) || p.User.userType === "faculty") :
       feedTab === "clubs"     ? posts.filter(p => p.tags.some(t => CLUBS_TAGS.includes(t.toLowerCase()))) :
-      /* following */           posts.filter(p => ["u1","u3","u5","u7"].includes(p.User.id));
+      /* following */           posts.filter(p => ["u1","u2","u3","u4","u5","u6","u7"].includes(p.User.id));
 
     const tabs = (
       <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
@@ -232,7 +377,17 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Normal post feed (for-you / campus / clubs) ─────────────────────────
+    // ── Clubs tab: dedicated clubs view ─────────────────────────────────────
+    if (feedTab === "clubs") {
+      return (
+        <>
+          {tabs}
+          <ClubsTabView />
+        </>
+      );
+    }
+
+    // ── Normal post feed (for-you / campus) ─────────────────────────────────
     return (
       <>
         {tabs}
@@ -275,7 +430,7 @@ export default function SocialFeedPage() {
                 <PostCard key={p.id} post={p} currentUserId={CURRENT_USER_ID}
                   isSaved={savedPostIds.has(p.id)}
                   onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost}
-                  onViewProfile={() => navTo("profile")} />
+                  onViewProfile={handleViewProfile} />
               ))}
               <div ref={sentinelRef} style={{ height:1 }} />
               {isLoadingMore && <div style={{ padding:"0 20px" }}><SkeletonPost count={2} /></div>}
