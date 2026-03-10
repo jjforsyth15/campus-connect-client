@@ -341,7 +341,7 @@ function CampusResourcesView() {
           <h2 style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"var(--text-primary)", margin:0 }}>Student Resources</h2>
           <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:4, marginBottom:0 }}>Everything you need at CSUN, in one place</p>
         </div>
-        <a href="https://www.csun.edu/students" target="_blank" rel="noreferrer"
+        <a href="https://www.csun.edu/student-life/student-services-support" target="_blank" rel="noreferrer"
           style={{ fontSize:12, fontWeight:600, color:"var(--csun-red)", textDecoration:"none", padding:"7px 16px", border:"1px solid var(--csun-red)", borderRadius:99, whiteSpace:"nowrap", transition:"all 150ms" }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--csun-red)"; (e.currentTarget as HTMLElement).style.color = "#fff"; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--csun-red)"; }}
@@ -375,7 +375,7 @@ function CampusResourcesView() {
 
       <div style={{ marginTop:16, padding:"14px 18px", background:"var(--bg-elevated)", borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", textAlign:"center" }}>
         <p style={{ fontSize:13, color:"var(--text-muted)", margin:0 }}>
-          Need help? Visit <a href="https://www.csun.edu/students" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>csun.edu/students →</a>
+          Need help? Visit <a href="https://www.csun.edu/student-life/student-services-support" target="_blank" rel="noreferrer" style={{ color:"var(--csun-red)", fontWeight:600, textDecoration:"none" }}>csun.edu/student-services →</a>
         </p>
       </div>
     </div>
