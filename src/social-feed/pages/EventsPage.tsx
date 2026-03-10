@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { CampusEvent } from "../types/feed.types";
 
 // Tag colours mapped by category keyword — all hex so ${color}22 alpha trick works
@@ -147,12 +148,12 @@ function RsvpModal({ event, onClose, onConfirm }: {
     setTimeout(() => onConfirm(name, email), 1300);
   }
 
-  return (
+  const overlay = (
     <div
-      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
+      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:9000, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background:"var(--bg-surface)", borderRadius:16, padding:28, width:"100%", maxWidth:440, boxShadow:"var(--shadow-panel)" }}>
+      <div style={{ background:"var(--bg-surface)", borderRadius:16, padding:28, width:"100%", maxWidth:440, boxShadow:"var(--shadow-panel)", maxHeight:"90vh", overflowY:"auto" }}>
         {done ? (
           <div style={{ textAlign:"center", padding:"12px 0" }}>
             <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:700, color:"var(--text-primary)", marginBottom:6 }}>You&apos;re registered!</div>
@@ -220,6 +221,11 @@ function RsvpModal({ event, onClose, onConfirm }: {
       </div>
     </div>
   );
+
+  // Render inside a portal so position:fixed is always relative to the viewport,
+  // not to any transformed/overflow parent in the feed layout.
+  if (typeof document === "undefined") return null;
+  return createPortal(overlay, document.body);
 }
 
 export function EventsPage({ onToast }: EventsPageProps) {

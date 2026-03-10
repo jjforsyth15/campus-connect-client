@@ -6,11 +6,11 @@
 import type { MarketItem } from "../types/feed.types";
 
 const MOCK_ITEMS: MarketItem[] = [
-  { id:"m1", title:"Calculus Textbook 8th Ed.",    price:"$35",    sellerName:"Elijah J.",   condition:"Good",      postedAt:"3h"  },
-  { id:"m2", title:"MacBook Pro 2021 M1",           price:"$1,100", sellerName:"Justin T.",   condition:"Excellent", postedAt:"6h"  },
-  { id:"m3", title:"Desk Lamp (adjustable)",         price:"$12",    sellerName:"Gisselle Z.", condition:"Like New",  postedAt:"1d"  },
-  { id:"m4", title:"CSUN Parking Pass (Fall)",      price:"$80",    sellerName:"Vram R.",     condition:"Valid",     postedAt:"2d"  },
-  { id:"m5", title:"Psychology Textbook Bundle",    price:"$55",    sellerName:"Sarah M.",    condition:"Good",      postedAt:"3d"  },
+  { id:"m1", title:"Calculus Textbook 8th Ed.",    price:"$35",    sellerName:"Elijah C.",   condition:"Good",      postedAt:"3h"  },
+  { id:"m2", title:"MacBook Pro 2021 M1",           price:"$1,100", sellerName:"Justin A.",   condition:"Excellent", postedAt:"6h"  },
+  { id:"m3", title:"Desk Lamp (adjustable)",         price:"$12",    sellerName:"Gisselle B.", condition:"Like New",  postedAt:"1d"  },
+  { id:"m4", title:"CSUN Parking Pass (Fall)",      price:"$80",    sellerName:"Vram G.",     condition:"Valid",     postedAt:"2d"  },
+  { id:"m5", title:"Psychology Textbook Bundle",    price:"$55",    sellerName:"Sara H.",    condition:"Good",      postedAt:"3d"  },
   { id:"m6", title:"Mini Fridge (Galanz 3.1 cu ft)",price:"$90",    sellerName:"Ivan J.",     condition:"Good",      postedAt:"4d"  },
 ];
 

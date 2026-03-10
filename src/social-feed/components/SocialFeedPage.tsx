@@ -264,7 +264,7 @@ const CAMPUS_RESOURCES = [
     color: "#2563eb",
     title: "Academic Calendar",
     desc: "Key dates: registration, finals, holidays, and semester deadlines.",
-    url: "https://www.csun.edu/academics/academic-calendar",
+    url: "https://www.csun.edu/current-students/student-academic-calendars",
   },
   {
     id: "tutoring",
@@ -280,7 +280,7 @@ const CAMPUS_RESOURCES = [
     color: "#16a34a",
     title: "Financial Aid & Scholarships",
     desc: "Apply for grants, loans, scholarships, and check your aid status via SOLAR.",
-    url: "https://www.csun.edu/financial-aid",
+    url: "https://www.csun.edu/financialaid",
   },
   {
     id: "health",
@@ -288,7 +288,7 @@ const CAMPUS_RESOURCES = [
     color: "#dc2626",
     title: "Student Health Center",
     desc: "Medical appointments, mental health counseling, wellness programs, and urgent care on campus.",
-    url: "https://www.csun.edu/student-health-center",
+    url: "https://www.csun.edu/shc",
   },
   {
     id: "career",
@@ -312,7 +312,7 @@ const CAMPUS_RESOURCES = [
     color: "#4f46e5",
     title: "Disability Resources & Educational Services",
     desc: "Accommodations, adaptive technology, testing services, and support for students with disabilities.",
-    url: "https://www.csun.edu/disability-resources-educational-services",
+    url: "https://www.csun.edu/dres",
   },
   {
     id: "housing",
@@ -320,7 +320,7 @@ const CAMPUS_RESOURCES = [
     color: "#e11d48",
     title: "Housing & Residential Life",
     desc: "On-campus housing applications, move-in info, and residential community resources.",
-    url: "https://www.csun.edu/student-affairs/housing",
+    url: "https://www.csun.edu/housing",
   },
   {
     id: "it-help",
@@ -328,7 +328,7 @@ const CAMPUS_RESOURCES = [
     color: "#0e7490",
     title: "IT Help Center",
     desc: "Wi-Fi, software downloads, laptop loaner program, and tech support for all Matadors.",
-    url: "https://www.csun.edu/it/helpdesk",
+    url: "https://www.csun.edu/it/it-help-center",
   },
 ];
 
@@ -466,6 +466,33 @@ export default function SocialFeedPage() {
   } = useFeed();
   const { unreadCount } = useNotifications();
 
+  // ── Current user from localStorage (so each teammate sees their own name) ──
+  const [currentUserInfo, setCurrentUserInfo] = useState<{ id: string; initials: string; name: string; role: string }>({
+    id: CURRENT_USER_ID, initials: "?", name: "Loading…", role: "Student",
+  });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) {
+        const u = JSON.parse(raw) as Record<string, unknown>;
+        const first = (u.firstName as string) || (u.name as string)?.split(" ")[0] || "Matador";
+        const last  = (u.lastName  as string) || (u.name as string)?.split(" ").slice(1).join(" ") || "";
+        const initials = `${first[0] ?? "?"}${last[0] ?? ""}`.toUpperCase();
+        setCurrentUserInfo({
+          id:       (u.id as string) || CURRENT_USER_ID,
+          initials,
+          name:     last ? `${first} ${last}` : first,
+          role:     (u.userType as string) === "faculty" ? "Faculty" : "Student",
+        });
+      } else {
+        // No user in storage — guest fallback
+        setCurrentUserInfo({ id: CURRENT_USER_ID, initials: "SH", name: "Sara Hussein", role: "Student" });
+      }
+    } catch {
+      setCurrentUserInfo({ id: CURRENT_USER_ID, initials: "SH", name: "Sara Hussein", role: "Student" });
+    }
+  }, []);
+
   const [page,          setPage]    = useState<AppPage>("feed");
   const [feedTab,       setFeedTab] = useState<FeedTab>("for-you");
   const [viewedUserId,  setViewedUserId] = useState<string | null>(null);
@@ -596,7 +623,7 @@ export default function SocialFeedPage() {
 
         {/* Composer */}
         <div style={{ padding:"16px 20px 0" }}>
-          <PostComposer currentUserInitials={CURRENT_USER_INITIALS} onPost={async (b, imgs) => { await handleCreate(b, imgs); }} />
+          <PostComposer currentUserInitials={currentUserInfo.initials} onPost={async (b, imgs) => { await handleCreate(b, imgs); }} />
         </div>
 
         {error && (
@@ -615,7 +642,7 @@ export default function SocialFeedPage() {
                 </div>
               )}
               {filteredPosts.map(p => (
-                <PostCard key={p.id} post={p} currentUserId={CURRENT_USER_ID}
+                <PostCard key={p.id} post={p} currentUserId={currentUserInfo.id}
                   isSaved={savedPostIds.has(p.id)}
                   onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost}
                   onViewProfile={handleViewProfile} onBlock={handleBlock} />
@@ -636,7 +663,7 @@ export default function SocialFeedPage() {
           userId={viewedUserId}
           posts={posts}
           savedPostIds={savedPostIds}
-          currentUserId={CURRENT_USER_ID}
+          currentUserId={currentUserInfo.id}
           onLike={handleLike}
           onDelete={handleDelete}
           onSave={handleSave}
@@ -649,10 +676,10 @@ export default function SocialFeedPage() {
 
     switch (page) {
       case "notifications": return <NotificationsPage />;
-      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={CURRENT_USER_ID} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onViewProfile={handleViewProfile} />;
+      case "saved":         return <SavedPostsPage posts={posts} savedPostIds={savedPostIds} currentUserId={currentUserInfo.id} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onViewProfile={handleViewProfile} />;
       case "events":        return <EventsPage onToast={showToast} />;
       case "marketplace":   return <MarketplacePage onToast={showToast} />;
-      case "profile":       return <ProfilePage currentUserId={CURRENT_USER_ID} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;
+      case "profile":       return <ProfilePage currentUserId={currentUserInfo.id} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;
       case "settings": {
         // Build the blocked users list from posts data (users whose posts we've seen)
         const blockedUsersList = Array.from(blockedIds).map(uid => {
@@ -733,11 +760,11 @@ export default function SocialFeedPage() {
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               <div className="avatar" style={{ width:32, height:32, fontSize:12, flexShrink:0 }}>
-                <span className="avatar-initials">SH</span>
+                <span className="avatar-initials">{currentUserInfo.initials}</span>
               </div>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>Sara Hussein</div>
-                <div style={{ fontSize:11, color:"var(--text-muted)" }}>Student</div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{currentUserInfo.name}</div>
+                <div style={{ fontSize:11, color:"var(--text-muted)" }}>{currentUserInfo.role}</div>
               </div>
             </div>
           </div>
