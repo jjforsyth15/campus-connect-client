@@ -46,7 +46,7 @@ export default function NavTabs({
   return (
     <Box sx={{ overflow: "visible", py: "4px", my: "-4px" }}>
       <Tabs
-        value={resolved}
+        value={false}
         variant="scrollable"
         scrollButtons={false}
         TabIndicatorProps={{ style: { display: "none" } }}

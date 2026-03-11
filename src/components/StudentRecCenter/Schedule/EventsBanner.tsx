@@ -98,8 +98,7 @@ export default function EventsBanner() {
                 flexShrink: 0,
                 width: 260,
                 borderRadius: 3,
-                // Solid backgrounds — active gets a deeper red, inactive gets a dark muted red
-                bgcolor: active ? "#7a0122" : "#5c001a",
+                bgcolor: active ? "#7a01217e" : "#a00e37b7",
                 border: active
                   ? "1.5px solid rgba(255,255,255,0.35)"
                   : "1.5px solid rgba(255,255,255,0.15)",

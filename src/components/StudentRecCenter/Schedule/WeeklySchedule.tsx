@@ -23,12 +23,12 @@ dayjs.extend(isoWeek);
 const RED = "#A80532";
 
 const CATEGORY_COLORS: Record<WeeklyClass["category"], { bg: string; text: string; border: string }> = {
-  cardio:     { bg: "rgba(239,68,68,0.15)",   text: "#fca5a5", border: "rgba(239,68,68,0.4)" },
-  strength:   { bg: "rgba(234,179,8,0.15)",   text: "#fde047", border: "rgba(234,179,8,0.4)" },
-  "mind-body":{ bg: "rgba(168,85,247,0.15)",  text: "#d8b4fe", border: "rgba(168,85,247,0.4)" },
-  aquatics:   { bg: "rgba(6,182,212,0.15)",   text: "#67e8f9", border: "rgba(6,182,212,0.4)" },
-  dance:      { bg: "rgba(236,72,153,0.15)",  text: "#f9a8d4", border: "rgba(236,72,153,0.4)" },
-  hiit:       { bg: "rgba(249,115,22,0.15)",  text: "#fdba74", border: "rgba(249,115,22,0.4)" },
+  cardio:     { bg: "rgba(95, 202, 113, 0.85)",   text: "#ffffff", border: "rgb(205, 245, 205)" },
+  strength:   { bg: "rgba(219, 177, 38, 0.9)",    text: "#ffffff", border: "rgb(245, 218, 139)" },
+  "mind-body":{ bg: "rgba(162, 98, 218, 0.85)",  text: "#ffffff", border: "rgb(203, 161, 241)" },
+  aquatics:   { bg: "rgba(21, 142, 212, 0.85)",   text: "#ffffff", border: "rgb(170, 225, 235)" },
+  dance:      { bg: "rgba(231, 88, 172, 0.85)",  text: "#ffffff", border: "rgb(238, 160, 199)" },
+  hiit:       { bg: "rgba(253, 110, 44, 0.85)",   text: "#ffffff", border: "rgb(235, 197, 169)" },
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -293,7 +293,7 @@ export default function WeeklySchedule() {
                             {cls.name}
                           </Typography>
                           {height > 36 && (
-                            <Typography sx={{ fontSize: 8, color: isAdded ? "rgba(134,239,172,0.75)" : `${cc.text}99`, lineHeight: 1.1 }}>
+                            <Typography sx={{ fontSize: 8, color: isAdded ? "rgba(134,239,172,0.75)" : "rgba(255,255,255,0.8)", lineHeight: 1.1 }}>
                               {fmt12(cls.startTime)}
                             </Typography>
                           )}

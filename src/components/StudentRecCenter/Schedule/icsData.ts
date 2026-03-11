@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
-// icsData.ts
+// icsData.ts mockup data for SRC events banner and schedule — replace with live API data.
 // Parsed from csun-news-events-63aa8039994.ics (CSUN SRC calendar feed).
 // Source: https://news.csun.edu  — refreshed hourly per X-PUBLISHED-TTL:PT1H
 //
-// BACKEND TODO: Replace this static array with a live fetch from the ICS feed:
-//   GET https://news.csun.edu/events/feed/ical/  (or the canonical SRC iCal URL)
+// BACKEND TODO: Replace this static array with actual api to  live fetch from the ICS feed:
+//   GET https://news.csun.edu/events/feed/ical/ 
 //   Parse with a library like `ical.js` or `node-ical` in a Next.js Route Handler:
 //   /app/api/src-events/route.ts  →  returns CalEvent[]
 // ---------------------------------------------------------------------------
