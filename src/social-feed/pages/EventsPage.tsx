@@ -73,7 +73,11 @@ function parseRssItem(item: Element, idx: number): CampusEvent {
     .replace(/&amp;/g, "&").replace(/&#038;/g, "&")             // decode entities
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&#8211;/g, "–").replace(/&#8212;/g, "—")
-    .replace(/&#8217;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/&#8216;/g, "'").replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/&#8230;/g, "…")                                   // ellipsis
+    .replace(/&#160;/g, " ")                                    // non-breaking space
+    .replace(/&#\d+;/g, "")                                     // strip any remaining numeric entities
     .replace(/\s{2,}/g, " ")                                    // collapse whitespace
     .trim()
     .slice(0, 240);
@@ -112,6 +116,9 @@ function parseRssItem(item: Element, idx: number): CampusEvent {
   const descBody = cleanDesc
     .replace(/^[A-Z][a-z]+\s+\d{1,2}\s*[–\-]\s*[A-Z][a-z]+\s+\d{1,2},\s*\d{4}\s*/i, "")
     .replace(/^Reception:.*$/im, "")
+    .replace(/^After\s+\w[\w\s]*?total\s+of\s+[\d,]+[^.]*\.\s*/i, "")  // "After GX attendance reaches..." artifacts
+    .replace(/^Level up[\w\s,!]+\.\s*/i, "")                            // "Level up your..." type artifacts
+    .replace(/^[\d,]+\s+/g, "")                                         // leading standalone numbers (e.g. "1,500 ")
     .replace(/\s{2,}/g, " ")
     .trim()
     .slice(0, 200);

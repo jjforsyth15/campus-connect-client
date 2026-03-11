@@ -8,6 +8,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, ChangeEvent } from "react";
 import Link                 from "next/link";
+import { Layers }           from "lucide-react";
 import { useTheme }         from "../context/ThemeContext";
 import { useFeed }          from "../hooks/useFeed";
 import { useNotifications } from "../hooks/useNotifications";
@@ -81,13 +82,51 @@ const QUICK_LINKS = [
 ];
 
 const SEARCH_INDEX = [
-  { label: "Campus Events",     page: "events"        as AppPage },
-  { label: "Study Groups",      page: "feed"          as AppPage },
-  { label: "Marketplace",       page: "marketplace"   as AppPage },
-  { label: "Notifications",     page: "notifications" as AppPage },
-  { label: "My Profile",        page: "profile"       as AppPage },
-  { label: "Saved Posts",       page: "saved"         as AppPage },
-  { label: "Settings",          page: "settings"      as AppPage },
+  // Pages
+  { label: "Home",                   page: "feed"          as AppPage },
+  { label: "Campus Events",          page: "events"        as AppPage },
+  { label: "Marketplace",            page: "marketplace"   as AppPage },
+  { label: "Notifications",          page: "notifications" as AppPage },
+  { label: "My Profile",             page: "profile"       as AppPage },
+  { label: "Saved Posts",            page: "saved"         as AppPage },
+  { label: "Settings",               page: "settings"      as AppPage },
+  { label: "Study Groups",           page: "feed"          as AppPage },
+  // Hashtags
+  { label: "#FinalsWeek",            page: "feed"          as AppPage },
+  { label: "#CSUN",                  page: "feed"          as AppPage },
+  { label: "#MatadorPride",          page: "feed"          as AppPage },
+  { label: "#SpringCareerFair",      page: "feed"          as AppPage },
+  { label: "#CSUNEvents",            page: "events"        as AppPage },
+  { label: "#CSUNDining",            page: "feed"          as AppPage },
+  { label: "#SRC",                   page: "feed"          as AppPage },
+  { label: "#OviattLibrary",         page: "feed"          as AppPage },
+  { label: "#CampusLife",            page: "feed"          as AppPage },
+  { label: "#COMP490",               page: "feed"          as AppPage },
+  { label: "#HousingApplications",   page: "feed"          as AppPage },
+  { label: "#TransferStudents",      page: "feed"          as AppPage },
+  { label: "#Internships",           page: "feed"          as AppPage },
+  { label: "#ResearchOpportunities", page: "feed"          as AppPage },
+  { label: "#HealthCenter",          page: "feed"          as AppPage },
+  // Campus Resources
+  { label: "Financial Aid",          page: "feed"          as AppPage },
+  { label: "Academic Calendar",      page: "events"        as AppPage },
+  { label: "Student Health Center",  page: "feed"          as AppPage },
+  { label: "Career Center",          page: "feed"          as AppPage },
+  { label: "Oviatt Library",         page: "feed"          as AppPage },
+  { label: "Student Housing",        page: "feed"          as AppPage },
+  { label: "IT Help Desk",           page: "settings"      as AppPage },
+  { label: "Tutoring Center",        page: "feed"          as AppPage },
+  { label: "Disability Resources",   page: "feed"          as AppPage },
+  { label: "SOLAR",                  page: "settings"      as AppPage },
+  // Clubs & Orgs
+  { label: "ACM Club",               page: "feed"          as AppPage },
+  { label: "IEEE",                   page: "feed"          as AppPage },
+  { label: "Game Dev Club",          page: "feed"          as AppPage },
+  { label: "AI & ML Club",           page: "feed"          as AppPage },
+  { label: "Tech Club",              page: "feed"          as AppPage },
+  { label: "Engineering Club",       page: "feed"          as AppPage },
+  { label: "Pre-Med Society",        page: "feed"          as AppPage },
+  { label: "Student Government",     page: "feed"          as AppPage },
 ];
 
 type ToastType = "success" | "error" | "info";
@@ -707,11 +746,9 @@ export default function SocialFeedPage() {
           {/* Logo */}
           <div style={{ padding:"20px 20px 16px", borderBottom:"1px solid var(--border-subtle)", flexShrink:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:"var(--csun-red)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <span style={{ color:"#fff", fontWeight:800, fontSize:14, letterSpacing:"-1px" }}>CC</span>
-              </div>
-              <span style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)", letterSpacing:"-0.3px", lineHeight:1.25 }}>
-                Matador<br />Connect
+              <Layers size={26} color="var(--csun-red)" strokeWidth={2} />
+              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:18, fontWeight:700, color:"var(--csun-red)", letterSpacing:"-0.3px", whiteSpace:"nowrap" }}>
+                MatadorConnect
               </span>
             </div>
           </div>
