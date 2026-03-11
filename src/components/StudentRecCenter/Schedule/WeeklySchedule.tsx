@@ -1,5 +1,67 @@
 "use client";
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — WeeklySchedule
+// ═══════════════════════════════════════════════════════════════════════
+//
+// DATA SOURCE:
+//   Currently imports WEEKLY_CLASSES from the static mock in icsData.ts.
+//   Replace with a live SWR hook keyed to the selected week so the grid
+//   re-fetches automatically when the user navigates forward/back:
+//
+//   import useSWR from "swr";
+//   const fetcher = (url: string) => fetch(url).then((r) => r.json());
+//
+//   // Inside the component (weekStart is already in state):
+//   const { data: classes = [], isLoading } = useSWR<WeeklyClass[]>(
+//     `/api/src-schedule?week=${weekStart.format("YYYY-MM-DD")}`,
+//     fetcher,
+//     { revalidateOnFocus: false }
+//   );
+//   // Replace every WEEKLY_CLASSES reference below with `classes`.
+//   // Show a skeleton loader while isLoading === true.
+//
+// WEEK NAVIGATION:
+//   Each time the user clicks ← / → the weekStart state changes,
+//   the SWR key changes, and the fetch fires automatically.
+//   Pre-fetch adjacent weeks for instant transitions:
+//     useSWR(`/api/src-schedule?week=${weekStart.subtract(1,"week").format(...)}`)
+//     useSWR(`/api/src-schedule?week=${weekStart.add(1,"week").format(...)}`)
+//
+// SPOTS AVAILABILITY:
+//   spotsLeft is a frequently-changing field. Two options:
+//   A) Poll:  add refreshInterval: 5 * 60 * 1000 to the useSWR config (every 5 min).
+//   B) Push:  subscribe to a WebSocket / SSE channel for the class IDs on screen:
+//       const evtSource = new EventSource(`/api/src-schedule/live?ids=${classIds}`);
+//       evtSource.onmessage = ({ data }) => mutate(key); // trigger SWR revalidate
+//
+// ADD TO MY SCHEDULE — handleAddToEvents():
+//   POST /api/user-schedule
+//   Auth: require active session
+//   Body: {
+//     classId:     string,
+//     className:   string,
+//     dayOfWeek:   number,    // 0=Sun … 6=Sat
+//     startTime:   string,    // "HH:mm"
+//     endTime:     string,
+//     location:    string,
+//     instructor:  string,
+//     category:    string,
+//   }
+//   On success → 201 { userScheduleId }
+//   On duplicate (same user + classId + week) → 409
+//
+//   Supabase table suggestion:
+//     user_saved_classes (
+//       id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+//       user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+//       class_id    TEXT,
+//       week_start  DATE,       -- ISO date of week's Sunday
+//       saved_at    TIMESTAMPTZ DEFAULT NOW(),
+//       UNIQUE (user_id, class_id, week_start)
+//     )
+// ═══════════════════════════════════════════════════════════════════════
+
 import * as React from "react";
 import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -73,24 +135,29 @@ export default function WeeklySchedule() {
   }, []);
 
   async function handleAddToEvents(cls: WeeklyClass) {
-    // ─────────────────────────────────────────────────────────────────
-    // BACKEND TODO: Wire this to your events API endpoint.
-    // Example:
-    //   await fetch("/api/events", {
+    // BACKEND: Replace optimistic update below with the real API call:
+    //   const res = await fetch("/api/user-schedule", {
     //     method: "POST",
     //     headers: { "Content-Type": "application/json" },
     //     body: JSON.stringify({
-    //       type: "group-class",
-    //       classId: cls.id,
-    //       className: cls.name,
-    //       dayOfWeek: cls.dayOfWeek,
-    //       startTime: cls.startTime,
-    //       endTime: cls.endTime,
-    //       location: cls.location,
+    //       classId:    cls.id,
+    //       className:  cls.name,
+    //       dayOfWeek:  cls.dayOfWeek,
+    //       startTime:  cls.startTime,
+    //       endTime:    cls.endTime,
+    //       location:   cls.location,
     //       instructor: cls.instructor,
+    //       category:   cls.category,
+    //       // Pass the current weekStart so the server can record which
+    //       // specific week instance the student saved (for recurring classes):
+    //       weekStart:  weekStart.format("YYYY-MM-DD"),
     //     }),
     //   });
-    // ─────────────────────────────────────────────────────────────────
+    //   if (res.status === 409) { setToast("Already on your schedule!"); return; }
+    //   if (!res.ok) { setToast("Something went wrong — try again."); return; }
+    //   // Optionally invalidate useSWR cache: mutate("/api/user-schedule");
+    //
+    // See top-of-file comments for full schema + spots real-time options.
 
     // Optimistic UI update (no real network call yet)
     setAdded((prev) => new Set(prev).add(cls.id));

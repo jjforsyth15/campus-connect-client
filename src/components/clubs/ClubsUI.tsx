@@ -1,7 +1,51 @@
 "use client";
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — ClubsUI (Hub / Discovery Page)
+// ═══════════════════════════════════════════════════════════════════════
+// Rendered at /clubs — the main discovery hub.
+//
+// DATA:
+//   clubs prop → pass from a Server Component via:
+//     // app/clubs/page.tsx
+//     import { getClubs } from '@/lib/api'
+//     const clubs = await getClubs()   // SELECT * FROM clubs ORDER BY name
+//     return <ClubsUI clubs={clubs} mode="hub" />
+//   Alternatively, useClubStore provides an in-memory singleton until
+//   the API is connected.
+//
+// MY CLUBS tab:
+//   myClubIds is currently driven by local state (seeded with mock data).
+//   Replace the useState seed with a real query:
+//     SELECT club_id FROM club_members WHERE user_id = :userId
+//   or use a /api/users/me/clubs endpoint.
+//
+//   After a successful leave, call:
+//     mutate('/api/users/me/clubs')         // SWR revalidation
+//     queryClient.invalidateQueries(['myClubs'])  // React Query
+//   The handleLeaveSuccess callback below handles optimistic removal from
+//   local state while that network request is in-flight.
+//
+// LEAVE CLUB:
+//   handleLeaveSuccess removes the club from myClubIds optimistically.
+//   The actual DELETE is fired inside LeaveClubDialog — see that file for
+//   full backend integration notes.
+//
+// CATEGORY FILTER:
+//   CLUB_CATEGORIES currently comes from a static array.
+//   Replace with:
+//     SELECT DISTINCT category FROM clubs ORDER BY category
+//   or keep static if categories are fixed by product design.
+//
+// SEARCH:
+//   Client-side filtering works fine for <500 clubs.
+//   For larger datasets, debounce + call:
+//     GET /api/clubs?q=:query&category=:cat&tab=mine
+//   with Postgres full-text search (to_tsvector on name, tagline, tags).
+// ═══════════════════════════════════════════════════════════════════════
+
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Club } from "./temp(mockdata)/clubs.data";
 import { CLUB_CATEGORIES } from "./temp(mockdata)/clubs.data";
@@ -71,9 +115,35 @@ export default function ClubsUI({ clubs: clubsProp, mode, club }: Props) {
   const [search, setSearch] = useState("");
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
 
-  // Example:
-  // BACKEND: SELECT club_id FROM club_members WHERE user_id = :userId
-  const myClubIds = useMemo(() => new Set<string>(["club-001", "club-002"]), []);
+  // ── Membership state ──────────────────────────────────────────────────────
+  // BACKEND: Seed this from a real query instead of a hardcoded Set:
+  //   const { data: myClubs } = useSWR('/api/users/me/clubs', fetcher)
+  //   const [myClubIds, setMyClubIds] = useState<Set<string>>(new Set())
+  //   useEffect(() => {
+  //     if (myClubs) setMyClubIds(new Set(myClubs.map(c => c.id)))
+  //   }, [myClubs])
+  //
+  // The optimistic removal on leave is already handled by handleLeaveSuccess.
+  const [myClubIds, setMyClubIds] = useState<Set<string>>(
+    () => new Set<string>(["club-001", "club-002"])
+  );
+
+  // ── Leave club handler ────────────────────────────────────────────────────
+  // Called by LeaveClubDialog (inside FlipClubCard) after a successful leave.
+  // Optimistically removes the club from local state.
+  //
+  // BACKEND: After this runs, the real DELETE has already been fired inside
+  //   LeaveClubDialog.  If you use SWR/React Query, also call:
+  //     mutate('/api/users/me/clubs')
+  //     queryClient.invalidateQueries(['myClubs'])
+  //   here to keep server state in sync.
+  const handleLeaveSuccess = useCallback((clubId: string) => {
+    setMyClubIds((prev) => {
+      const next = new Set(prev);
+      next.delete(clubId);
+      return next;
+    });
+  }, []);
 
   function toggleCategory(cat: string) {
     setActiveCategories((prev) => {
@@ -276,8 +346,18 @@ export default function ClubsUI({ clubs: clubsProp, mode, club }: Props) {
               {/* BACKEND: clubs come from Supabase and are passed as props from a Server Component.
                   Example parent (page.tsx):
                     const clubs = await getClubs()  ← replaces static import
-                    return <ClubsUI clubs={clubs} mode="hub" /> */}
-              {filtered.map((c) => <FlipClubCard key={c.id} club={c} />)}
+                    return <ClubsUI clubs={clubs} mode="hub" />
+                  
+                  isMember is passed per-card so the Leave button only shows for
+                  clubs the current user actually belongs to. */}
+              {filtered.map((c) => (
+                <FlipClubCard
+                  key={c.id}
+                  club={c}
+                  isMember={myClubIds.has(c.id)}
+                  onLeaveSuccess={handleLeaveSuccess}
+                />
+              ))}
             </Box>
           )}
         </Box>

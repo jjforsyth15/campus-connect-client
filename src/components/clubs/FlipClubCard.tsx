@@ -1,12 +1,38 @@
 "use client";
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — FlipClubCard
+// ═══════════════════════════════════════════════════════════════════════
+// isMember — passed from ClubsUI, driven by the membership query:
+//   SELECT club_id FROM club_members WHERE user_id = :userId
+//
+// When isMember is true, the back face shows a "Leave Club" button that
+// opens LeaveClubDialog.  onLeaveSuccess propagates the confirmed leave
+// back up to ClubsUI so the membership set can be updated optimistically.
+//
+// FOUNDERS / ADMINS:
+//   Consider passing a `role` prop alongside `isMember` so you can show
+//   a disabled "Leave" button with a tooltip ("Transfer leadership first")
+//   for club founders:
+//     SELECT role FROM club_members WHERE club_id = :id AND user_id = :me
+// ═══════════════════════════════════════════════════════════════════════
+
 import * as React from "react";
 import Link from "next/link";
 import { Box, Button, Chip, Typography } from "@mui/material";
 import type { Club } from "./temp(mockdata)/clubs.data";
 import { btnMaroon } from "./ClubsStates";
+import LeaveClubDialog from "./LeaveClubDialog";
 
-export default function FlipClubCard({ club }: { club: Club }) {
+interface FlipClubCardProps {
+  club: Club;
+  /** Whether the current user is a member — controls Leave button visibility */
+  isMember?: boolean;
+  /** Forwarded from ClubsUI; called after a confirmed leave */
+  onLeaveSuccess?: (clubId: string) => void;
+}
+
+export default function FlipClubCard({ club, isMember = false, onLeaveSuccess }: FlipClubCardProps) {
   const [flipped, setFlipped] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
 
@@ -71,6 +97,7 @@ export default function FlipClubCard({ club }: { club: Club }) {
             : "0 10px 35px rgba(0,0,0,0.35)",
         }}
       >
+        {/* ── FRONT FACE ──────────────────────────────────────────────── */}
         <Box
           sx={{
             position: "absolute",
@@ -113,6 +140,29 @@ export default function FlipClubCard({ club }: { club: Club }) {
             >
               {club.category ?? "Club"}
             </Box>
+
+            {/* "Member" badge — visible when user belongs to this club */}
+            {isMember && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 10,
+                  left: 10,
+                  px: 1.1,
+                  py: 0.4,
+                  borderRadius: 99,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  color: "white",
+                  bgcolor: "rgba(16,185,129,0.80)",
+                  backdropFilter: "blur(8px)",
+                  textTransform: "uppercase",
+                }}
+              >
+                ✓ Member
+              </Box>
+            )}
 
             {/* "Flip" hint pill */}
             <Box
@@ -202,6 +252,7 @@ export default function FlipClubCard({ club }: { club: Club }) {
           </Box>
         </Box>
 
+        {/* ── BACK FACE ───────────────────────────────────────────────── */}
         <Box
           sx={{
             position: "absolute",
@@ -264,32 +315,46 @@ export default function FlipClubCard({ club }: { club: Club }) {
 
             <Box sx={{ flex: 1 }} />
 
+            {/* ── Action row ─────────────────────────────────────────── */}
             <Box
               sx={{
                 display: "flex",
-                gap: 1.2,
+                gap: 1,
                 justifyContent: "space-between",
                 alignItems: "center",
                 mt: 1.5,
+                flexWrap: "wrap",
               }}
             >
               <Typography sx={{ fontSize: 11, color: "rgba(45,16,18,0.45)", fontWeight: 700 }}>
                 Tap to flip back
               </Typography>
 
-              <Button
-                component={Link}
-                href={href}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                sx={{
-                  ...btnMaroon,
-                  fontSize: 13,
-                  py: 0.8,
-                  px: 2,
-                }}
-              >
-                View club →
-              </Button>
+              <Box sx={{ display: "flex", gap: 0.8, alignItems: "center" }}>
+                {/* Leave button — only shown when user is a member */}
+                {isMember && (
+                  <LeaveClubDialog
+                    clubId={club.id}
+                    clubName={club.name}
+                    onLeaveSuccess={onLeaveSuccess}
+                    variant="card"
+                  />
+                )}
+
+                <Button
+                  component={Link}
+                  href={href}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  sx={{
+                    ...btnMaroon,
+                    fontSize: 13,
+                    py: 0.8,
+                    px: 2,
+                  }}
+                >
+                  View club →
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Box>

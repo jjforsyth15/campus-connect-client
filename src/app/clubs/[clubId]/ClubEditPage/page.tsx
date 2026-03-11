@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import ClubEditPage from '@/components/clubs/ClubEditPage';
+import ClubEditPage from '@/components/clubs/ClubEdit/ClubEditPage';
 import { MOCK_CLUB, MOCK_MEMBERS } from '@/components/clubs/ClubProfilePage';
 
 export default function Page() {

@@ -1,8 +1,32 @@
 // useClubStore.ts
 
-// BACKEND: Replace with SWR / React Query + Supabase:
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — useClubStore
+// ═══════════════════════════════════════════════════════════════════════
+// This in-memory singleton is a temporary stand-in for a real data layer.
+// Replace with SWR / React Query + API routes backed by Supabase:
+//
+//   // Read clubs list
 //   const { data: clubs, mutate } = useSWR('/api/clubs', fetcher)
-//   addClub → optimistic insert + mutate()
+//
+//   // addClub → optimistic insert:
+//   mutate([...clubs, newClub], false)          // optimistic update
+//   await fetch('/api/clubs', { method: 'POST', body: JSON.stringify(newClub) })
+//   mutate()                                    // revalidate from server
+//
+//   // updateClub → optimistic patch:
+//   mutate(clubs.map(c => c.id === id ? { ...c, ...patch } : c), false)
+//   await fetch(`/api/clubs/${id}`, { method: 'PATCH', body: JSON.stringify(patch) })
+//   mutate()
+//
+// Supabase equivalents:
+//   addClub    → supabase.from('clubs').insert([clubRow])
+//   updateClub → supabase.from('clubs').update(patch).eq('id', id)
+//   getDetail  → supabase.from('clubs').select('*, club_details(*)').eq('id', id).single()
+//
+// Real-time updates (optional):
+//   supabase.channel('clubs').on('postgres_changes', { event: '*', schema: 'public', table: 'clubs' }, payload => mutate())
+// ═══════════════════════════════════════════════════════════════════════
 
 'use client';
 

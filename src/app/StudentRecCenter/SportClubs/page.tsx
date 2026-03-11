@@ -77,7 +77,7 @@ export default function SportClubsPage() {
             Student-led competitive &amp; recreational organizations at CSUN. Separate from SRC
             classes and services.
           </p>
-          <div style={{ display: "flex", gap: 32, marginTop: 20 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 32, marginTop: 20, flexWrap: "wrap" }}>
             {(
               [
                 ["Clubs", CLUBS.length],
@@ -111,6 +111,41 @@ export default function SportClubsPage() {
                 </div>
               </div>
             ))}
+            {/* ── View All Clubs button — links to the main clubs hub ── */}
+            <a
+              href="/clubs"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                background: "rgba(255,255,255,0.12)",
+                border: "1.5px solid rgba(255,255,255,0.28)",
+                borderRadius: 999,
+                padding: "8px 18px",
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: 12,
+                letterSpacing: "0.04em",
+                textDecoration: "none",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                transition: "background 0.18s, border-color 0.18s",
+                marginBottom: 4,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.22)";
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,0.5)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.12)";
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,0.28)";
+              }}
+            >
+              View all clubs
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
           </div>
         </div>
 

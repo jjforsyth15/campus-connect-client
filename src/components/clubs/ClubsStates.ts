@@ -1,3 +1,8 @@
+// ClubsStates.ts — Shared style constants and utility functions.
+// Pure styling layer; no backend integration needed here.
+// If accent/brand colors become configurable per-tenant, source MAROON
+// from a settings API: GET /api/settings → { brandColor: '#B4002E' }
+
 export const MAROON = "#B4002E";
 export const MAROON_DARK = "#2A0010";
 export const ORANGE_GLOW = "#FF4500";

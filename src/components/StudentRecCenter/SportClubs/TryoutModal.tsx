@@ -1,5 +1,58 @@
 "use client";
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — TryoutModal / Interest Form
+// ═══════════════════════════════════════════════════════════════════════
+//
+// SUBMIT APPLICATION — InterestForm handleSubmit():
+//   POST /api/clubs/:clubId/applications
+//   Auth: require active session (student must be logged in)
+//   Body: {
+//     email: string,          // applicant's @my.csun.edu address
+//     experience: string,     // years-of-experience bucket
+//     contact: string,        // preferred contact method
+//     phone?: string,
+//     age?: number,
+//     major?: string,
+//   }
+//   On success → 201 { applicationId, status: 'pending' }
+//   On duplicate (same student + club) → 409 Conflict
+//
+// NOTIFY CLUB LEADERSHIP:
+//   After saving the application row, trigger a server-side notification
+//   to every club_member where role IN ('President','VP','Officer'):
+//
+//     SELECT user_id FROM club_members
+//     WHERE club_id = :clubId
+//       AND role IN ('President', 'VP', 'Officer')
+//       AND blocked = false;
+//
+//   Then for each leader:
+//     INSERT INTO notifications (user_id, type, payload, created_at)
+//     VALUES (:leaderId, 'new_application', { clubId, applicationId, applicantEmail }, NOW())
+//
+//   Optionally also send an email via Resend / SendGrid:
+//     POST https://api.resend.com/emails
+//     to: leader's email, subject: "New applicant for {clubName}"
+//
+// READ APPLICATIONS (club dashboard / ClubEditPage):
+//   GET /api/clubs/:clubId/applications
+//   Auth: verify requesting user has role IN ('President','VP','Officer')
+//   Returns: Application[] sorted by created_at DESC
+//
+// UPDATE APPLICATION STATUS:
+//   PATCH /api/clubs/:clubId/applications/:applicationId
+//   Body: { status: 'accepted' | 'rejected' | 'waitlisted' }
+//   Auth: President / VP / Officer only
+//   Side-effect: notify applicant via notification + email
+//
+// SUPABASE RLS SUGGESTION:
+//   - Students can INSERT their own application (auth.uid() = applicant_user_id)
+//   - Students can SELECT only their own applications
+//   - Club leaders (role IN President/VP/Officer) can SELECT/UPDATE all
+//     applications for clubs they manage
+// ═══════════════════════════════════════════════════════════════════════
+
 import * as React from "react";
 import type { Club } from "./types";
 import { CAT_COLORS, RED } from "./constants";
@@ -294,7 +347,19 @@ function InterestForm({ club, onClose }: { club: Club; onClose: () => void }) {
       <button
         onClick={() => {
           setTouched(true);
-          if (valid) setDone(true);
+          if (valid) {
+            // BACKEND: Replace setDone(true) with an API call:
+            //   const res = await fetch(`/api/clubs/${club.id}/applications`, {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(f),
+            //   });
+            //   if (res.status === 409) { /* show "already applied" message */ return; }
+            //   if (!res.ok) { /* show generic error toast */ return; }
+            //   Server will notify all President/VP/Officer members via
+            //   the notifications table + optional email (see top-of-file comments).
+            setDone(true);
+          }
         }}
         style={{
           width: "100%",

@@ -1,3 +1,24 @@
+// ============================================================
+// NoteView.tsx — Backend Integration Notes
+// ============================================================
+// This component is the full-screen dialog for a single folder.
+// It handles two primary modes:
+//   "view"   — browse and select existing items in the folder
+//   "upload" — upload a new file or link into the folder
+//
+// Backend surface area:
+//   READ   : GET  /api/note-share/folders/:id/items
+//   WRITE  : POST /api/note-share/items        (file upload)
+//   STORAGE: Files must be uploaded to cloud object storage
+//            (AWS S3, Google Cloud Storage, Cloudflare R2, etc.)
+//            NOT stored as blob: URLs — those are ephemeral and
+//            lost on page reload.
+//
+// Access control: before rendering items, the backend should
+// verify the requesting user has access to this folder (owner,
+// public folder, or on the invitedEmails list).
+// ============================================================
+
 "use client";
 
 import * as React from "react";
@@ -27,10 +48,13 @@ import type {
 import NoteViewCommentsPanel from "@/components/academics/NoteShare/NoteViewCommentsPanel";
 import { Stars } from "@/components/academics/NoteShare/NoteView.ui";
 
+// BACKEND TODO: Remove — use the DB-returned primary key instead.
 function makeId() {
   return `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
 }
 
+// BACKEND NOTE: Keep this client-side; timestamps should always be stored as UTC ISO-8601
+// in the DB (DEFAULT NOW() / serverTimestamp()), and formatted for display here.
 function formatRelative(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
   if (d < 60) return "just now";
@@ -39,10 +63,13 @@ function formatRelative(iso: string) {
   return `${Math.floor(d / 86400)}d ago`;
 }
 
+// BACKEND NOTE: Keep this client-side for UX, but enforce the same constraint
+// server-side before any DB write. Never trust client-side validation alone.
 function isCsunEmail(email: string) {
   return email.trim().toLowerCase().endsWith("@my.csun.edu");
 }
 
+// TYPE_META is purely presentational — no backend touch needed.
 const TYPE_META: Record<NoteFolderItemType, { label: string; icon: React.ReactNode }> = {
   pdf: { label: "PDF", icon: <PictureAsPdfIcon sx={{ fontSize: 16 }} /> },
   doc: { label: "Doc", icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
@@ -52,6 +79,10 @@ const TYPE_META: Record<NoteFolderItemType, { label: string; icon: React.ReactNo
   link: { label: "Link", icon: <LinkIcon sx={{ fontSize: 16 }} /> },
 };
 
+// BACKEND NOTE: calcAvgRating currently computes averages on the client from the full
+// in-memory comment list. Replace with a denormalized `avgRating` and `ratingCount`
+// on the `note_folder_items` table, updated server-side after each new comment.
+// This makes it trivially sortable via SQL: ORDER BY avg_rating DESC.
 function calcAvgRating(comments: NoteComment[], itemId?: string) {
   const list = comments.filter((c) => (itemId ? c.itemId === itemId : true));
   if (list.length === 0) return 0;
@@ -62,11 +93,11 @@ function calcAvgRating(comments: NoteComment[], itemId?: string) {
 export default function NoteView({
   open,
   folder,
-  items,
-  comments,
+  items,       // BACKEND: replace with lazy fetch GET /api/note-share/folders/:id/items
+  comments,    // BACKEND: replace with lazy fetch GET /api/note-share/comments?folderId=:id
   onClose,
-  onUploadItem,
-  onAddComment,
+  onUploadItem, // BACKEND: triggers POST /api/note-share/items (multipart/form-data)
+  onAddComment, // BACKEND: triggers POST /api/note-share/comments
 }: {
   open: boolean;
   folder: NoteFolder;
@@ -86,7 +117,21 @@ export default function NoteView({
   const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
 
-  // upload state
+  // ── Upload form state ──────────────────────────────────────
+  // BACKEND NOTE: These fields map directly to columns in the
+  // `note_folder_items` table. Schema reference:
+  //   id            UUID PK (server-generated)
+  //   folder_id     FK → note_folders.id
+  //   title         VARCHAR(255) NOT NULL
+  //   description   TEXT
+  //   type          ENUM('pdf','doc','video','image','zip','link')
+  //   url           TEXT  ← permanent cloud storage URL, NOT a blob: URL
+  //   file_name     VARCHAR(255)
+  //   visibility    ENUM('public','private')
+  //   uploaded_by   VARCHAR(255)  ← derived from auth session on server
+  //   uploaded_by_email VARCHAR(255) NOT NULL CHECK (ends with @my.csun.edu)
+  //   uploaded_at   TIMESTAMPTZ DEFAULT NOW()
+  //   invited_emails TEXT[]  ← for private items
   const [uploadTitle, setUploadTitle] = React.useState("");
   const [uploadDesc, setUploadDesc] = React.useState("");
   const [uploadUrl, setUploadUrl] = React.useState("");
@@ -96,7 +141,7 @@ export default function NoteView({
   const [uploadVisibility, setUploadVisibility] = React.useState<NoteFolderVisibility>("public");
   const [uploadInvitedEmail, setUploadInvitedEmail] = React.useState("");
   const [uploadInvited, setUploadInvited] = React.useState<string[]>([]);
-  const [uploaderEmail, setUploaderEmail] = React.useState("");
+  const [uploaderEmail, setUploaderEmail] = React.useState(""); // BACKEND: remove once auth is live
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -106,12 +151,23 @@ export default function NoteView({
     setSelectedItemId(null);
     setRatingFilter("all");
     setTypeFilter("all");
+    // BACKEND TODO: When `open` becomes true, trigger a lazy fetch for this folder's
+    // items and comments if they haven't been loaded yet:
+    //   fetchItems(folder.id);
+    //   fetchComments(folder.id);
   }, [open]);
 
+  // BACKEND NOTE: folderItems is filtered from the in-memory items array.
+  // Once items are fetched per-folder from the API, this filter is unnecessary —
+  // the API response already scopes items to the requested folder.
   const folderItems = items
     .filter((i) => i.folderId === folder.id)
     .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
+  // BACKEND NOTE: Rating filter is applied client-side here.
+  // For large item sets, pass ratingFilter as a query param:
+  //   GET /api/note-share/folders/:id/items?minRating=4&type=pdf
+  // This requires the denormalized avgRating column mentioned in calcAvgRating above.
   const filteredItems = folderItems.filter((i) => {
     if (typeFilter !== "all" && i.type !== typeFilter) return false;
 
@@ -132,6 +188,8 @@ export default function NoteView({
     ? calcAvgRating(selectedItemComments, selectedItem.id)
     : calcAvgRating(selectedItemComments);
 
+  // BACKEND NOTE: addUploadInvite validates email client-side.
+  // The backend MUST re-validate all invited emails before writing to DB.
   const addUploadInvite = () => {
     const e = uploadInvitedEmail.trim().toLowerCase();
     if (!e) return;
@@ -141,6 +199,9 @@ export default function NoteView({
     setUploadInvitedEmail("");
   };
 
+  // inferTypeFromName is a client-side UX convenience only.
+  // The backend must independently determine the MIME type from the uploaded
+  // file's Content-Type header, not from the filename extension alone.
   const inferTypeFromName = (name: string): NoteFolderItemType => {
     const n = name.toLowerCase();
     if (n.endsWith(".pdf")) return "pdf";
@@ -155,12 +216,23 @@ export default function NoteView({
     const f = e.target.files?.[0] ?? null;
     if (!f) return;
 
+    // BACKEND NOTE: uploadFile is held in state here but is currently only used to
+    // generate a temporary blob: URL (URL.createObjectURL) in submitUpload.
+    // This blob URL is ephemeral and NOT suitable as a permanent asset URL.
+    // The real upload flow should use multipart/form-data:
+    //   const formData = new FormData();
+    //   formData.append('file', f);
+    //   const res = await fetch('/api/note-share/items', { method: 'POST', body: formData });
+    // The server handles uploading to cloud storage (S3/GCS) and returns a
+    // permanent signed or public URL for the stored object.
     setUploadFile(f);
     setUploadFileName(f.name);
     setUploadType(inferTypeFromName(f.name));
     setUploadUrl("");
   };
 
+  // canUpload is client-side validation for UX only.
+  // Mirror all constraints server-side — never trust the client.
   const canUpload = React.useMemo(() => {
     if (!uploadTitle.trim()) return false;
     if (!uploaderEmail.trim() || !isCsunEmail(uploaderEmail)) return false;
@@ -181,27 +253,60 @@ export default function NoteView({
     uploadInvited.length,
   ]);
 
+  // ── submitUpload ───────────────────────────────────────────
+  // BACKEND TODO: This is the most critical function to replace.
+  // Current behavior: constructs a NoteFolderItem in memory using a
+  // blob: URL for uploaded files. This is not persistent.
+  //
+  // Target behavior:
+  //   1. If uploadFile is set (not a link-type upload):
+  //      a. POST /api/note-share/items/upload-url
+  //         → receive a presigned S3/GCS PUT URL + the final asset URL
+  //      b. PUT the file directly to the presigned URL (browser → S3)
+  //         → avoids routing large files through your own server
+  //      c. POST /api/note-share/items with:
+  //         { folderId, title, description, type, url: <finalAssetUrl>,
+  //           fileName, visibility, invitedEmails }
+  //         — server sets uploadedBy + uploadedByEmail from session token
+  //         — server sets uploadedAt = NOW()
+  //         — server returns the persisted NoteFolderItem with DB id
+  //   2. If uploadType === "link": skip the file upload, just POST metadata.
+  //   3. On success: call onUploadItem(returnedItem) and switch mode to "view".
+  //   4. On failure: surface an error message; do NOT update local state.
+  //
+  // File validation the server must perform:
+  //   - Max file size (e.g., 50MB)
+  //   - Allowed MIME types (reject executables, scripts, etc.)
+  //   - Virus/malware scanning (ClamAV or a cloud scanning service)
+  //   - Rate limiting: e.g., max 10 uploads per user per day
   const submitUpload = () => {
     if (!canUpload) return;
 
+    // BACKEND TODO: Replace URL.createObjectURL with the permanent URL returned
+    // from cloud storage after a real upload. Blob URLs are memory-only and
+    // will break on page refresh or across different browser sessions.
     const generatedUrl = uploadUrl.trim() || (uploadFile ? URL.createObjectURL(uploadFile) : undefined);
 
     const item: NoteFolderItem = {
-      id: makeId(),
+      id: makeId(),             // BACKEND: replace with DB-returned UUID
       folderId: folder.id,
       title: uploadTitle.trim(),
       description: uploadDesc.trim() || undefined,
-      uploadedBy: uploaderEmail.trim().toLowerCase().split("@")[0],
-      uploadedByEmail: uploaderEmail.trim().toLowerCase(),
-      uploadedAt: new Date().toISOString(),
+      uploadedBy: uploaderEmail.trim().toLowerCase().split("@")[0], // BACKEND: from auth session
+      uploadedByEmail: uploaderEmail.trim().toLowerCase(),           // BACKEND: from auth session
+      uploadedAt: new Date().toISOString(),                          // BACKEND: set server-side
       type: uploadType,
-      url: generatedUrl,
+      url: generatedUrl,        // BACKEND: permanent cloud storage URL
       fileName: uploadFileName || undefined,
       visibility: uploadVisibility,
+      // BACKEND: invitedEmails should be written to a separate `item_invites` table
+      // (folderId, itemId, invitedEmail) rather than stored as an array column,
+      // to simplify access-control queries and future invite management.
     };
 
     onUploadItem(item);
 
+    // Reset upload form
     setUploadTitle("");
     setUploadDesc("");
     setUploadUrl("");
@@ -228,6 +333,7 @@ export default function NoteView({
       PaperProps={{ sx: { borderRadius: fullScreen ? 0 : 4, overflow: "hidden" } }}
       TransitionProps={{ timeout: 220 }}
     >
+      {/* Dialog header — folder title + visibility badge */}
       <Box sx={{ bgcolor: "#A80532", px: 3, py: 2.25 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
           <Box>
@@ -235,6 +341,9 @@ export default function NoteView({
               <Typography fontWeight={950} sx={{ color: "#fff", fontSize: "1.1rem" }}>
                 {folder.topic}
               </Typography>
+              {/* BACKEND: folder.visibility drives this badge. If the backend enforces
+                  access control correctly, a private folder should never appear here
+                  for an unauthorized user in the first place. */}
               <Chip
                 size="small"
                 icon={isPrivateFolder ? <LockRoundedIcon sx={{ fontSize: 14 }} /> : <PublicRoundedIcon sx={{ fontSize: 14 }} />}
@@ -258,6 +367,10 @@ export default function NoteView({
 
           <Stack direction="row" spacing={1} alignItems="center">
             <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mr: 0.5 }}>
+              {/* BACKEND: The Upload button switches to the upload form (flip animation).
+                  Consider gating this behind authentication — only CSUN-authenticated
+                  users should be allowed to upload to a folder. Show a "Sign in to upload"
+                  prompt for unauthenticated visitors. */}
               <Button
                 variant={mode === "upload" ? "contained" : "outlined"}
                 onClick={() => setMode((m) => (m === "upload" ? "view" : "upload"))}
@@ -294,7 +407,7 @@ export default function NoteView({
             minHeight: fullScreen ? "auto" : 560,
           }}
         >
-          {/* Main column */}
+          {/* ── Main column: file list + upload form ── */}
           <Box sx={{ p: 2.5, bgcolor: "rgba(0,0,0,0.02)" }}>
             <Box
               sx={{
@@ -317,7 +430,7 @@ export default function NoteView({
                   height: "100%",
                 }}
               >
-                {/* Front: View */}
+                {/* ── Front face: item list ── */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -377,6 +490,8 @@ export default function NoteView({
                       </Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)", fontWeight: 800 }}>Type</Typography>
+                        {/* BACKEND: typeFilter is applied client-side. For large folders,
+                            pass as a query param: GET /api/note-share/folders/:id/items?type=pdf */}
                         <FormControl size="small">
                           <Select
                             value={typeFilter}
@@ -399,6 +514,9 @@ export default function NoteView({
                         </FormControl>
 
                         <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)", fontWeight: 800 }}>Rating filter</Typography>
+                        {/* BACKEND: ratingFilter is applied client-side from loaded comments.
+                            Once avgRating is denormalized on the item, pass as a query param:
+                            GET /api/note-share/folders/:id/items?minRating=4 */}
                         <FormControl size="small">
                           <Select
                             value={ratingFilter}
@@ -421,6 +539,9 @@ export default function NoteView({
 
                     <Divider sx={{ my: 1.6 }} />
 
+                    {/* BACKEND: filteredItems comes from local state. Once per-folder
+                        item fetching is live, this list renders from the API response.
+                        Show a skeleton loader while the fetch is in-flight. */}
                     <Stack spacing={1.15} sx={{ overflow: "auto", pr: 0.5 }}>
                       {filteredItems.length === 0 ? (
                         <Box sx={{ py: 6, textAlign: "center" }}>
@@ -431,6 +552,8 @@ export default function NoteView({
                         </Box>
                       ) : (
                         filteredItems.map((it) => {
+                          // BACKEND: avg computed from loaded comments in memory.
+                          // Replace with it.avgRating from the DB once denormalized.
                           const avg = calcAvgRating(comments.filter((c) => c.itemId === it.id));
                           const meta = TYPE_META[it.type];
                           return (
@@ -486,11 +609,17 @@ export default function NoteView({
                                       spacing={1}
                                       sx={{ flexWrap: "wrap" }}
                                     >
+                                      {/* BACKEND: it.uploadedBy is currently a self-reported
+                                          username parsed from the email. Once auth is live,
+                                          derive it from req.user.displayName or req.user.email. */}
                                       <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.52)" }}>
                                         {it.uploadedBy} · {formatRelative(it.uploadedAt)}
                                       </Typography>
 
                                       <Stack direction="row" spacing={0.6} alignItems="center">
+                                        {/* BACKEND: it.visibility enforcement must happen server-side.
+                                            Private items should not be returned at all for unauthorized
+                                            users — do not rely on UI hiding alone. */}
                                         <Chip
                                           size="small"
                                           icon={
@@ -530,6 +659,10 @@ export default function NoteView({
 
                                     <Stack direction="row" spacing={0.6} justifyContent="flex-end" sx={{ mt: 1.0 }}>
                                       {it.url && (
+                                        // BACKEND: it.url must be a permanent URL from cloud storage.
+                                        // If the object is private in S3/GCS, generate a short-lived
+                                        // presigned GET URL server-side before sending it to the client.
+                                        // Never expose raw S3 bucket paths or long-lived credentials.
                                         <Button
                                           size="small"
                                           variant="outlined"
@@ -579,7 +712,7 @@ export default function NoteView({
                   </Paper>
                 </Box>
 
-                {/* Back: Upload */}
+                {/* ── Back face: upload form ── */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -637,7 +770,10 @@ export default function NoteView({
                     <Divider sx={{ my: 1.6 }} />
 
                     <Stack spacing={1.2} sx={{ overflow: "auto", pr: 0.5 }}>
+                      {/* BACKEND: title → note_folder_items.title VARCHAR(255) NOT NULL */}
                       <TextField label="Title" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} fullWidth size="small" />
+
+                      {/* BACKEND: description → note_folder_items.description TEXT */}
                       <TextField
                         label="Description (optional)"
                         value={uploadDesc}
@@ -647,6 +783,7 @@ export default function NoteView({
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                        {/* BACKEND: uploadType → note_folder_items.type ENUM */}
                         <FormControl fullWidth size="small">
                           <Select value={uploadType} onChange={(e) => setUploadType(e.target.value as any)}>
                             <MenuItem value="pdf">PDF</MenuItem>
@@ -658,6 +795,9 @@ export default function NoteView({
                           </Select>
                         </FormControl>
 
+                        {/* BACKEND: uploadVisibility → note_folder_items.visibility ENUM
+                            A private item inside a public folder is still restricted to
+                            the item's own invitedEmails list — enforce this server-side. */}
                         <FormControl fullWidth size="small">
                           <Select value={uploadVisibility} onChange={(e) => setUploadVisibility(e.target.value as any)}>
                             <MenuItem value="public">Public</MenuItem>
@@ -666,6 +806,7 @@ export default function NoteView({
                         </FormControl>
                       </Stack>
 
+                      {/* BACKEND: Remove once auth is live — derive from session token. */}
                       <TextField
                         label="Your CSUN Email"
                         value={uploaderEmail}
@@ -675,6 +816,11 @@ export default function NoteView({
                       />
 
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} alignItems={{ sm: "center" }}>
+                        {/* BACKEND: "Choose file" triggers a file picker. The selected File
+                            object must be sent as multipart/form-data to the upload endpoint.
+                            The server stores it in cloud object storage and returns a permanent URL.
+                            Enforce max size (e.g., 50MB) both here (input accept/size check)
+                            and on the server (Content-Length header validation). */}
                         <Button
                           variant="outlined"
                           onClick={() => fileRef.current?.click()}
@@ -686,9 +832,20 @@ export default function NoteView({
                         <Typography sx={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.6)", fontWeight: 800 }}>
                           {uploadFileName ? uploadFileName : "No file selected"}
                         </Typography>
-                        <input ref={fileRef} type="file" hidden onChange={handlePickFile} />
+                        <input
+                          ref={fileRef}
+                          type="file"
+                          hidden
+                          onChange={handlePickFile}
+                          // BACKEND: Restrict allowed file types to prevent executable uploads:
+                          // accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.zip"
+                        />
                       </Stack>
 
+                      {/* BACKEND: URL paste input → note_folder_items.url TEXT.
+                          Validate the URL on the server (must be https://, no internal IPs,
+                          no localhost) before storing. Consider URL preview metadata fetching
+                          (og:title, og:image) server-side using a link-preview service. */}
                       <TextField
                         label="Or paste a URL (optional)"
                         value={uploadUrl}
@@ -709,6 +866,10 @@ export default function NoteView({
                           <Typography sx={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.6)", fontWeight: 900, mb: 0.7 }}>
                             Invite CSUN Emails
                           </Typography>
+                          {/* BACKEND: Invited emails for this item → `item_invites` table
+                              { itemId, invitedEmail, invitedAt }
+                              The server should validate all emails end in @my.csun.edu
+                              and optionally send email notifications to invited students. */}
                           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                             <TextField
                               value={uploadInvitedEmail}
@@ -740,6 +901,10 @@ export default function NoteView({
                       )}
 
                       <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 0.5 }}>
+                        {/* BACKEND: Disable and show a spinner while the multipart upload
+                            and metadata POST are in-flight. Surface upload progress percentage
+                            using XMLHttpRequest's progress event or an axios onUploadProgress
+                            callback if file uploads are large. */}
                         <Button
                           variant="contained"
                           disabled={!canUpload}
@@ -762,7 +927,10 @@ export default function NoteView({
             </Box>
           </Box>
 
-          {/* Comments column */}
+          {/* ── Comments column ── */}
+          {/* BACKEND: NoteViewCommentsPanel receives selectedItemComments from the parent.
+              Once real-time or fetched comments are live, comments can also be loaded
+              directly inside this panel using the selectedItem.id as a query key. */}
           <Box sx={{ p: 2.5, borderLeft: fullScreen ? "none" : "1px solid rgba(0,0,0,0.06)" }}>
             <NoteViewCommentsPanel
               folder={folder}

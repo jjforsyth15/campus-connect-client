@@ -1,13 +1,54 @@
 // ClubEditPage.tsx
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — ClubEditPage
+// ═══════════════════════════════════════════════════════════════════════
+// This component renders the management dashboard for a club.
+// It is rendered inside ClubProfilePage when isLeader === true.
+//
+// DATA LOADING:
+//   - club, members, events are currently passed as props from ClubProfilePage.
+//   - Replace prop-drilling with SWR/React Query hooks:
+//       const { data: club } = useSWR(`/api/clubs/${clubId}`, fetcher)
+//       const { data: members } = useSWR(`/api/clubs/${clubId}/members`, fetcher)
+//       const { data: events } = useSWR(`/api/clubs/${clubId}/events`, fetcher)
+//
+// SAVE — handleSave():
+//   PATCH /api/clubs/:clubId
+//   body: { name, tagline, description, category, introMessage, discordUrl,
+//           accentColor, bgColor, textMode, logoUrl, bannerUrl, card }
+//   Auth: verify user is President/Officer via club_members row
+//
+// EVENTS:
+//   Create → POST /api/clubs/:clubId/events  { title, description, date, time, location }
+//   Delete → DELETE /api/events/:eventId
+//
+// MEMBER MANAGEMENT:
+//   Kick   → DELETE /api/clubs/:clubId/members/:userId
+//   Block  → PATCH  /api/clubs/:clubId/members/:userId  { blocked: true }
+//   Role   → PATCH  /api/clubs/:clubId/members/:userId  { role: 'VP' | 'Officer' | 'Member' }
+//   Note: President role change should require additional confirmation + ownership transfer logic.
+//
+// IMAGE UPLOAD (logo / banner):
+//   POST /api/upload  (multipart/form-data)
+//   Returns { url: string } — store in clubs.logo_url / clubs.banner_url
+//   Currently uses FileReader base64 as a placeholder.
+//
+// AUTH GUARD:
+//   Wrap this component render in:
+//     if (!['President','VP','Officer'].includes(userMembership?.role)) return null
+//   or enforce via middleware / RLS on Supabase.
+// ═══════════════════════════════════════════════════════════════════════
+
 import React, { useState } from 'react';
-import { ClubDetail as ClubDetailBase, ClubMember } from './temp(mockdata)/clubs.data';
+import { ClubDetail as ClubDetailBase, ClubMember } from '../temp(mockdata)/clubs.data';
 
 // Extend ClubDetail locally to include editable UI fields
 type Club = ClubDetailBase & {
   textMode?: 'dark' | 'light';
   bgColor?: string;
+  instagramUrl?: string;
   card?: {
     blurb?: string;
     chips?: string[];
@@ -20,6 +61,7 @@ const BanIcon   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="no
 const AddIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 const SaveIcon  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>;
 const XIcon     = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const InstagramIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>;
 
 function makeInputStyle(bg = '#1e1e1e', borderColor = '#3a3a3a', color = '#fff'): React.CSSProperties {
   return { width: '100%', background: bg, border: `1px solid ${borderColor}`, borderRadius: 10, padding: '10px 14px', color, fontSize: 14, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' };
@@ -233,6 +275,8 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
   const [form, setForm] = useState<Club>({ textMode: 'dark', bgColor: externalBg ?? '#0d0d0d', ...club });
   const [memberList, setMemberList] = useState<ClubMember[]>(initialMembers);
   const [events, setEvents] = useState([
+    // BACKEND: Replace with useSWR(`/api/clubs/${club.id}/events`, fetcher)
+    // Supabase: SELECT * FROM club_events WHERE club_id = :clubId ORDER BY date ASC
     { id: 'e1', title: 'Intro to ROS2 Workshop', date: '2025-02-27', time: '18:00', location: 'Eng. Bldg 204' },
     { id: 'e2', title: 'Spring Robotics Showcase', date: '2025-04-12', time: '14:00', location: 'Main Quad' },
   ]);
@@ -257,11 +301,25 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
   const sectionStyle = makeSectionStyle(sectionBg, sectionBorder);
 
   const handleSave = () => {
-    // BACKEND: PATCH /api/clubs/:clubId — body: form fields
+    // BACKEND: Replace with API call:
+    //   const res = await fetch(`/api/clubs/${club.id}`, {
+    //     method: 'PATCH',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(form),
+    //   })
+    //   if (!res.ok) throw new Error('Save failed')
+    //   const updated = await res.json()
+    //   onSave(updated)
     onSave(form);
     setToast('Club updated successfully!');
   };
 
+  // BACKEND — member actions:
+  //   kickMember  → DELETE /api/clubs/:clubId/members/:userId
+  //   blockMember → PATCH  /api/clubs/:clubId/members/:userId  { blocked: !current }
+  //   changeRole  → PATCH  /api/clubs/:clubId/members/:userId  { role }
+  //   removeEvent → DELETE /api/events/:eventId
+  // After each mutation, call mutate() if using SWR to revalidate member/event lists.
   const kickMember  = (id: string) => { setMemberList(m => m.filter(x => x.id !== id)); setToast('Member removed.'); };
   const blockMember = (id: string) => { setMemberList(m => m.map(x => x.id === id ? { ...x, blocked: !x.blocked } : x)); setToast('Member block status updated.'); };
   const changeRole  = (id: string, role: ClubMember['role']) => { setMemberList(m => m.map(x => x.id === id ? { ...x, role } : x)); setToast('Role updated.'); };
@@ -360,9 +418,17 @@ export default function ClubEditPage({ club, members: initialMembers, onSave, on
 
               <div style={sectionStyle}>
                 <SectionTitle color={txtPrimary}>Links & Social</SectionTitle>
-                <div>
-                  <label style={labelStyle}>Discord Server Invite URL</label>
-                  <input style={inputStyle} value={form.discordUrl || ''} onChange={e => setForm(f => ({ ...f, discordUrl: e.target.value }))} placeholder="https://discord.gg/..." />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>Discord Server Invite URL</label>
+                    <input style={inputStyle} value={form.discordUrl || ''} onChange={e => setForm(f => ({ ...f, discordUrl: e.target.value }))} placeholder="https://discord.gg/..." />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <InstagramIcon /> Instagram Profile URL
+                    </label>
+                    <input style={inputStyle} value={form.instagramUrl || ''} onChange={e => setForm(f => ({ ...f, instagramUrl: e.target.value }))} placeholder="https://instagram.com/yourclub" />
+                  </div>
                 </div>
               </div>
             </div>

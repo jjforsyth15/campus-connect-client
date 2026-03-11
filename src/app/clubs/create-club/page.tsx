@@ -8,7 +8,7 @@
 //   Redirect to /login if !session or !session.user.app_metadata.canCreateClub
 
 import { useRouter } from 'next/navigation';
-import CreateClubPage from '@/components/clubs/CreateClubPage';
+import CreateClubPage from '@/components/clubs/CreateClub/CreateClubPage';
 import { useClubStore } from '@/components/clubs/useClubStore';
 import type { Club, ClubDetail } from '@/components/clubs/temp(mockdata)/clubs.data';
 

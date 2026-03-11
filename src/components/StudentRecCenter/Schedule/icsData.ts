@@ -1,12 +1,119 @@
 // ---------------------------------------------------------------------------
-// icsData.ts mockup data for SRC events banner and schedule — replace with live API data.
-// Parsed from csun-news-events-63aa8039994.ics (CSUN SRC calendar feed).
-// Source: https://news.csun.edu  — refreshed hourly per X-PUBLISHED-TTL:PT1H
+// icsData.ts  —  STATIC MOCK DATA (dev/preview only)
+// ---------------------------------------------------------------------------
+// This file is a stand-in for two live data sources:
+//   1. CSUN ICS calendar feed  →  EventsBanner (CalEvent[])
+//   2. SRC scheduling system   →  WeeklySchedule (WeeklyClass[])
 //
-// BACKEND TODO: Replace this static array with actual api to  live fetch from the ICS feed:
-//   GET https://news.csun.edu/events/feed/ical/ 
-//   Parse with a library like `ical.js` or `node-ical` in a Next.js Route Handler:
-//   /app/api/src-events/route.ts  →  returns CalEvent[]
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKEND TODO A — Live ICS feed for CalEvent[] (EventsBanner)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// SOURCE:  https://news.csun.edu/events/feed/ical/
+// TTL:     X-PUBLISHED-TTL: PT1H  (refresh every hour)
+//
+// ROUTE HANDLER  →  /app/api/src-events/route.ts
+// ──────────────────────────────────────────────
+//   import ical from "node-ical";                    // npm i node-ical
+//   // or: import ICAL from "ical.js";               // npm i ical.js
+//
+//   export async function GET() {
+//     const icsUrl = "https://news.csun.edu/events/feed/ical/";
+//     const data   = await ical.fromURL(icsUrl);     // node-ical: async HTTP fetch + parse
+//
+//     const events: CalEvent[] = Object.values(data)
+//       .filter((e: any) => e.type === "VEVENT")
+//       .map((e: any) => ({
+//         uid:         e.uid,
+//         summary:     e.summary,
+//         description: e.description?.replace(/\\n/g, "\n") ?? "",
+//         location:    e.location ?? "",
+//         dtstart:     e.start?.toISOString() ?? "",
+//         dtend:       e.end?.toISOString()   ?? "",
+//         url:         e.url ?? "",
+//         imageUrl:    e["x-wp-image"] ?? "",         // CSUN-specific extension prop
+//         allDay:      e.datetype === "date",          // node-ical: "date" = all-day
+//         categories:  Array.isArray(e.categories)
+//                        ? e.categories
+//                        : (e.categories ? [e.categories] : []),
+//       }));
+//
+//     return Response.json(events, {
+//       headers: { "Cache-Control": "public, max-age=3600, stale-while-revalidate=300" },
+//     });
+//   }
+//
+// CLIENT USAGE (replace SRC_EVENTS import in EventsBanner.tsx):
+//   const { data: events } = useSWR<CalEvent[]>("/api/src-events", fetcher, {
+//     refreshInterval: 60 * 60 * 1000,   // re-fetch every hour, matches ICS TTL
+//   });
+//
+// FILTER RELEVANCE (keep only SRC / sport-club events):
+//   .filter((e) => e.categories.some((c) =>
+//     ["Student Recreation Center", "University Student Union"].includes(c)))
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKEND TODO B — Live class schedule for WeeklyClass[] (WeeklySchedule)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// SOURCE:  SRC scheduling platform (Fusion / IMLeagues / ActiveNet / 25Live)
+//          Check with SRC staff which system is in use and whether a REST or
+//          GraphQL API / export is available.
+//
+// RECOMMENDED APPROACH — scheduled nightly sync:
+//   1. Pull the week's class schedule from the SRC API or exported JSON/CSV.
+//   2. Store normalized rows in your DB:
+//        Table: src_gx_classes
+//          id          TEXT PRIMARY KEY,
+//          name        TEXT,
+//          instructor  TEXT,
+//          location    TEXT,
+//          day_of_week INT,   -- 0=Sun … 6=Sat
+//          start_time  TIME,  -- "07:00"
+//          end_time    TIME,  -- "07:50"
+//          category    TEXT,  -- cardio | strength | mind-body | aquatics | dance | hiit
+//          spots       INT,
+//          spots_left  INT,   -- UPDATE via live booking webhook if available
+//          updated_at  TIMESTAMPTZ DEFAULT NOW()
+//   3. Expose via:
+//        GET /api/src-schedule?week=2026-03-09
+//        Returns: WeeklyClass[] for the given week (or current week if no param)
+//
+// ROUTE HANDLER  →  /app/api/src-schedule/route.ts
+// ──────────────────────────────────────────────────
+//   export async function GET(req: Request) {
+//     const { searchParams } = new URL(req.url);
+//     const week = searchParams.get("week") ?? dayjs().startOf("week").format("YYYY-MM-DD");
+//
+//     // If provider has a direct API:
+//     const classes = await fetchFromSrcProvider(week);
+//
+//     // Or query your own DB (Supabase example):
+//     const { data } = await supabase
+//       .from("src_gx_classes")
+//       .select("*")
+//       .order("day_of_week")
+//       .order("start_time");
+//
+//     return Response.json(data, {
+//       headers: { "Cache-Control": "public, max-age=900, stale-while-revalidate=300" },
+//     });
+//   }
+//
+// CLIENT USAGE (replace WEEKLY_CLASSES import in WeeklySchedule.tsx):
+//   const [weekStart, setWeekStart] = React.useState(dayjs().startOf("week"));
+//   const { data: classes = [] } = useSWR<WeeklyClass[]>(
+//     `/api/src-schedule?week=${weekStart.format("YYYY-MM-DD")}`,
+//     fetcher
+//   );
+//   // Pass `classes` as a prop or lift into context so WeeklySchedule
+//   // re-fetches automatically when the user navigates to a different week.
+//
+// SPOTS REAL-TIME (optional):
+//   If the SRC booking system supports webhooks, listen for booking events:
+//     POST /api/webhooks/src-booking
+//     body: { classId, spotsLeft }
+//   Update the DB row and invalidate the SWR cache key.
 // ---------------------------------------------------------------------------
 
 export type CalEvent = {
@@ -104,9 +211,8 @@ export const SRC_EVENTS: CalEvent[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Mockup weekly GX class schedule — replace with live SRC Portal API data.
-// BACKEND TODO: Fetch from the SRC scheduling system (e.g. Fusion or IMLeagues)
-//   and map to this WeeklyClass shape.
+// WEEKLY_CLASSES mock data — replace with live /api/src-schedule response.
+// See BACKEND TODO B above for full implementation details.
 // ---------------------------------------------------------------------------
 
 export type WeeklyClass = {

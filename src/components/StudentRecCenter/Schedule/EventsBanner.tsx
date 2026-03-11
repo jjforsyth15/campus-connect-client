@@ -1,5 +1,51 @@
 "use client";
 
+// ══════════════════════════════════
+// BACKEND INTEGRATION — EventsBanner
+// ══════════════════════════════════
+//
+// DATA SOURCE:
+//   Currently imports SRC_EVENTS from the static mock in icsData.ts.
+//   Replace with a live SWR hook once /api/src-events is implemented:
+//
+//   import useSWR from "swr";
+//   const fetcher = (url: string) => fetch(url).then((r) => r.json());
+//
+//   // Inside the component:
+//   const { data: allEvents = [], isLoading } = useSWR<CalEvent[]>(
+//     "/api/src-events",
+//     fetcher,
+//     { refreshInterval: 60 * 60 * 1000 }   // re-poll every hour (matches ICS TTL)
+//   );
+//   // Then replace SRC_EVENTS with allEvents everywhere below.
+//
+// "ADD TO EVENTS" — handleAdd():
+//   POST /api/user-events
+//   Auth: require active session (student must be signed in)
+//   Body: {
+//     eventUid:    string,    // CalEvent.uid — stable ICS identifier
+//     summary:     string,
+//     dtstart:     string,    // ISO-8601
+//     dtend:       string,
+//     location:    string,
+//     url:         string,
+//   }
+//   On success → 201 { userEventId }
+//   On duplicate (same user + eventUid) → 409 — show "Already saved" state
+//
+//   Supabase table suggestion:
+//     user_saved_events (
+//       id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+//       user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+//       event_uid    TEXT,
+//       summary      TEXT,
+//       dtstart      TIMESTAMPTZ,
+//       dtend        TIMESTAMPTZ,
+//       saved_at     TIMESTAMPTZ DEFAULT NOW(),
+//       UNIQUE (user_id, event_uid)
+//     )
+// ═══════════════════════════════════════════════════════════════════════
+
 import * as React from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -32,6 +78,21 @@ export default function EventsBanner() {
   ];
 
   async function handleAdd(event: CalEvent) {
+    // BACKEND: Replace optimistic update below with real API call:
+    //   const res = await fetch("/api/user-events", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({
+    //       eventUid: event.uid,
+    //       summary:  event.summary,
+    //       dtstart:  event.dtstart,
+    //       dtend:    event.dtend,
+    //       location: event.location,
+    //       url:      event.url,
+    //     }),
+    //   });
+    //   if (res.status === 409) { setToast("Already saved!"); return; }
+    //   if (!res.ok) { setToast("Something went wrong — try again."); return; }
     setAdded((prev) => new Set(prev).add(event.uid));
     setToast(`"${event.summary}" added to your events!`);
   }

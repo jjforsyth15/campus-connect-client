@@ -1,5 +1,9 @@
 'use client';
 
+// GlassPanels.tsx — Pure UI component, no backend integration needed.
+// Used as a frosted-glass container in ClubsUI search/filter bar.
+// No data fetching or mutation occurs here.
+
 import React from 'react';
 
 interface GlassPanelProps {
