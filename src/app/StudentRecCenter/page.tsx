@@ -36,7 +36,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const quickStats = [
-  { icon: <AccessTimeIcon sx={{ fontSize: 18 }} />, label: "Open Today", value: "6am – 11pm" },
+  //BACKEND TODO:  change to dynamic daily update from API route.
+  { icon: <AccessTimeIcon sx={{ fontSize: 18 }} />, label: "Open Today", value: "6am – 11pm" }, 
   { icon: <PeopleIcon sx={{ fontSize: 18 }} />, label: "Members", value: "12,000+" },
   { icon: <EventIcon sx={{ fontSize: 18 }} />, label: "Weekly Classes", value: "80+" },
   { icon: <GroupIcon sx={{ fontSize: 18 }} />, label: "Sport Clubs", value: "40+" },
@@ -53,18 +54,18 @@ export default function StudentRecCenterHomePage() {
     });
 
   const featured = [
-    { title: "Yoga", blurb: "Guided flows for balance and flexibility. Mats available.", imageSrc: "/images/yoga.png" },
-    { title: "Boxing Conditioning", blurb: "Pads, bags, and footwork. High energy training.", imageSrc: "/images/boxing.png" },
-    { title: "Aquatics", blurb: "Lap swim and learn to swim options for all levels.", imageSrc: "/images/aquatics.png" },
-    { title: "Recovery Sessions", blurb: "Mobility, stretching, and tools to feel your best.", imageSrc: "/images/recovery.png" },
-    { title: "Private Instruction", blurb: "One on one coaching tailored to your goals.", imageSrc: "/images/private.png" },
-    { title: "First Aid & CPR", blurb: "Learn lifesaving skills with certified instruction.", imageSrc: "/images/firstaid.png" },
-    { title: "Reservations", blurb: "Reserve courts, lanes, and spaces with ease.", imageSrc: "/images/reservations.png" },
-    { title: "Group Exercise", blurb: "Join classes across strength, cardio, and mobility.", imageSrc: "/images/classes.png" },
-    { title: "Games Room", blurb: "Billiards, console gaming, lounge space to unwind.", imageSrc: "/images/games-room.png" },
-    { title: "Rock Wall", blurb: "Bouldering and top rope for all experience levels.", imageSrc: "/images/rock-wall.png" },
-    { title: "Outdoor Experiences", blurb: "Trips and skills clinics to explore the outdoors.", imageSrc: "/images/outdoor.png" },
-    { title: "Intramural Sports", blurb: "Leagues and tournaments for friendly competition.", imageSrc: "/images/intramurals.png" },
+    { title: "Yoga", blurb: "Guided flows for balance and flexibility. Mats available.", imageSrc: "/images/carouselSRC/yoga.png" },
+    { title: "Boxing Conditioning", blurb: "Pads, bags, and footwork. High energy training.", imageSrc: "/images/carouselSRC/boxing.png" },
+    { title: "Aquatics", blurb: "Lap swim and learn to swim options for all levels.", imageSrc: "/images/carouselSRC/aquatics.png" },
+    { title: "Recovery Sessions", blurb: "Mobility, stretching, and tools to feel your best.", imageSrc: "/images/carouselSRC/recovery.png" },
+    { title: "Private Instruction", blurb: "One on one coaching tailored to your goals.", imageSrc: "/images/carouselSRC/private.png" },
+    { title: "First Aid & CPR", blurb: "Learn lifesaving skills with certified instruction.", imageSrc: "/images/carouselSRC/firstaid.png" },
+    { title: "Reservations", blurb: "Reserve courts, lanes, and spaces with ease.", imageSrc: "/images/carouselSRC/reserve.png" },
+    { title: "Group Exercise", blurb: "Join classes across strength, cardio, and mobility.", imageSrc: "/images/carouselSRC/classes.png" },
+    { title: "Games Room", blurb: "Billiards, console gaming, lounge space to unwind.", imageSrc: "/images/carouselSRC/game-room.jpg" },
+    { title: "Rock Wall", blurb: "Bouldering and top rope for all experience levels.", imageSrc: "/images/carouselSRC/rock-wall.jpg" },
+    { title: "Outdoor Experiences", blurb: "Trips and skills clinics to explore the outdoors.", imageSrc: "/images/CarouselSRC/outdoor.png" },
+    { title: "Intramural Sports", blurb: "Leagues and tournaments for friendly competition.", imageSrc: "/images/carouselSRC/intramurals.jpg" },
   ].map((p) => ({
     ...p,
     onAddToEvents: async () => {

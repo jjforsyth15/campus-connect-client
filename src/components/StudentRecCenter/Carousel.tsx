@@ -5,14 +5,14 @@ import { motion } from "framer-motion";
 import { Box, IconButton, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import ProgramCard from "./ProgramCard";
+import ProgramCard from "@/components/StudentRecCenter/ProgramCard";
 
 export type Slide = {
   title: string;
   blurb: string;
   imageSrc: string;
-  onAddToEvents: () => void;
-  onInvite: () => void;
+  onAddToEvents: () => void; //mount endpoint handler here for adding to events to user's event calendar
+  onInvite: () => void; //mount endpoint handler here for inviting friends to the event, could be a modal that pops up with sharing options (email, social media, etc.)
 };
 
 const CARD_W = 32;

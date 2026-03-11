@@ -367,10 +367,6 @@ export default function NoteView({
 
           <Stack direction="row" spacing={1} alignItems="center">
             <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mr: 0.5 }}>
-              {/* BACKEND: The Upload button switches to the upload form (flip animation).
-                  Consider gating this behind authentication — only CSUN-authenticated
-                  users should be allowed to upload to a folder. Show a "Sign in to upload"
-                  prompt for unauthenticated visitors. */}
               <Button
                 variant={mode === "upload" ? "contained" : "outlined"}
                 onClick={() => setMode((m) => (m === "upload" ? "view" : "upload"))}
@@ -609,9 +605,7 @@ export default function NoteView({
                                       spacing={1}
                                       sx={{ flexWrap: "wrap" }}
                                     >
-                                      {/* BACKEND: it.uploadedBy is currently a self-reported
-                                          username parsed from the email. Once auth is live,
-                                          derive it from req.user.displayName or req.user.email. */}
+
                                       <Typography sx={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.52)" }}>
                                         {it.uploadedBy} · {formatRelative(it.uploadedAt)}
                                       </Typography>

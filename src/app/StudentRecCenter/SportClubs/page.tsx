@@ -28,7 +28,7 @@ export default function SportClubsPage() {
 
   return (
     <>
-      <style>{`.sc-card:hover .sc-img{transform:scale(1.09);}`}</style>
+      <style>{`.sc-card:hover .sc-img{transform:scale(1.09);} .sc-search::placeholder{color:rgba(255,255,255,0.5)!important;}`}</style>
 
       {/* Full-page aurora background — same as home */}
       <SrcAuroraBg />
@@ -183,7 +183,7 @@ export default function SportClubsPage() {
                   transform: "translateY(-50%)",
                   width: 14,
                   height: 14,
-                  color: "rgba(255,255,255,0.4)",
+                  color: "rgb(255, 255, 255)",
                   pointerEvents: "none",
                 }}
                 fill="none"
@@ -199,6 +199,7 @@ export default function SportClubsPage() {
               </svg>
               <input
                 type="text"
+                className="sc-search"
                 placeholder="Search clubs or tags…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -212,8 +213,9 @@ export default function SportClubsPage() {
                   borderRadius: 10,
                   fontSize: 12,
                   color: "#fff",
-                  background: "rgba(255,255,255,0.12)",
-                  border: `1px solid ${search ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)"}`,
+                  caretColor: "#fff",
+                  background: "rgba(146, 146, 146, 0.12)",
+                  border: `1px solid ${search ? "rgba(255,255,255,0.5)" : "rgba(255, 255, 255, 0.2)"}`,
                   outline: "none",
                   fontFamily: "inherit",
                   backdropFilter: "blur(8px)",

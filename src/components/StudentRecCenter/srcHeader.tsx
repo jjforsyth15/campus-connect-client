@@ -125,7 +125,7 @@ export default function Header({ value }: { value?: string }) {
 
           {/* Live badge */}
           <Chip
-            label="● OPEN NOW"
+            label="● OPEN NOW" //BACKEND TODO:  change to dynamic clock API route for real hours status. please and thankyou :)
             size="small"
             sx={{
               display: { xs: "none", lg: "flex" },
