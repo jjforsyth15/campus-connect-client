@@ -784,7 +784,7 @@ export default function SocialFeedPage() {
           <div style={{ padding:"20px 20px 16px", borderBottom:"1px solid var(--border-subtle)", flexShrink:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <Layers size={26} color="var(--csun-red)" strokeWidth={2} />
-              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:18, fontWeight:700, color:"var(--csun-red)", letterSpacing:"-0.3px", whiteSpace:"nowrap" }}>
+              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:17, fontWeight:800, color:"var(--csun-red)", letterSpacing:"-0.5px", whiteSpace:"nowrap" }}>
                 MatadorConnect
               </span>
             </div>
@@ -890,16 +890,16 @@ export default function SocialFeedPage() {
 
           {/* Trending at CSUN */}
           <div style={{ marginBottom:20, background:"var(--bg-surface)", borderRadius:12, border:"1px solid var(--border-subtle)", overflow:"hidden" }}>
-            <div style={{ padding:"14px 16px 10px", fontWeight:700, fontSize:15, borderBottom:"1px solid var(--border-subtle)" }}>Trending at CSUN</div>
+            <div style={{ padding:"14px 16px 10px", fontWeight:800, fontSize:16, letterSpacing:"-0.3px", color:"var(--text-primary)", borderBottom:"1px solid var(--border-subtle)" }}>Trending at CSUN</div>
             <div style={{ padding:"4px 0 6px" }}>
               {TRENDING.map(({ tag, count }) => (
                 <div key={tag} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 16px", cursor:"pointer", transition:"background 150ms" }}
                   onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <IcoHash />
+                  <span style={{ color:"var(--csun-red)", flexShrink:0 }}><IcoHash /></span>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:600 }}>{tag}</div>
+                    <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)" }}>{tag}</div>
                     <div style={{ fontSize:11, color:"var(--text-muted)" }}>{count}</div>
                   </div>
                 </div>
@@ -909,7 +909,7 @@ export default function SocialFeedPage() {
 
           {/* Campus Quick Links */}
           <div style={{ background:"var(--bg-surface)", borderRadius:12, border:"1px solid var(--border-subtle)", overflow:"hidden" }}>
-            <div style={{ padding:"14px 16px 10px", fontWeight:700, fontSize:15, borderBottom:"1px solid var(--border-subtle)" }}>Campus Quick Links</div>
+            <div style={{ padding:"14px 16px 10px", fontWeight:800, fontSize:16, letterSpacing:"-0.3px", color:"var(--text-primary)", borderBottom:"1px solid var(--border-subtle)" }}>Campus Quick Links</div>
             <div style={{ padding:"10px 12px 12px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
               {QUICK_LINKS.map(({ label, href, Icon, internal }) => (
                 <a key={label} href={href} {...(!internal && { target:"_blank", rel:"noreferrer" })}
@@ -922,7 +922,7 @@ export default function SocialFeedPage() {
           </div>
 
           <div style={{ marginTop:16, fontSize:11, color:"var(--text-muted)", textAlign:"center" }}>
-            Matador Connect &copy; 2025 &mdash; CSUN
+            Matador Connect &copy; 2026 &mdash; CSUN
           </div>
         </aside>
       </div>
