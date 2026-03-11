@@ -1,8 +1,15 @@
 // =============================================================================
-// components/SocialFeedPage.tsx  — v2 main shell
-// Matches the Campus Connect design: CC logo, SVG nav icons, feed tabs,
-// trending at CSUN with counts, Campus Quick Links, toast system.
-// NO emojis anywhere.
+// SocialFeedPage.tsx — Main shell for the Matador Connect social feed
+//
+// This is the top-level layout component. It renders a 3-column grid:
+//   Left  (220px) — sticky sidebar with logo, nav links, theme toggle, user info
+//   Center (flex) — main content area: feed, events, marketplace, profile, etc.
+//   Right  (300px) — sticky sidebar with search, trending hashtags, quick links
+//
+// Sub-pages (EventsPage, MarketplacePage, ProfilePage, etc.) are rendered inside
+// the center column via renderCenter(). The active page is tracked with `page` state.
+//
+// Feed tabs (For You / Campus / Clubs / Following) are only shown on the feed page.
 // =============================================================================
 "use client";
 
@@ -28,9 +35,13 @@ import SettingsPage          from "../pages/SettingsPage";
 const CURRENT_USER_ID       = "u-sarah";
 const CURRENT_USER_INITIALS = "SH";
 
+// The four tabs shown inside the main feed column
 type FeedTab = "for-you" | "campus" | "clubs" | "following";
 
-// SVG icons — no emojis
+// ── Inline SVG icon components ─────────────────────────────────────────────
+// These are small, self-contained SVGs so we avoid an extra icon-library import.
+// Each returns a single <svg> element sized for the nav sidebar (18×18) or
+// smaller utility uses (search: 15×15, hash: 13×13, sun/moon: 16×16).
 function IcoHome()     { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
 function IcoBell()     { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>; }
 function IcoBookmark() { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>; }
@@ -41,8 +52,11 @@ function IcoSettings() { return <svg width="18" height="18" fill="none" stroke="
 function IcoSun()      { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>; }
 function IcoMoon()     { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>; }
 function IcoSearch()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
+// Used as a prefix bullet in the Trending at CSUN section
 function IcoHash()     { return <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>; }
 
+// Left sidebar nav items — order here controls the order they appear in the sidebar.
+// Each item maps to an AppPage route and uses one of the inline SVG icons above.
 const NAV_ITEMS: { page: AppPage; Icon: () => React.ReactElement; label: string }[] = [
   { page: "feed",          Icon: IcoHome,     label: "Home"          },
   { page: "notifications", Icon: IcoBell,     label: "Notifications" },
@@ -53,6 +67,8 @@ const NAV_ITEMS: { page: AppPage; Icon: () => React.ReactElement; label: string 
   { page: "settings",      Icon: IcoSettings, label: "Settings"      },
 ];
 
+// Trending hashtags shown in the right sidebar.
+// These are real CSUN topics — update counts/labels each semester as needed.
 const TRENDING = [
   { tag: "FinalsWeek",          count: "2.1K posts"              },
   { tag: "SpringCareerFair",    count: "Trending · Career"       },
@@ -64,7 +80,8 @@ const TRENDING = [
   { tag: "HousingApplications", count: "Trending · Student Life" },
 ];
 
-// SVG icons for Quick Links — matching the screenshot design
+// SVG icons used in the Campus Quick Links grid (right sidebar).
+// Kept separate from the nav icons above because they use a thinner stroke (1.8).
 function IcoPhone()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.1 6.1l.72-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>; }
 function IcoBookOpen(){ return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>; }
 function IcoClock()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
@@ -72,6 +89,9 @@ function IcoGradCap() { return <svg width="15" height="15" fill="none" stroke="c
 function IcoCoffee()  { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>; }
 function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }
 
+// Quick links shown in the right sidebar grid.
+// `internal: true` means it's a Next.js route inside this app (uses href without target="_blank").
+// `internal: false` opens in a new tab (external CSUN website).
 const QUICK_LINKS = [
   { label: "SRC",     href: "/ToroSRC",                      Icon: IcoPhone,    internal: true  },
   { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
@@ -81,6 +101,11 @@ const QUICK_LINKS = [
   { label: "Parking", href: "https://www.csun.edu/parking",  Icon: IcoTruck,    internal: false },
 ];
 
+// Search index powering the right-sidebar search bar.
+// When a user types, this array is filtered and clicking a result calls navTo(page).
+// Organized into: Pages, Hashtags, Campus Resources, and Clubs & Orgs.
+// Note: hashtag/resource entries navigate to the closest relevant page
+// (e.g. hashtags go to "feed", calendar goes to "events").
 const SEARCH_INDEX = [
   // Pages
   { label: "Home",                   page: "feed"          as AppPage },
@@ -133,7 +158,9 @@ type ToastType = "success" | "error" | "info";
 interface Toast { id: number; msg: string; type: ToastType; }
 
 // ── FollowingPeopleView ────────────────────────────────────────────────────────
-// Extracted as a proper component to avoid calling useState inside a conditional.
+// Rendered when the user clicks the "Following" feed tab.
+// Shows all teammates (team members for this project) with a follow/unfollow toggle.
+// Follow state is local — it's not persisted or synced to the backend in this version.
 const FOLLOWING_USERS = [
   { id:"u1", name:"Sara Hussein",    role:"Student",  initials:"SH" },
   { id:"u2", name:"Justin Ayson",    role:"Student",  initials:"JA" },
@@ -191,8 +218,9 @@ function FollowingPeopleView() {
 }
 
 // ── ClubsTabView ──────────────────────────────────────────────────────────────
-// Shown when the user clicks the Clubs feed tab. Lists CSUN club highlights
-// and links to the full clubs page (Vram's /clubs route).
+// Rendered when the user clicks the "Clubs" feed tab.
+// Shows a preview of popular CSUN clubs and links to the full clubs page (/clubs),
+// which is managed by a separate teammate's module.
 const CLUBS_PREVIEW = [
   { id:"acm",  name:"ACM @ CSUN",       category:"Computer Science", tagline:"Software, workshops, and networking." },
   { id:"ieee", name:"IEEE Student Branch", category:"Engineering",   tagline:"Projects, competitions, and speaker events." },
@@ -245,11 +273,13 @@ function ClubsTabView() {
   );
 }
 
-// ── CampusResourcesView ────────────────────────────────────────────────────
-// Shown when the user clicks the Campus feed tab.
-// A curated student resource hub — links to the most useful CSUN services.
+// ── CampusResourcesView ────────────────────────────────────────────────────────
+// Rendered when the user clicks the "Campus" feed tab.
+// A curated hub linking students to the most commonly needed CSUN services.
+// Each resource has a color-coded icon, category badge, title, description, and URL.
+// All links open in a new tab (external csun.edu pages).
 
-// SVG icons for campus resources — keyed by resource id
+// SVG icons for each campus resource card, keyed by resource `id`.
 const RESOURCE_ICONS: Record<string, JSX.Element> = {
   "academic-cal": (
     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -424,7 +454,9 @@ function CampusResourcesView() {
 }
 
 
-// Shown when clicking another user's name in a post.
+// Shown when clicking another user's name/avatar in a post.
+// Renders a mini profile header + all posts by that user.
+// The `onBack` button returns to the main feed.
 function UserProfileView({
   userId,
   posts,
@@ -507,7 +539,10 @@ export default function SocialFeedPage() {
   } = useFeed();
   const { unreadCount } = useNotifications();
 
-  // ── Current user from localStorage (so each teammate sees their own name) ──
+  // ── Read logged-in user from localStorage ─────────────────────────────────
+  // The backend stores the authenticated user as a JSON string under the key "user".
+  // We parse it once on mount to get the name, initials, and role for the sidebar.
+  // Falls back to a default ("Sara Hussein") if nothing is stored — e.g. on first load.
   const [currentUserInfo, setCurrentUserInfo] = useState<{ id: string; initials: string; name: string; role: string }>({
     id: CURRENT_USER_ID, initials: "?", name: "Loading…", role: "Student",
   });
@@ -526,7 +561,7 @@ export default function SocialFeedPage() {
           role:     (u.userType as string) === "faculty" ? "Faculty" : "Student",
         });
       } else {
-        // No user in storage — guest fallback
+        // No user found in localStorage — use a safe guest fallback
         setCurrentUserInfo({ id: CURRENT_USER_ID, initials: "SH", name: "Sara Hussein", role: "Student" });
       }
     } catch {
@@ -604,8 +639,7 @@ export default function SocialFeedPage() {
       "for-you": "For You", "campus": "Campus", "clubs": "Clubs", "following": "Following",
     };
 
-    // Filter posts per tab (for-you only — other tabs handled above)
-    // Also exclude posts from blocked users
+  // Filter posts per tab — also hides posts from users the current user has blocked
     const filteredPosts = posts.filter(p => !blockedIds.has(p.User.id));
 
     const tabs = (
@@ -627,7 +661,7 @@ export default function SocialFeedPage() {
       </div>
     );
 
-    // ── Following tab: dedicated people view ────────────────────────────────
+    // ── Following tab: dedicated people-list view ────────────────────────────
     if (feedTab === "following") {
       return (
         <>
@@ -637,7 +671,7 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Campus tab: student resource hub ─────────────────────────────────────
+    // ── Campus tab: student resource hub ────────────────────────────────────
     if (feedTab === "campus") {
       return (
         <>
@@ -647,7 +681,7 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Clubs tab: dedicated clubs view ─────────────────────────────────────
+    // ── Clubs tab: clubs directory preview ──────────────────────────────────
     if (feedTab === "clubs") {
       return (
         <>
@@ -657,7 +691,8 @@ export default function SocialFeedPage() {
       );
     }
 
-    // ── Normal post feed (for-you only now; campus/clubs/following handled above) ──
+    // ── For You tab: main post feed ──────────────────────────────────────────
+    // Campus / Clubs / Following tabs are handled above with early returns.
     return (
       <>
         {tabs}
@@ -697,7 +732,8 @@ export default function SocialFeedPage() {
   }
 
   function renderCenter() {
-    // Show another user's profile when clicked from a post
+    // If the user clicked on someone else's name in a post, show that user's mini-profile.
+    // This takes priority over the page-level routing below.
     if (viewedUserId !== null && page === "feed") {
       return (
         <UserProfileView
@@ -722,7 +758,8 @@ export default function SocialFeedPage() {
       case "marketplace":   return <MarketplacePage onToast={showToast} />;
       case "profile":       return <ProfilePage currentUserId={currentUserInfo.id} posts={posts} savedPostIds={savedPostIds} onLike={handleLike} onDelete={handleDelete} onSave={handleSave} onRepost={handleRepost} onNavigateSettings={() => navTo("settings")} />;
       case "settings": {
-        // Build the blocked users list from posts data (users whose posts we've seen)
+        // Build the blocked-users list by looking up each blocked ID in the posts array.
+        // This avoids a separate API call — we already have the user data from useFeed.
         const blockedUsersList = Array.from(blockedIds).map(uid => {
           const user = posts.find(p => p.User.id === uid)?.User;
           const name = user ? `${user.firstName} ${user.lastName}` : uid;
