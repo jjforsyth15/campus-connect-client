@@ -93,7 +93,7 @@ function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="c
 // `internal: true` means it's a Next.js route inside this app (uses href without target="_blank").
 // `internal: false` opens in a new tab (external CSUN website).
 const QUICK_LINKS = [
-  { label: "SRC",     href: "/ToroSRC",                     Icon: IcoPhone,    internal: true  },
+  { label: "SRC",     href: "/StudentRecCenter",             Icon: IcoPhone,    internal: true  },
   { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
   { label: "SOLAR",   href: "https://www.csun.edu/it/software-services/services/solar", Icon: IcoClock, internal: false },
   { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap,  internal: false },
@@ -102,41 +102,32 @@ const QUICK_LINKS = [
 ];
 
 // Search index powering the right-sidebar search bar.
-// When a user types, this array is filtered and clicking a result calls navTo(page)
-// for in-app pages, or opens an external link for CSUN resources.
-// Only includes destinations that actually exist and work — no dead ends.
-const SEARCH_INDEX = [
-  // ── In-app pages (navigate within the social feed shell) ──────────────────
-  { label: "Home",              page: "feed"          as AppPage },
-  { label: "Campus Events",     page: "events"        as AppPage },
-  { label: "Marketplace",       page: "marketplace"   as AppPage },
-  { label: "Notifications",     page: "notifications" as AppPage },
-  { label: "My Profile",        page: "profile"       as AppPage },
-  { label: "Saved Posts",       page: "saved"         as AppPage },
-  { label: "Settings",          page: "settings"      as AppPage },
-  // ── Feed tabs (navigate to feed then open the right tab) ──────────────────
-  { label: "Campus Resources",  page: "feed"          as AppPage },
-  { label: "Student Resources", page: "feed"          as AppPage },
-  { label: "Clubs",             page: "feed"          as AppPage },
-  { label: "Following",         page: "feed"          as AppPage },
-  { label: "Study Groups",      page: "feed"          as AppPage },
-  // ── Campus Resource links (open csun.edu in new tab via Quick Links) ──────
-  { label: "Academic Calendar", page: "events"        as AppPage },
-  { label: "Financial Aid",     page: "feed"          as AppPage },
-  { label: "Student Health Center", page: "feed"      as AppPage },
-  { label: "Career Center",     page: "feed"          as AppPage },
-  { label: "Oviatt Library",    page: "feed"          as AppPage },
-  { label: "Student Housing",   page: "feed"          as AppPage },
-  { label: "IT Help Desk",      page: "settings"      as AppPage },
-  { label: "Tutoring Center",   page: "feed"          as AppPage },
-  { label: "Disability Resources", page: "feed"       as AppPage },
-  { label: "SOLAR",             page: "settings"      as AppPage },
-  { label: "Canvas",            page: "feed"          as AppPage },
-  { label: "Library",           page: "feed"          as AppPage },
-  { label: "Dining",            page: "feed"          as AppPage },
-  { label: "Parking",           page: "feed"          as AppPage },
-  { label: "Student Rec Center", page: "feed"         as AppPage },
-  { label: "SRC",               page: "feed"          as AppPage },
+// When a user types, this array is filtered and clicking a result either calls navTo(page)
+// for in-app social-feed pages, navigates to another app route (internal), or opens an
+// external link in a new tab. Only real, working destinations are included.
+const SEARCH_INDEX: Array<{ label: string; page?: AppPage; href?: string; internal?: boolean }> = [
+  // ── In-app social feed pages ──────────────────────────────────────────────
+  { label: "Home",               page: "feed"          },
+  { label: "Campus Events",      page: "events"        },
+  { label: "Marketplace",        page: "marketplace"   },
+  { label: "Notifications",      page: "notifications" },
+  { label: "My Profile",         page: "profile"       },
+  { label: "Saved Posts",        page: "saved"         },
+  { label: "Settings",           page: "settings"      },
+  // ── Other campus-connect pages ────────────────────────────────────────────
+  { label: "Student Rec Center", href: "/StudentRecCenter", internal: true },
+  { label: "SRC",                href: "/StudentRecCenter", internal: true },
+  { label: "Clubs",              href: "/clubs",            internal: true },
+  { label: "Academics",          href: "/academics",        internal: true },
+  { label: "Messages",           href: "/messages",         internal: true },
+  { label: "Dashboard",          href: "/dashboard",        internal: true },
+  // ── External CSUN resources (open in new tab) ─────────────────────────────
+  { label: "Library",            href: "https://library.csun.edu",           internal: false },
+  { label: "Oviatt Library",     href: "https://library.csun.edu",           internal: false },
+  { label: "SOLAR",              href: "https://www.csun.edu/it/software-services/services/solar", internal: false },
+  { label: "Canvas",             href: "https://canvas.csun.edu",            internal: false },
+  { label: "Dining",             href: "https://dineoncampus.com/CSUN",      internal: false },
+  { label: "Parking",            href: "https://www.csun.edu/parking",       internal: false },
 ];
 
 type ToastType = "success" | "error" | "info";
@@ -855,7 +846,7 @@ export default function SocialFeedPage() {
                   if (!filteredSearch.length) return;
                   if (e.key === "ArrowDown") { e.preventDefault(); setSearchIdx(i => Math.min(i + 1, filteredSearch.length - 1)); }
                   else if (e.key === "ArrowUp") { e.preventDefault(); setSearchIdx(i => Math.max(i - 1, 0)); }
-                  else if (e.key === "Enter" && searchIdx >= 0) { e.preventDefault(); navTo(filteredSearch[searchIdx].page); setSearch(""); }
+                  else if (e.key === "Enter" && searchIdx >= 0) { e.preventDefault(); const _si = filteredSearch[searchIdx]; if (_si.href) { _si.internal ? (window.location.href = _si.href) : window.open(_si.href, "_blank", "noreferrer"); } else if (_si.page) { navTo(_si.page); } setSearch(""); }
                   else if (e.key === "Escape") { setFocused(false); setSearchIdx(-1); }
                 }}
                 style={{ flex:1, border:"none", outline:"none", background:"transparent", color:"var(--text-primary)", fontSize:13 }}
@@ -864,7 +855,7 @@ export default function SocialFeedPage() {
             {searchFocused && filteredSearch.length > 0 && (
               <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, right:0, background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-md)", zIndex:50, overflow:"hidden" }}>
                 {filteredSearch.map((r, idx) => (
-                  <button key={r.label} onMouseDown={() => { navTo(r.page); setSearch(""); }}
+                  <button key={r.label} onMouseDown={() => { if (r.href) { r.internal ? (window.location.href = r.href) : window.open(r.href, "_blank", "noreferrer"); } else if (r.page) { navTo(r.page); } setSearch(""); }}
                     style={{ width:"100%", padding:"10px 14px", border:"none", background: idx === searchIdx ? "var(--bg-hover)" : "transparent", color:"var(--text-primary)", fontSize:13, textAlign:"left", cursor:"pointer", transition:"background 100ms" }}
                     onMouseEnter={() => setSearchIdx(idx)}
                   >{r.label}</button>
