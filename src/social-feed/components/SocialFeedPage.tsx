@@ -537,11 +537,11 @@ export default function SocialFeedPage() {
           role:     (u.userType as string) === "faculty" ? "Faculty" : "Student",
         });
       } else {
-        // No user found in localStorage — use a safe guest fallback
-        setCurrentUserInfo({ id: CURRENT_USER_ID, initials: "SH", name: "Sara Hussein", role: "Student" });
+        // No user found in localStorage — use a generic guest fallback
+        setCurrentUserInfo({ id: "guest-user", initials: "?", name: "Student", role: "Student" });
       }
     } catch {
-      setCurrentUserInfo({ id: CURRENT_USER_ID, initials: "SH", name: "Sara Hussein", role: "Student" });
+      setCurrentUserInfo({ id: "guest-user", initials: "?", name: "Student", role: "Student" });
     }
   }, []);
 
@@ -583,7 +583,7 @@ export default function SocialFeedPage() {
   }, []);
 
   const handleViewProfile = useCallback((uid: string) => {
-    if (uid === CURRENT_USER_ID) {
+    if (uid === currentUserInfo.id) {
       setViewedUserId(null);
       setPage("profile");
     } else {
@@ -591,7 +591,7 @@ export default function SocialFeedPage() {
       setPage("feed");
     }
     setSearch("");
-  }, []);
+  }, [currentUserInfo.id]);
 
   const handleBlock = useCallback((uid: string) => {
     setBlockedIds(prev => {
@@ -619,7 +619,7 @@ export default function SocialFeedPage() {
     const filteredPosts = posts.filter(p => !blockedIds.has(p.User.id));
 
     const tabs = (
-      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10, borderTop: isDark ? "none" : "3px solid rgba(168,5,50,0.55)" }}>
+      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background: isDark ? "var(--bg-surface)" : "rgba(255,255,255,0.13)", backdropFilter: isDark ? "none" : "blur(10px)", position:"sticky", top:0, zIndex:10, borderTop: isDark ? "none" : "1px solid rgba(255,255,255,0.2)" }}>
         {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
           const active = feedTab === tab;
           return (
@@ -751,7 +751,7 @@ export default function SocialFeedPage() {
   }
 
   return (
-    <div style={{ minHeight:"100vh", background:"var(--bg-base)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms" }}>
+    <div style={{ minHeight:"100vh", background: isDark ? "var(--bg-base)" : "linear-gradient(160deg, #A80532 0%, #6B011F 100%)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms", ...(!isDark && { ['--text-primary' as string]:'#ffffff', ['--text-secondary' as string]:'rgba(255,255,255,0.85)', ['--text-muted' as string]:'rgba(255,255,255,0.60)', ['--bg-surface' as string]:'rgba(255,255,255,0.10)', ['--bg-elevated' as string]:'rgba(255,255,255,0.17)', ['--bg-hover' as string]:'rgba(255,255,255,0.22)', ['--bg-base' as string]:'transparent', ['--bg-card' as string]:'rgba(255,255,255,0.10)', ['--bg-input' as string]:'rgba(255,255,255,0.12)', ['--border-subtle' as string]:'rgba(255,255,255,0.18)', ['--border-medium' as string]:'rgba(255,255,255,0.30)', ['--csun-red' as string]:'#ff9999', ['--csun-red-glow' as string]:'rgba(255,153,153,0.28)', ['--info' as string]:'#60a5fa' }) } as React.CSSProperties}>
       <div style={{ display:"grid", gridTemplateColumns:"220px 1fr 300px", minHeight:"100vh", width:"100%" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────── */}
@@ -823,14 +823,14 @@ export default function SocialFeedPage() {
         </nav>
 
         {/* ── Centre ──────────────────────────────────────────────────── */}
-        <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60, background: isDark ? "transparent" : "var(--bg-base)" }}>
+        <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60, background: "transparent" }}>
           <div style={{ maxWidth:680, width:"100%", margin:"0 auto" }}>
             {renderCenter()}
           </div>
         </main>
 
         {/* ── Right sidebar ────────────────────────────────────────────── */}
-        <aside style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", padding:"20px 16px", background:"var(--bg-surface)" }}>
+        <aside style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", padding:"20px 16px", background: isDark ? "var(--bg-surface)" : "transparent" }}>
           {/* Search */}
           <div style={{ marginBottom:20, position:"relative" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, background:"var(--bg-elevated)", border:`1px solid ${searchFocused ? "var(--csun-red)" : "var(--border-subtle)"}`, borderRadius:99, padding:"9px 14px", boxShadow: searchFocused ? "0 0 0 3px var(--csun-red-glow)" : "none", transition:"border-color 150ms" }}>
