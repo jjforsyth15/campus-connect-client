@@ -619,7 +619,7 @@ export default function SocialFeedPage() {
     const filteredPosts = posts.filter(p => !blockedIds.has(p.User.id));
 
     const tabs = (
-      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background: isDark ? "var(--bg-surface)" : "rgba(255,255,255,0.13)", backdropFilter: isDark ? "none" : "blur(10px)", position:"sticky", top:0, zIndex:10, borderTop: isDark ? "none" : "1px solid rgba(255,255,255,0.2)" }}>
+      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--bg-surface)", backdropFilter: isDark ? "blur(10px)" : "none", position:"sticky", top:0, zIndex:10, borderTop: isDark ? "1px solid rgba(255,255,255,0.2)" : "none" }}>
         {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
           const active = feedTab === tab;
           return (
@@ -751,16 +751,16 @@ export default function SocialFeedPage() {
   }
 
   return (
-    <div style={{ minHeight:"100vh", background: isDark ? "var(--bg-base)" : "linear-gradient(160deg, #A80532 0%, #6B011F 100%)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms", ...(!isDark && { ['--text-primary' as string]:'#ffffff', ['--text-secondary' as string]:'rgba(255,255,255,0.85)', ['--text-muted' as string]:'rgba(255,255,255,0.60)', ['--bg-surface' as string]:'rgba(255,255,255,0.10)', ['--bg-elevated' as string]:'rgba(255,255,255,0.17)', ['--bg-hover' as string]:'rgba(255,255,255,0.22)', ['--bg-base' as string]:'transparent', ['--bg-card' as string]:'rgba(255,255,255,0.10)', ['--bg-input' as string]:'rgba(255,255,255,0.12)', ['--border-subtle' as string]:'rgba(255,255,255,0.18)', ['--border-medium' as string]:'rgba(255,255,255,0.30)', ['--csun-red' as string]:'#ff9999', ['--csun-red-glow' as string]:'rgba(255,153,153,0.28)', ['--info' as string]:'#60a5fa' }) } as React.CSSProperties}>
+    <div style={{ minHeight:"100vh", background: isDark ? "linear-gradient(160deg, #A80532 0%, #6B011F 100%)" : "var(--bg-base)", color:"var(--text-primary)", fontFamily:"'Inter',system-ui,sans-serif", transition:"background 250ms,color 250ms", ...(isDark && { ['--text-primary' as string]:'#ffffff', ['--text-secondary' as string]:'rgba(255,255,255,0.85)', ['--text-muted' as string]:'rgba(255,255,255,0.55)', ['--bg-surface' as string]:'rgba(255,255,255,0.10)', ['--bg-elevated' as string]:'rgba(255,255,255,0.17)', ['--bg-hover' as string]:'rgba(255,255,255,0.22)', ['--bg-base' as string]:'transparent', ['--bg-card' as string]:'rgba(255,255,255,0.10)', ['--bg-input' as string]:'rgba(255,255,255,0.12)', ['--bg-popup' as string]:'#4D0018', ['--border-subtle' as string]:'rgba(255,255,255,0.18)', ['--border-medium' as string]:'rgba(255,255,255,0.30)', ['--csun-red' as string]:'#ff8fab', ['--csun-red-glow' as string]:'rgba(255,143,171,0.28)', ['--info' as string]:'#60a5fa', ['--danger' as string]:'#ff8fab', ['--danger-dim' as string]:'rgba(255,143,171,0.18)', ['--success' as string]:'#4ade80', ['--success-dim' as string]:'rgba(74,222,128,0.18)' }) } as React.CSSProperties}>
       <div style={{ display:"grid", gridTemplateColumns:"220px 1fr 300px", minHeight:"100vh", width:"100%" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────── */}
-        <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(168,5,50,0.25)", background: isDark ? "var(--bg-surface)" : "linear-gradient(160deg, #A80532 0%, #6B011F 100%)", display:"flex", flexDirection:"column" }}>
+        <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight: isDark ? "1px solid rgba(168,5,50,0.25)" : "1px solid var(--border-subtle)", background: isDark ? "linear-gradient(160deg, #A80532 0%, #6B011F 100%)" : "var(--bg-surface)", display:"flex", flexDirection:"column" }}>
           {/* Logo */}
-          <div style={{ padding:"20px 20px 16px", borderBottom: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(255,255,255,0.15)", flexShrink:0 }}>
+          <div style={{ padding:"20px 20px 16px", borderBottom: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid var(--border-subtle)", flexShrink:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <Layers size={26} color={isDark ? "var(--csun-red)" : "#fff"} strokeWidth={2} />
-              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:17, fontWeight:800, color: isDark ? "var(--csun-red)" : "#fff", letterSpacing:"-0.5px", whiteSpace:"nowrap" }}>
+              <Layers size={26} color={isDark ? "#fff" : "var(--csun-red)"} strokeWidth={2} />
+              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:17, fontWeight:800, color: isDark ? "#fff" : "var(--csun-red)", letterSpacing:"-0.5px", whiteSpace:"nowrap" }}>
                 MatadorConnect
               </span>
             </div>
@@ -774,19 +774,19 @@ export default function SocialFeedPage() {
                 <button key={p} onClick={() => navTo(p)} style={{
                   width:"100%", display:"flex", alignItems:"center", gap:11,
                   padding:"10px 12px", borderRadius:10, border:"none",
-                  background: active ? (isDark ? "var(--csun-red)" : "rgba(255,255,255,0.2)") : "transparent",
-                  color: active ? "#fff" : (isDark ? "var(--text-secondary)" : "rgba(255,255,255,0.85)"),
+                  background: active ? (isDark ? "rgba(255,255,255,0.2)" : "var(--csun-red)") : "transparent",
+                  color: active ? "#fff" : (isDark ? "rgba(255,255,255,0.85)" : "var(--text-secondary)"),
                   fontSize:14, fontWeight: active ? 600 : 400,
                   cursor:"pointer", textAlign:"left", marginBottom:2,
                   transition:"background 150ms, color 150ms",
                 }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)"; }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "var(--bg-hover)"; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                 >
                   <Icon />
                   <span style={{ flex:1 }}>{label}</span>
                   {p === "notifications" && unreadCount > 0 && (
-                    <span style={{ minWidth:18, height:18, borderRadius:99, background: active ? "rgba(255,255,255,.35)" : "var(--csun-red)", color:"#fff", fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 5px" }}>
+                    <span style={{ minWidth:18, height:18, borderRadius:99, background: active ? "rgba(255,255,255,.35)" : (isDark ? "rgba(255,255,255,0.9)" : "var(--csun-red)"), color: isDark ? "var(--csun-red)" : "#fff", fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 5px" }}>
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
@@ -796,9 +796,9 @@ export default function SocialFeedPage() {
           </div>
 
           {/* Bottom: theme + user */}
-          <div style={{ borderTop: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(255,255,255,0.15)", padding:"10px 10px 14px", flexShrink:0 }}>
-            <button onClick={toggleTheme} style={{ width:"100%", display:"flex", alignItems:"center", gap:11, padding:"10px 12px", borderRadius:10, border:"none", background:"transparent", color: isDark ? "var(--text-muted)" : "rgba(255,255,255,0.8)", fontSize:14, cursor:"pointer", transition:"background 150ms" }}
-              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)")}
+          <div style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid var(--border-subtle)", padding:"10px 10px 14px", flexShrink:0 }}>
+            <button onClick={toggleTheme} style={{ width:"100%", display:"flex", alignItems:"center", gap:11, padding:"10px 12px", borderRadius:10, border:"none", background:"transparent", color: isDark ? "rgba(255,255,255,0.8)" : "var(--text-muted)", fontSize:14, cursor:"pointer", transition:"background 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "var(--bg-hover)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               {isDark ? <IcoSun /> : <IcoMoon />}
@@ -808,15 +808,15 @@ export default function SocialFeedPage() {
               onClick={() => navTo("profile")}
               title="Go to your profile"
               style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, cursor:"pointer", transition:"background 150ms" }}
-              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)")}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "var(--bg-hover)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               <div className="avatar" style={{ width:32, height:32, fontSize:12, flexShrink:0 }}>
                 <span className="avatar-initials">{currentUserInfo.initials}</span>
               </div>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color: isDark ? "var(--text-primary)" : "#fff", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{currentUserInfo.name}</div>
-                <div style={{ fontSize:11, color: isDark ? "var(--text-muted)" : "rgba(255,255,255,0.7)" }}>{currentUserInfo.role}</div>
+                <div style={{ fontSize:13, fontWeight:600, color: isDark ? "#fff" : "var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{currentUserInfo.name}</div>
+                <div style={{ fontSize:11, color: isDark ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>{currentUserInfo.role}</div>
               </div>
             </div>
           </div>
@@ -830,7 +830,7 @@ export default function SocialFeedPage() {
         </main>
 
         {/* ── Right sidebar ────────────────────────────────────────────── */}
-        <aside style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", padding:"20px 16px", background: isDark ? "var(--bg-surface)" : "transparent" }}>
+        <aside style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", padding:"20px 16px", background: isDark ? "transparent" : "var(--bg-surface)" }}>
           {/* Search */}
           <div style={{ marginBottom:20, position:"relative" }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, background:"var(--bg-elevated)", border:`1px solid ${searchFocused ? "var(--csun-red)" : "var(--border-subtle)"}`, borderRadius:99, padding:"9px 14px", boxShadow: searchFocused ? "0 0 0 3px var(--csun-red-glow)" : "none", transition:"border-color 150ms" }}>
@@ -853,7 +853,7 @@ export default function SocialFeedPage() {
               />
             </div>
             {searchFocused && filteredSearch.length > 0 && (
-              <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, right:0, background:"var(--bg-surface)", border:"1px solid var(--border-subtle)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-md)", zIndex:50, overflow:"hidden" }}>
+              <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, right:0, background:"var(--bg-popup, var(--bg-surface))", border:"1px solid var(--border-medium)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-md)", zIndex:50, overflow:"hidden" }}>
                 {filteredSearch.map((r, idx) => (
                   <button key={r.label} onMouseDown={() => { if (r.href) { r.internal ? (window.location.href = r.href) : window.open(r.href, "_blank", "noreferrer"); } else if (r.page) { navTo(r.page); } setSearch(""); }}
                     style={{ width:"100%", padding:"10px 14px", border:"none", background: idx === searchIdx ? "var(--bg-hover)" : "transparent", color:"var(--text-primary)", fontSize:13, textAlign:"left", cursor:"pointer", transition:"background 100ms" }}

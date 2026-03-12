@@ -145,7 +145,7 @@ export function PostCard({ post, currentUserId, isSaved, onLike, onSave, onDelet
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
           </button>
           {menuOpen && (
-            <div style={{ position:"absolute", right:0, top:"110%", background:"var(--bg-surface)", border:"1px solid var(--border-medium)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-panel)", zIndex:50, minWidth:160, animation:"scaleIn 150ms ease both", overflow:"hidden" }}>
+            <div style={{ position:"absolute", right:0, top:"110%", background:"var(--bg-popup, #fff)", border:"1px solid var(--border-medium)", borderRadius:"var(--radius-md)", boxShadow:"var(--shadow-panel)", zIndex:50, minWidth:160, animation:"scaleIn 150ms ease both", overflow:"hidden" }}>
               <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/social#${post.id}`); setMenuOpen(false); }} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--text-secondary)", fontSize:13, cursor:"pointer", transition:"background 150ms" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 Copy link
               </button>

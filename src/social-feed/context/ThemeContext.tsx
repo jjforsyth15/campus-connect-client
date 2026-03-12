@@ -25,20 +25,21 @@ const Ctx = createContext<ThemeCtx>({
 });
 
 // ── CSS custom properties ─────────────────────────────────────────────────────
-// Light palette
+// Light palette — clean neutral white/grey
 const LIGHT_VARS: Record<string, string> = {
   "--csun-red":         "#A80532",
   "--csun-red-dark":    "#7B0124",
   "--csun-red-dim":     "rgba(168,5,50,0.08)",
   "--csun-red-glow":    "rgba(168,5,50,0.25)",
-  "--bg-base":          "#F0E3E8",          // deep warm blush — CSUN red page background
-  "--bg-surface":       "#F9E8EE",          // warm rose surface — replaces stark white
-  "--bg-elevated":      "#FDF1F4",          // subtly warm elevated surface
-  "--bg-hover":         "#EDD0D8",          // warm crimson hover
-  "--bg-input":         "#F4DDE4",          // warm input background
-  "--header-blur":      "rgba(240,227,232,0.90)",
-  "--border-subtle":    "#E3C4CD",          // warm rose border
-  "--border-medium":    "#CCA3B0",          // stronger warm rose border
+  "--bg-base":          "#F5F7FA",
+  "--bg-surface":       "#FFFFFF",
+  "--bg-elevated":      "#FFFFFF",
+  "--bg-hover":         "#F0F2F6",
+  "--bg-input":         "#EEF0F5",
+  "--bg-popup":         "#FFFFFF",
+  "--header-blur":      "rgba(245,247,250,0.92)",
+  "--border-subtle":    "#E2E5EB",
+  "--border-medium":    "#CDD1DA",
   "--text-primary":     "#0F1117",
   "--text-secondary":   "#525A6A",
   "--text-muted":       "#8C95A3",
@@ -63,29 +64,30 @@ const LIGHT_VARS: Record<string, string> = {
   "--font-ui":          "'DM Sans', system-ui, sans-serif",
 };
 
-// Dark palette — charcoal backgrounds + CSUN crimson accents
+// Dark palette — CSUN crimson red backgrounds (the beautiful red sidebar look)
 const DARK_VARS: Record<string, string> = {
-  "--csun-red":         "#CF1047",
-  "--csun-red-dark":    "#A80532",
-  "--csun-red-dim":     "rgba(207,16,71,0.15)",
-  "--csun-red-glow":    "rgba(207,16,71,0.30)",
-  "--bg-base":          "#1A1217",          // very dark charcoal with warm red tint
-  "--bg-surface":       "#231820",          // card surface — deep warm dark
-  "--bg-elevated":      "#2C1F25",          // elevated — slightly lighter
-  "--bg-hover":         "#341E27",          // hover state — subtle crimson tint
-  "--bg-input":         "#291A20",          // input background
-  "--header-blur":      "rgba(26,18,23,0.88)",
-  "--border-subtle":    "#3D2630",          // subtle border with red warmth
-  "--border-medium":    "#4E2E3A",          // stronger border
-  "--text-primary":     "#F5EFF1",          // off-white with warm tint
-  "--text-secondary":   "#C2A8B2",          // warm grey
-  "--text-muted":       "#7A5C66",          // muted warm grey
-  "--success":          "#22C55E",
-  "--success-dim":      "rgba(34,197,94,0.12)",
-  "--info":             "#60A5FA",
-  "--info-dim":         "rgba(96,165,250,0.12)",
-  "--danger":           "#F87171",
-  "--danger-dim":       "rgba(248,113,113,0.12)",
+  "--csun-red":         "#ff8fab",
+  "--csun-red-dark":    "#ff6b8a",
+  "--csun-red-dim":     "rgba(255,143,171,0.18)",
+  "--csun-red-glow":    "rgba(255,143,171,0.30)",
+  "--bg-base":          "#6B011F",          // dark crimson — bottom of the red gradient
+  "--bg-surface":       "rgba(255,255,255,0.10)",   // glass card surface on red
+  "--bg-elevated":      "rgba(255,255,255,0.17)",   // slightly brighter glass
+  "--bg-hover":         "rgba(255,255,255,0.22)",   // hover state
+  "--bg-input":         "rgba(255,255,255,0.12)",   // input background
+  "--bg-popup":         "#4D0018",          // solid dark crimson for dropdowns/menus
+  "--header-blur":      "rgba(107,1,31,0.88)",
+  "--border-subtle":    "rgba(255,255,255,0.18)",   // soft white border on red
+  "--border-medium":    "rgba(255,255,255,0.30)",   // stronger white border
+  "--text-primary":     "#FFFFFF",          // white text on crimson
+  "--text-secondary":   "rgba(255,255,255,0.85)",  // slightly dimmed white
+  "--text-muted":       "rgba(255,255,255,0.55)",  // muted white
+  "--success":          "#4ade80",
+  "--success-dim":      "rgba(74,222,128,0.18)",
+  "--info":             "#60a5fa",
+  "--info-dim":         "rgba(96,165,250,0.18)",
+  "--danger":           "#ff8fab",
+  "--danger-dim":       "rgba(255,143,171,0.18)",
   "--accent-gold":      "#FBBF24",
   "--accent-gold-dim":  "rgba(251,191,36,0.12)",
   "--shadow-sm":        "0 1px 2px rgba(0,0,0,0.3),0 1px 3px rgba(0,0,0,0.4)",
@@ -106,8 +108,8 @@ function applyVars(vars: Record<string, string>, isDark: boolean) {
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
   root.setAttribute("data-theme", isDark ? "dark" : "light");
   // Override the global background
-  root.style.setProperty("--bg", vars["--bg-base"] ?? (isDark ? "#1A1217" : "#F2F4F8"));
-  document.body.style.setProperty("background-color", vars["--bg-base"] ?? "", "important");
+  root.style.setProperty("--bg", vars["--bg-base"] ?? (isDark ? "#6B011F" : "#F5F7FA"));
+  document.body.style.setProperty("background-color", isDark ? "#6B011F" : (vars["--bg-base"] ?? ""), "important");
 }
 
 function resolveTheme(raw: Theme): "light" | "dark" {
