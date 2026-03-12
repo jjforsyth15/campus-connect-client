@@ -4,7 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { loadProfile } from "@/lib/load-profile";
 import { Profile } from "../profile/page";
-import { useAuthorize } from "@/lib/useAuthorize";
 
 import {
   Box,
@@ -61,20 +60,6 @@ const [profile, setProfile] = React.useState<Profile>(loadProfile());
 const name = profile?.first + " " + profile?.last;
 
 
-// Dash authorization
-const { auth, user, token, loading } = useAuthorize();
-
-// React.useEffect(() => {
-//     if(loading) return;
-    
-//     if (auth && token)
-//     console.log("Stored user: ", user);
-//     else {
-//     console.log("User not logged in.");
-//     console.log("auth: " + auth, ". token: " + token);
-//     router.replace("/");
-//     }
-// }, [auth, token, user, loading, router]);  
   
 
   const gridRef = React.useRef<HTMLDivElement>(null);
@@ -283,16 +268,6 @@ const { auth, user, token, loading } = useAuthorize();
 
   // init gridstack
   React.useEffect(() => {
-    if(loading) return;
-    
-    if (auth && token)
-    console.log("Stored user: ", user);
-    else {
-    console.log("User not logged in.");
-    console.log("auth: " + auth, ". token: " + token);
-    router.replace("/");
-    }
-
     if (typeof window === "undefined") return;
     if (!gridRef.current || gridInstance.current) return;
 
@@ -474,9 +449,7 @@ const { auth, user, token, loading } = useAuthorize();
     });
 
     gridInstance.current = grid;
-  }, [auth, token, user, loading, router]); // eslint-disable-line
-
-    if (!auth) return null;
+  }, []); // eslint-disable-line
 
   return (
     <Box sx={{ display: "flex", bgcolor: "#fafafb", minHeight: "100vh" }}>

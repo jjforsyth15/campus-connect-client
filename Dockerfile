@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-FROM node:20-alpine AS deps
+FROM node:20 AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -12,7 +12,7 @@ ENV npm_config_fund=false \
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Development stage
-FROM node:20-alpine AS dev
+FROM node:20 AS dev
 WORKDIR /app
 
 # Copy dependencies from deps stage

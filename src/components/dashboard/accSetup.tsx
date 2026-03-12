@@ -677,15 +677,7 @@ const NewAccountSetup: React.FC<NewAccountSetupProps> = ({
         </Box>
       )}
 
-      {/* global shake styles */}
-      <style jsx global>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-3px); }
-          40%, 80% { transform: translateX(3px); }
-        }
-        .shake { animation: shake 0.25s ease-in-out; }
-      `}</style>
+
     </>
   );
 };
