@@ -93,7 +93,7 @@ function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="c
 // `internal: true` means it's a Next.js route inside this app (uses href without target="_blank").
 // `internal: false` opens in a new tab (external CSUN website).
 const QUICK_LINKS = [
-  { label: "SRC",     href: "/StudentRecCenter",             Icon: IcoPhone,    internal: true  },
+  { label: "SRC",     href: "/ToroSRC",                     Icon: IcoPhone,    internal: true  },
   { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
   { label: "SOLAR",   href: "https://www.csun.edu/it/software-services/services/solar", Icon: IcoClock, internal: false },
   { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap,  internal: false },
