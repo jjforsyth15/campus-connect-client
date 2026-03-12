@@ -1,8 +1,8 @@
-/* ── Tailwind CSS v4 (utilities only — keeps Bootstrap base intact) ── */
-@import "tailwindcss";
-
-/* ── Fonts ── */
+/* ── Fonts — must precede all rules including Tailwind ── */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ── Tailwind CSS v4 ── */
+@import "tailwindcss";
 
 /* ── Keyframe animations (used by livestream + other pages via inline style) ── */
 @keyframes ls-spin  { to { transform: rotate(360deg); } }
