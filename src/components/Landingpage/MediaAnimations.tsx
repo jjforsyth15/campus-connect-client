@@ -628,6 +628,12 @@ export type AnimatedImageStripGridProps = {
 export const AnimatedImageStripGrid: React.FC<AnimatedImageStripGridProps> = ({
   columns,
 }) => {
+  // Pre-compute looped image arrays outside JSX (hooks must never be called inside .map)
+  const loopedColumns = React.useMemo(
+    () => columns.map((colImages) => colImages.concat(colImages).concat(colImages)),
+    [columns]
+  );
+
   return (
     <MediaRevealFromCenter delay={120}>
       <Box
@@ -639,21 +645,13 @@ export const AnimatedImageStripGrid: React.FC<AnimatedImageStripGridProps> = ({
           alignItems: 'stretch',
         }}
       >
-        {columns.map((colImages, idx) => {
-          // create seamless infinite loop for each column
-          const loopImages = React.useMemo(
-            () => colImages.concat(colImages).concat(colImages),
-            [colImages]
-          );
-
-          return (
-            <VerticalImageStrip
-              key={idx}
-              images={loopImages}
-              direction={idx % 2 === 0 ? 'down' : 'up'} // alternate directions
-            />
-          );
-        })}
+        {loopedColumns.map((loopImages, idx) => (
+          <VerticalImageStrip
+            key={idx}
+            images={loopImages}
+            direction={idx % 2 === 0 ? 'down' : 'up'} // alternate directions
+          />
+        ))}
       </Box>
     </MediaRevealFromCenter>
   );

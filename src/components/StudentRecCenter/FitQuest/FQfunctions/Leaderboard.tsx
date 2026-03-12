@@ -45,6 +45,13 @@ export default function LeaderBoard({
   onAbandon,
   setQuests,
 }: LeaderBoardProps) {
+  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+
+  // state for the "Add entry" dialog
+  const [entryQuestIdx, setEntryQuestIdx] = React.useState<number | null>(null);
+  const [entryName, setEntryName] = React.useState("");
+  const [entryScore, setEntryScore] = React.useState("");
+
   if (!quests?.length) {
     return (
       <Typography sx={{ fontSize: 14 }}>
@@ -52,13 +59,6 @@ export default function LeaderBoard({
       </Typography>
     );
   }
-
-  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
-
-  // state for the "Add entry" dialog
-  const [entryQuestIdx, setEntryQuestIdx] = React.useState<number | null>(null);
-  const [entryName, setEntryName] = React.useState("");
-  const [entryScore, setEntryScore] = React.useState("");
 
   const openEntryDialog = (questIdx: number) => {
     setEntryQuestIdx(questIdx);
