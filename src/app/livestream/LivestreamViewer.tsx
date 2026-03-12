@@ -59,41 +59,88 @@ function ViewerDisplay({
   };
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white">{title}</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            Hosted by {hostName} · {viewerCount} viewer
-            {viewerCount !== 1 ? "s" : ""}
-          </p>
+    <div className="w-full select-none">
+
+      {/* ── Header bar ────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between mb-5 gap-4">
+        <div className="min-w-0">
+          <h2 className="text-white font-bold text-2xl leading-tight truncate">{title}</h2>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="flex items-center gap-1.5 bg-[#A80532] rounded-md px-2.5 py-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-white text-[11px] font-bold tracking-widest uppercase">Live</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-white/50 text-sm">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {viewerCount} viewer{viewerCount !== 1 ? "s" : ""}
+            </span>
+            <span className="text-white/30">·</span>
+            <span className="text-white/40 text-sm">
+              <span className="text-white/30">Hosted by </span>
+              {hostName}
+            </span>
+          </div>
         </div>
+
+        {/* Leave button */}
         <button
           onClick={handleLeave}
-          className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-white/70 hover:text-white font-semibold text-sm transition-all border border-white/10 flex-shrink-0"
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
           Leave
         </button>
       </div>
 
-      {/* Video Area */}
-      <div className="w-full aspect-video bg-gray-950 rounded-xl overflow-hidden flex items-center justify-center border border-gray-800">
+      {/* ── Video area ─────────────────────────────────────────────────────── */}
+      <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
         {screenTrack ? (
-          <VideoTrack
-            trackRef={screenTrack}
-            className="w-full h-full object-contain"
-          />
+          <VideoTrack trackRef={screenTrack} className="w-full h-full object-contain" />
         ) : cameraTrack ? (
-          <VideoTrack
-            trackRef={cameraTrack}
-            className="w-full h-full object-contain"
-          />
+          <VideoTrack trackRef={cameraTrack} className="w-full h-full object-contain" />
         ) : (
-          <p className="text-gray-500 text-center px-8">
-            Waiting for host to share their screen or camera...
-          </p>
+          /* Waiting for host state */
+          <div className="flex flex-col items-center gap-5">
+            {/* Pulsing ring animation */}
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-[#A80532]/10 border border-[#A80532]/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#A80532]/20 border border-[#A80532]/40 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-[#A80532] animate-pulse" />
+                </div>
+              </div>
+              {/* Ping rings */}
+              <div className="absolute inset-0 rounded-full border border-[#A80532]/20 animate-ping" />
+            </div>
+            <div className="text-center">
+              <p className="text-white/50 font-medium">Waiting for host</p>
+              <p className="text-white/25 text-sm mt-1">
+                {hostName} will share their screen soon…
+              </p>
+            </div>
+          </div>
         )}
+      </div>
+
+      {/* ── Host info strip ────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mt-4 px-1">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full bg-[#A80532]/60 border border-[#A80532]/40 flex items-center justify-center flex-shrink-0">
+          <span className="text-white text-xs font-bold">
+            {hostName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-white/80 text-sm font-semibold truncate">{hostName}</p>
+          <p className="text-white/30 text-xs">Streaming · Matador Live</p>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5 text-white/30 text-xs">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          {viewerCount} watching
+        </div>
       </div>
     </div>
   );
