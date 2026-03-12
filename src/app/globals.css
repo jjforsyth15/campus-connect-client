@@ -1,6 +1,12 @@
 /* ── Fonts — must be first ── */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
+/* ── Keyframe animations (used by livestream + other pages via inline style) ── */
+@keyframes ls-spin  { to { transform: rotate(360deg); } }
+@keyframes ls-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes ls-ping  { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes ls-dot-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.7); opacity: 0.4; } }
+
 /* Video background */
 .background-video {
   position: fixed;
