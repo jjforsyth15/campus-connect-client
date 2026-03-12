@@ -33,12 +33,13 @@ import StorefrontIcon from "@mui/icons-material/Storefront";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+
 type SidebarProps = {
   drawerWidth: number;
   onLogout: () => void;
 };
 
-// SRC icon using the SRCcard.png from /public/cards
 const SRCIcon: React.ReactNode = (
   <Box
     component="img"
@@ -55,21 +56,50 @@ const SRCIcon: React.ReactNode = (
 );
 
 const navItems: { label: string; icon: React.ReactNode; href?: string }[] = [
-  { label: "Home", icon: <HomeIcon />, href: "/" },
+  { label: "Home", icon: <HomeIcon />, href: "/dashboard" },
   { label: "Social", icon: <GroupsIcon />, href: "/social" },
   { label: "Messages", icon: <MailOutlineIcon />, href: "/messages" },
   { label: "Events", icon: <EventIcon />, href: "/events" },
   { label: "Clubs", icon: <Diversity3Icon />, href: "/clubs" },
   { label: "Academics", icon: <SchoolIcon />, href: "/academics" },
   { label: "Marketplace", icon: <StorefrontIcon />, href: "/marketplace" },
-  { label: "SRC", icon: SRCIcon, href: "/ToroSRC" },
+  { label: "SRC", icon: SRCIcon, href: "/StudentRecCenter" },
 ];
 
-const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => {
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: {
+    opacity: 0,
+    y: 16,
+    scale: 0.96,
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 20,
+    },
+  },
+};
+
+export default function DashboardSidebar({ drawerWidth, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [profile] = React.useState<Profile>(loadProfile());
-
   const name = `${profile?.first ?? ""} ${profile?.last ?? ""}`.trim();
+
+  const pointerY = useMotionValue<number>(Infinity);
 
   return (
     <Drawer
@@ -86,13 +116,15 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
           display: "flex",
           flexDirection: "column",
           position: "relative",
-          
           zIndex: 1400,
           pointerEvents: "auto",
+          overflowX: "hidden",
+          overflowY: "hidden",
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
         },
       }}
     >
-      {/* Logout icon (top-left) */}
       <IconButton
         onClick={onLogout}
         sx={{
@@ -109,7 +141,6 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
         <LogoutIcon />
       </IconButton>
 
-      {/* Settings icon (top-right) */}
       <IconButton
         component={Link}
         href="/settings"
@@ -127,7 +158,6 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
         <SettingsIcon />
       </IconButton>
 
-      {/* Logo */}
       <Box sx={{ pt: 4.5, px: 2, pb: 1 }}>
         <Stack direction="column" alignItems="center" spacing={1}>
           <Box
@@ -147,63 +177,43 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mb: 1 }} />
 
-      {/* Nav items */}
-      <List sx={{ px: 0, mt: 1 }}>
-        {navItems.map((item) => {
-          const active =
-            !!item.href &&
-            (pathname === item.href || pathname.startsWith(item.href + "/"));
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        style={{ overflow: "hidden" }}
+      >
+        <List
+          sx={{
+            px: 0,
+            mt: 1,
+            overflow: "hidden",
+          }}
+          onPointerMove={(e) => pointerY.set(e.clientY)}
+          onPointerLeave={() => pointerY.set(Infinity)}
+        >
+          {navItems.map((item) => {
+            const active =
+              !!item.href &&
+              (pathname === item.href || pathname.startsWith(item.href + "/"));
 
-          return (
-            <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                component={item.href ? Link : "button"}
-                href={item.href as any}
-                onClick={
-                  item.href
-                    ? undefined
-                    : () => {
-                        // placeholder for non-routed items (Messages)
-                        alert("Coming soon");
-                      }
-                }
-                sx={{
-                  mx: 1,
-                  borderRadius: 2,
-                  px: 2,
-                  "&.Mui-selected": {
-                    bgcolor: "rgba(255,255,255,0.12)",
-                    color: "#fff",
-                  },
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
-                }}
-                selected={active}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: "inherit",
-                    minWidth: 36,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{ fontWeight: 600 }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+            return (
+              <DockRow
+                key={item.label}
+                label={item.label}
+                href={item.href}
+                icon={item.icon}
+                active={active}
+                pointerY={pointerY}
+                onComingSoon={() => alert("Coming soon")}
+              />
+            );
+          })}
+        </List>
+      </motion.div>
 
       <Box sx={{ flexGrow: 1 }} />
 
-      {/* Profile button */}
       <Box sx={{ p: 2, pt: 1 }}>
         <Button
           component={Link}
@@ -237,6 +247,85 @@ const DashboardSidebar: React.FC<SidebarProps> = ({ drawerWidth, onLogout }) => 
       </Box>
     </Drawer>
   );
-};
+}
 
-export default DashboardSidebar;
+function DockRow({
+  label,
+  icon,
+  href,
+  active,
+  pointerY,
+  onComingSoon,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  href?: string;
+  active: boolean;
+  pointerY: ReturnType<typeof useMotionValue<number>>;
+  onComingSoon: () => void;
+}) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+
+  const maxShift = 18;
+  const influence = 120;
+
+  const shiftX = useTransform(pointerY, (y: number) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const centerY = rect.top + rect.height / 2;
+    const d = Math.abs(y - centerY);
+    const t = Math.max(0, 1 - d / influence);
+    return t * maxShift;
+  });
+
+  const springX = useSpring(shiftX, {
+    stiffness: 420,
+    damping: 30,
+    mass: 0.22,
+  });
+
+  return (
+    <motion.div
+      ref={ref}
+      variants={itemVariants}
+      whileTap={{ scale: 0.99 }}
+      style={{ x: springX }}
+    >
+      <ListItem disablePadding sx={{ mb: 0.5 }}>
+        <ListItemButton
+          component={href ? Link : "button"}
+          href={href as any}
+          onClick={href ? undefined : onComingSoon}
+          sx={{
+            mx: 1,
+            borderRadius: 2,
+            px: 2,
+            "&.Mui-selected": {
+              bgcolor: "rgba(255,255,255,0.12)",
+              color: "#fff",
+            },
+            "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+          }}
+          selected={active}
+        >
+          <ListItemIcon
+            sx={{
+              color: "inherit",
+              minWidth: 36,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {icon}
+          </ListItemIcon>
+
+          <ListItemText
+            primary={label}
+            primaryTypographyProps={{ fontWeight: 600 }}
+          />
+        </ListItemButton>
+      </ListItem>
+    </motion.div>
+  );
+}
