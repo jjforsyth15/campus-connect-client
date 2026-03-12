@@ -31,14 +31,14 @@ const LIGHT_VARS: Record<string, string> = {
   "--csun-red-dark":    "#7B0124",
   "--csun-red-dim":     "rgba(168,5,50,0.08)",
   "--csun-red-glow":    "rgba(168,5,50,0.25)",
-  "--bg-base":          "#F2F4F8",
-  "--bg-surface":       "#FFFFFF",
+  "--bg-base":          "#F6EEF1",          // warm blush — CSUN red tint
+  "--bg-surface":       "#FEFCFD",          // near-white with warmth
   "--bg-elevated":      "#FFFFFF",
-  "--bg-hover":         "#F5F7FA",
-  "--bg-input":         "#F0F2F6",
-  "--header-blur":      "rgba(242,244,248,0.85)",
-  "--border-subtle":    "#E2E5EB",
-  "--border-medium":    "#CDD1DA",
+  "--bg-hover":         "#F1E4EA",          // warm crimson hover
+  "--bg-input":         "#F2E6EC",          // warm input background
+  "--header-blur":      "rgba(246,238,241,0.88)",
+  "--border-subtle":    "#EAD7DE",          // warm pink-tinted border
+  "--border-medium":    "#D4B0BC",          // stronger warm border
   "--text-primary":     "#0F1117",
   "--text-secondary":   "#525A6A",
   "--text-muted":       "#8C95A3",

@@ -755,12 +755,12 @@ export default function SocialFeedPage() {
       <div style={{ display:"grid", gridTemplateColumns:"220px 1fr 300px", minHeight:"100vh", width:"100%" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────── */}
-        <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight:"1px solid var(--border-subtle)", background:"var(--bg-surface)", display:"flex", flexDirection:"column" }}>
+        <nav style={{ position:"sticky", top:0, height:"100vh", overflowY:"auto", borderRight: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(168,5,50,0.25)", background: isDark ? "var(--bg-surface)" : "linear-gradient(160deg, #A80532 0%, #6B011F 100%)", display:"flex", flexDirection:"column" }}>
           {/* Logo */}
-          <div style={{ padding:"20px 20px 16px", borderBottom:"1px solid var(--border-subtle)", flexShrink:0 }}>
+          <div style={{ padding:"20px 20px 16px", borderBottom: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(255,255,255,0.15)", flexShrink:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <Layers size={26} color="var(--csun-red)" strokeWidth={2} />
-              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:17, fontWeight:800, color:"var(--csun-red)", letterSpacing:"-0.5px", whiteSpace:"nowrap" }}>
+              <Layers size={26} color={isDark ? "var(--csun-red)" : "#fff"} strokeWidth={2} />
+              <span style={{ fontFamily:"'Inter', system-ui, sans-serif", fontSize:17, fontWeight:800, color: isDark ? "var(--csun-red)" : "#fff", letterSpacing:"-0.5px", whiteSpace:"nowrap" }}>
                 MatadorConnect
               </span>
             </div>
@@ -774,13 +774,13 @@ export default function SocialFeedPage() {
                 <button key={p} onClick={() => navTo(p)} style={{
                   width:"100%", display:"flex", alignItems:"center", gap:11,
                   padding:"10px 12px", borderRadius:10, border:"none",
-                  background: active ? "var(--csun-red)" : "transparent",
-                  color: active ? "#fff" : "var(--text-secondary)",
+                  background: active ? (isDark ? "var(--csun-red)" : "rgba(255,255,255,0.2)") : "transparent",
+                  color: active ? "#fff" : (isDark ? "var(--text-secondary)" : "rgba(255,255,255,0.85)"),
                   fontSize:14, fontWeight: active ? 600 : 400,
                   cursor:"pointer", textAlign:"left", marginBottom:2,
                   transition:"background 150ms, color 150ms",
                 }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)"; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                 >
                   <Icon />
@@ -796,9 +796,9 @@ export default function SocialFeedPage() {
           </div>
 
           {/* Bottom: theme + user */}
-          <div style={{ borderTop:"1px solid var(--border-subtle)", padding:"10px 10px 14px", flexShrink:0 }}>
-            <button onClick={toggleTheme} style={{ width:"100%", display:"flex", alignItems:"center", gap:11, padding:"10px 12px", borderRadius:10, border:"none", background:"transparent", color:"var(--text-muted)", fontSize:14, cursor:"pointer", transition:"background 150ms" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+          <div style={{ borderTop: isDark ? "1px solid var(--border-subtle)" : "1px solid rgba(255,255,255,0.15)", padding:"10px 10px 14px", flexShrink:0 }}>
+            <button onClick={toggleTheme} style={{ width:"100%", display:"flex", alignItems:"center", gap:11, padding:"10px 12px", borderRadius:10, border:"none", background:"transparent", color: isDark ? "var(--text-muted)" : "rgba(255,255,255,0.8)", fontSize:14, cursor:"pointer", transition:"background 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               {isDark ? <IcoSun /> : <IcoMoon />}
@@ -808,15 +808,15 @@ export default function SocialFeedPage() {
               onClick={() => navTo("profile")}
               title="Go to your profile"
               style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, cursor:"pointer", transition:"background 150ms" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? "var(--bg-hover)" : "rgba(255,255,255,0.12)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
               <div className="avatar" style={{ width:32, height:32, fontSize:12, flexShrink:0 }}>
                 <span className="avatar-initials">{currentUserInfo.initials}</span>
               </div>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{currentUserInfo.name}</div>
-                <div style={{ fontSize:11, color:"var(--text-muted)" }}>{currentUserInfo.role}</div>
+                <div style={{ fontSize:13, fontWeight:600, color: isDark ? "var(--text-primary)" : "#fff", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{currentUserInfo.name}</div>
+                <div style={{ fontSize:11, color: isDark ? "var(--text-muted)" : "rgba(255,255,255,0.7)" }}>{currentUserInfo.role}</div>
               </div>
             </div>
           </div>
