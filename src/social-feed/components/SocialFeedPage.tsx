@@ -93,7 +93,7 @@ function IcoTruck()   { return <svg width="15" height="15" fill="none" stroke="c
 // `internal: true` means it's a Next.js route inside this app (uses href without target="_blank").
 // `internal: false` opens in a new tab (external CSUN website).
 const QUICK_LINKS = [
-  { label: "SRC",     href: "/ToroSRC",                      Icon: IcoPhone,    internal: true  },
+  { label: "SRC",     href: "/StudentRecCenter",             Icon: IcoPhone,    internal: true  },
   { label: "Library", href: "https://library.csun.edu",      Icon: IcoBookOpen, internal: false },
   { label: "SOLAR",   href: "https://www.csun.edu/it/software-services/services/solar", Icon: IcoClock, internal: false },
   { label: "Canvas",  href: "https://canvas.csun.edu",       Icon: IcoGradCap,  internal: false },
@@ -102,56 +102,41 @@ const QUICK_LINKS = [
 ];
 
 // Search index powering the right-sidebar search bar.
-// When a user types, this array is filtered and clicking a result calls navTo(page).
-// Organized into: Pages, Hashtags, Campus Resources, and Clubs & Orgs.
-// Note: hashtag/resource entries navigate to the closest relevant page
-// (e.g. hashtags go to "feed", calendar goes to "events").
+// When a user types, this array is filtered and clicking a result calls navTo(page)
+// for in-app pages, or opens an external link for CSUN resources.
+// Only includes destinations that actually exist and work — no dead ends.
 const SEARCH_INDEX = [
-  // Pages
-  { label: "Home",                   page: "feed"          as AppPage },
-  { label: "Campus Events",          page: "events"        as AppPage },
-  { label: "Marketplace",            page: "marketplace"   as AppPage },
-  { label: "Notifications",          page: "notifications" as AppPage },
-  { label: "My Profile",             page: "profile"       as AppPage },
-  { label: "Saved Posts",            page: "saved"         as AppPage },
-  { label: "Settings",               page: "settings"      as AppPage },
-  { label: "Study Groups",           page: "feed"          as AppPage },
-  // Hashtags
-  { label: "#FinalsWeek",            page: "feed"          as AppPage },
-  { label: "#CSUN",                  page: "feed"          as AppPage },
-  { label: "#MatadorPride",          page: "feed"          as AppPage },
-  { label: "#SpringCareerFair",      page: "feed"          as AppPage },
-  { label: "#CSUNEvents",            page: "events"        as AppPage },
-  { label: "#CSUNDining",            page: "feed"          as AppPage },
-  { label: "#SRC",                   page: "feed"          as AppPage },
-  { label: "#OviattLibrary",         page: "feed"          as AppPage },
-  { label: "#CampusLife",            page: "feed"          as AppPage },
-  { label: "#COMP490",               page: "feed"          as AppPage },
-  { label: "#HousingApplications",   page: "feed"          as AppPage },
-  { label: "#TransferStudents",      page: "feed"          as AppPage },
-  { label: "#Internships",           page: "feed"          as AppPage },
-  { label: "#ResearchOpportunities", page: "feed"          as AppPage },
-  { label: "#HealthCenter",          page: "feed"          as AppPage },
-  // Campus Resources
-  { label: "Financial Aid",          page: "feed"          as AppPage },
-  { label: "Academic Calendar",      page: "events"        as AppPage },
-  { label: "Student Health Center",  page: "feed"          as AppPage },
-  { label: "Career Center",          page: "feed"          as AppPage },
-  { label: "Oviatt Library",         page: "feed"          as AppPage },
-  { label: "Student Housing",        page: "feed"          as AppPage },
-  { label: "IT Help Desk",           page: "settings"      as AppPage },
-  { label: "Tutoring Center",        page: "feed"          as AppPage },
-  { label: "Disability Resources",   page: "feed"          as AppPage },
-  { label: "SOLAR",                  page: "settings"      as AppPage },
-  // Clubs & Orgs
-  { label: "ACM Club",               page: "feed"          as AppPage },
-  { label: "IEEE",                   page: "feed"          as AppPage },
-  { label: "Game Dev Club",          page: "feed"          as AppPage },
-  { label: "AI & ML Club",           page: "feed"          as AppPage },
-  { label: "Tech Club",              page: "feed"          as AppPage },
-  { label: "Engineering Club",       page: "feed"          as AppPage },
-  { label: "Pre-Med Society",        page: "feed"          as AppPage },
-  { label: "Student Government",     page: "feed"          as AppPage },
+  // ── In-app pages (navigate within the social feed shell) ──────────────────
+  { label: "Home",              page: "feed"          as AppPage },
+  { label: "Campus Events",     page: "events"        as AppPage },
+  { label: "Marketplace",       page: "marketplace"   as AppPage },
+  { label: "Notifications",     page: "notifications" as AppPage },
+  { label: "My Profile",        page: "profile"       as AppPage },
+  { label: "Saved Posts",       page: "saved"         as AppPage },
+  { label: "Settings",          page: "settings"      as AppPage },
+  // ── Feed tabs (navigate to feed then open the right tab) ──────────────────
+  { label: "Campus Resources",  page: "feed"          as AppPage },
+  { label: "Student Resources", page: "feed"          as AppPage },
+  { label: "Clubs",             page: "feed"          as AppPage },
+  { label: "Following",         page: "feed"          as AppPage },
+  { label: "Study Groups",      page: "feed"          as AppPage },
+  // ── Campus Resource links (open csun.edu in new tab via Quick Links) ──────
+  { label: "Academic Calendar", page: "events"        as AppPage },
+  { label: "Financial Aid",     page: "feed"          as AppPage },
+  { label: "Student Health Center", page: "feed"      as AppPage },
+  { label: "Career Center",     page: "feed"          as AppPage },
+  { label: "Oviatt Library",    page: "feed"          as AppPage },
+  { label: "Student Housing",   page: "feed"          as AppPage },
+  { label: "IT Help Desk",      page: "settings"      as AppPage },
+  { label: "Tutoring Center",   page: "feed"          as AppPage },
+  { label: "Disability Resources", page: "feed"       as AppPage },
+  { label: "SOLAR",             page: "settings"      as AppPage },
+  { label: "Canvas",            page: "feed"          as AppPage },
+  { label: "Library",           page: "feed"          as AppPage },
+  { label: "Dining",            page: "feed"          as AppPage },
+  { label: "Parking",           page: "feed"          as AppPage },
+  { label: "Student Rec Center", page: "feed"         as AppPage },
+  { label: "SRC",               page: "feed"          as AppPage },
 ];
 
 type ToastType = "success" | "error" | "info";
