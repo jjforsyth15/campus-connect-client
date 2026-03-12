@@ -1,0 +1,303 @@
+import type { SxProps, Theme } from "@mui/material/styles";
+
+export const CS_PLAN_URL =
+  "https://www.csun.edu/current-students/degree-progress-report-and-planner-guide";
+
+export const BG = `radial-gradient(1200px 600px at 20% 0%, rgba(255,255,255,0.10), transparent 55%),
+linear-gradient(180deg, rgba(168,5,50,1) 0%, rgba(120,0,35,0.98) 55%, rgba(168,5,50,1) 100%)`;
+
+export const LS_KEY = "academics.degreePlanner.v2";
+
+export type ToastType = "info" | "success" | "warning" | "error";
+
+export type LectureNote = {
+  id: string;
+  author: string;
+  topicTitle: string;
+  body: string;
+  createdAt: string;
+  isPublic: boolean;
+  attachments?: ResourceItem[];
+};
+
+export type ResourceItem = {
+  id: string;
+  label: string;
+  url?: string;
+  fileName?: string;
+  fileType?: string;
+  createdAt: string;
+  isPublic: boolean;
+};
+
+export const CARD_COLORS = [
+  { value: "default", label: "Red",     accent: "#A80532", border: "#f3b8c8", bg: "#fff5f7" },
+  { value: "blue",    label: "Blue",    accent: "#2563eb", border: "#bfdbfe", bg: "#eff6ff" },
+  { value: "emerald", label: "Emerald", accent: "#059669", border: "#a7f3d0", bg: "#ecfdf5" },
+  { value: "violet",  label: "Violet",  accent: "#7c3aed", border: "#ddd6fe", bg: "#f5f3ff" },
+  { value: "amber",   label: "Amber",   accent: "#d97706", border: "#fde68a", bg: "#fffbeb" },
+  { value: "rose",    label: "Rose",    accent: "#e11d48", border: "#fecdd3", bg: "#fff1f2" },
+  { value: "sky",     label: "Sky",     accent: "#0284c7", border: "#bae6fd", bg: "#f0f9ff" },
+  { value: "slate",   label: "Slate",   accent: "#475569", border: "#cbd5e1", bg: "#f8fafc" },
+] as const;
+
+export type CourseItem = {
+  id: string;
+  subject: string;
+  number: string;
+  title?: string;
+  professor?: string;
+  description?: string;
+  prerequisitesText?: string;
+  units?: number;
+  days?: string[];
+  startTime?: string;
+  endTime?: string;
+  semester?: string;
+  isOnline?: boolean;
+  cardColor?: typeof CARD_COLORS[number]["value"];
+  location?: string;
+  sectionId?: string;
+  notes: LectureNote[];
+  resources: ResourceItem[];
+  assignments?: Assignment[];
+  exams?: ExamItem[];
+};
+
+export type Assignment = {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+  priority: "low" | "medium" | "high";
+};
+
+export type ExamItem = {
+  id: string;
+  title: string;
+  date: string;
+  type: "exam" | "quiz" | "midterm" | "final";
+  location?: string;
+};
+
+export type SemesterBucket = {
+  id: string;
+  courses: CourseItem[];
+};
+
+export type MajorPlan = {
+  plan_id: string;
+  plan_title: string;
+  plan_type?: string;
+  academic_groups_id?: string;
+  academic_groups_title?: string;
+};
+
+// Study Groups
+export type StudyGroupMember = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+export type StudyGroup = {
+  id: string;
+  courseSubject: string;
+  courseNumber: string;
+  topic: string;
+  tags?: string[];
+  dateTime: string;
+  expiresAt?: string;
+  location: string;
+  isVirtual: boolean;
+  meetingLink?: string;
+  members: StudyGroupMember[];
+  createdBy: string;
+  createdAt: string;
+  maxMembers?: number;
+  notes?: string;
+  isPrivate?: boolean;
+  invitedEmails?: string[];
+};
+
+export type SharedNote = {
+  id: string;
+  title: string;
+  author: string;
+  authorEmail?: string;
+  category: string; // e.g. "COMP 333"
+  body?: string;
+  fileType: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  isPublic: boolean;
+  tags?: string[];
+  createdAt: string;
+  likes: number;
+  views: number;
+};
+
+// Note Share v2 (folders + items + comments)
+export type NoteFolderVisibility = "public" | "private";
+
+export type NoteFolder = {
+  id: string;
+  topic: string;
+  description?: string;
+  subject: string; // e.g. "COMP"
+  courseNumber?: string; // optional
+  createdAt: string;
+  createdByEmail: string;
+  visibility: NoteFolderVisibility;
+  invitedEmails?: string[]; // for private folders
+  tags?: string[];
+  savedByMe?: boolean;
+};
+
+export type NoteFolderItemType = "pdf" | "doc" | "video" | "image" | "zip" | "link";
+
+export type NoteFolderItem = {
+  id: string;
+  folderId: string;
+  title: string;
+  description?: string;
+  uploadedBy: string;
+  uploadedByEmail: string;
+  uploadedAt: string;
+  type: NoteFolderItemType;
+  url?: string;
+  fileName?: string;
+  fileSize?: string;
+  visibility: NoteFolderVisibility;
+};
+
+export type NoteComment = {
+  id: string;
+  folderId: string;
+  itemId?: string;
+  author: string;
+  authorEmail: string;
+  createdAt: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  body: string;
+};
+
+export type NoteShareCategory = {
+  id: string;
+  department: string;
+  courseCode: string;
+  courseTitle: string;
+  noteCount?: number;
+};
+
+// UniCart (class matching)
+export type UniCartClass = {
+  id: string;
+  subject: string;
+  number: string;
+  title: string;
+  professor: string;
+  units: number;
+  semester: string;
+  isOnline: boolean;
+  days: string[];
+  startTime: string;
+  endTime: string;
+  section: string;
+  seats?: number;
+  seatsAvailable?: number;
+};
+
+export type UniCartProfile = {
+  id: string;
+  name: string;
+  avatar?: string;
+  major: string;
+  year: string;
+  classes: UniCartClass[];
+};
+
+export const btnPrimary: SxProps<Theme> = {
+  bgcolor: "#A80532",
+  "&:hover": { bgcolor: "#810326" },
+  fontWeight: 950,
+  borderRadius: 999,
+  px: 2.25,
+};
+
+export const btnGhost: SxProps<Theme> = {
+  borderColor: "rgba(255,255,255,0.40)",
+  color: "rgba(255,255,255,0.92)",
+  fontWeight: 950,
+  borderRadius: 999,
+  px: 2.25,
+  "&:hover": { borderColor: "rgba(255,255,255,0.70)", bgcolor: "rgba(255,255,255,0.06)" },
+};
+
+export const btnGhostDark: SxProps<Theme> = {
+  borderColor: "rgba(0,0,0,0.20)",
+  color: "rgba(0,0,0,0.80)",
+  fontWeight: 950,
+  borderRadius: 999,
+  px: 2.25,
+  "&:hover": { borderColor: "rgba(0,0,0,0.35)", bgcolor: "rgba(0,0,0,0.04)" },
+};
+
+export const btnDark: SxProps<Theme> = {
+  bgcolor: "rgba(0,0,0,0.86)",
+  "&:hover": { bgcolor: "rgba(0,0,0,0.95)" },
+  fontWeight: 950,
+  borderRadius: 999,
+  px: 2.1,
+};
+
+export const btnOutlineRed: SxProps<Theme> = {
+  borderColor: "#A80532",
+  color: "#A80532",
+  fontWeight: 950,
+  borderRadius: 999,
+  "&:hover": { borderColor: "#810326", color: "#810326", bgcolor: "rgba(168,5,50,0.04)" },
+};
+
+export const btnOutlineGray: SxProps<Theme> = {
+  borderColor: "rgba(0,0,0,0.25)",
+  color: "rgba(0,0,0,0.75)",
+  fontWeight: 950,
+  borderRadius: 999,
+  "&:hover": { borderColor: "rgba(0,0,0,0.45)", bgcolor: "rgba(0,0,0,0.04)" },
+};
+
+export const fieldSx: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "rgba(255,255,255,0.08)",
+    color: "#fff",
+    borderRadius: 2,
+    "& fieldset": { borderColor: "rgba(255,255,255,0.20)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.32)" },
+    "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.55)" },
+  },
+  "& .MuiInputBase-input::placeholder": { color: "rgba(255,255,255,0.55)", opacity: 1 },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+};
+
+export const selectSx: SxProps<Theme> = {
+  bgcolor: "rgba(255,255,255,0.08)",
+  color: "#fff",
+  borderRadius: 2,
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.20)" },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.32)" },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.55)" },
+  "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.85)" },
+};
+
+// Light field variant for modals/white backgrounds
+export const fieldSxLight: SxProps<Theme> = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "rgba(0,0,0,0.03)",
+    borderRadius: 2,
+    "& fieldset": { borderColor: "rgba(0,0,0,0.18)" },
+    "&:hover fieldset": { borderColor: "rgba(0,0,0,0.32)" },
+    "&.Mui-focused fieldset": { borderColor: "#A80532" },
+  },
+};

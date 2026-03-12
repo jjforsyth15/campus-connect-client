@@ -3,205 +3,352 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Divider,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Snackbar,
-  Stack,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
+  Alert, Box, Button, Container, Divider, FormControl, InputLabel,
+  MenuItem, Paper, Select, Snackbar, Stack, TextField, Typography, Chip,
 } from "@mui/material";
-import SchoolIcon from "@mui/icons-material/School";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import CourseCard from "./CourseCard";
-import CourseDrawer from "./CourseDrawer";
-import MajorsPanel from "./MajorsPanel";
-import { useAcademicsData } from "./useAcademicsData";
-import { BG, CS_PLAN_URL, btnGhost, btnPrimary, fieldSx, selectSx } from "./constants";
+import SearchIcon from "@mui/icons-material/Search";
+import InputAdornment from "@mui/material/InputAdornment";
 
+import CourseCard from "./CourseCard/CourseCard";
+import CourseInfoModal from "./CourseCard/CourseInfoModal";
+import DueDateElement from "./DueDateElement/DueDateElement";
+import AcademicsNav from "./AcademicsNav";
+import StudyGroupsPanel from "./StudyGroups/StudyGroupsPanel";
+import NoteSharePanel from "./NoteShare/NoteSharePanel";
+
+import { useAcademicsData } from "./useAcademicsData";
+import { btnGhost, btnPrimary, fieldSx, selectSx } from "./shared/constants";
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AcademicsView() {
   const data = useAcademicsData();
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [filterMode, setFilterMode] = React.useState<"all" | "online" | "inperson">("all");
+
+  // Search + mode filter
+  const displayedCourses = React.useMemo(() => {
+    let courses = data.filteredCourses ?? [];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      courses = courses.filter(
+        (c) =>
+          c.subject?.toLowerCase().includes(q) ||
+          c.number?.toLowerCase().includes(q) ||
+          c.title?.toLowerCase().includes(q) ||
+          c.professor?.toLowerCase().includes(q)
+      );
+    }
+    if (filterMode === "online") courses = courses.filter((c) => c.isOnline);
+    if (filterMode === "inperson") courses = courses.filter((c) => !c.isOnline);
+    return courses;
+  }, [data.filteredCourses, searchQuery, filterMode]);
 
   return (
-    <Box sx={{ minHeight: "100vh", background: BG }}>
-      <Container sx={{ pt: 3.25, pb: 8 }}>
-        <Paper
-          elevation={0}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(160deg, #8b0000 0%, #A80532 35%, #c0182a 60%, #6b0f2a 100%)",
+        fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif",
+      }}
+    >
+      {/* ── Top bar: back button + navbar ── */}
+      <Box
+        sx={{
+          px: { xs: 2, md: 4 },
+          pt: 2.5,
+          pb: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Back button */}
+        <Button
+          component={Link}
+          href="/dashboard"
+          variant="outlined"
+          startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 15 }} />}
           sx={{
-            borderRadius: 4,
-            p: { xs: 2.25, md: 3 },
-            mb: 3,
-            bgcolor: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.22)",
-            backdropFilter: "blur(14px)",
+            color: "rgba(255,255,255,0.80)",
+            borderColor: "rgba(255,255,255,0.25)",
+            fontWeight: 700,
+            borderRadius: 999,
+            fontSize: "0.78rem",
+            px: 1.75,
+            py: 0.4,
+            backdropFilter: "blur(8px)",
+            bgcolor: "rgba(255,255,255,0.08)",
+            "&:hover": {
+              bgcolor: "rgba(255,255,255,0.15)",
+              borderColor: "rgba(255,255,255,0.45)",
+            },
+            flexShrink: 0,
           }}
+          size="small"
         >
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="overline" sx={{ letterSpacing: 2.8, fontWeight: 900, color: "rgba(255,255,255,0.85)" }}>
-                ACADEMICS
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
-                <SchoolIcon sx={{ color: "rgba(255,255,255,0.95)" }} />
-                <Typography variant="h4" fontWeight={950} sx={{ fontSize: { xs: "1.65rem", md: "2.1rem" }, color: "#fff" }}>
-                  Degree Planner
-                </Typography>
-              </Stack>
-              <Typography sx={{ color: "rgba(255,255,255,0.78)", fontSize: "0.98rem", maxWidth: 820, mt: 0.75 }}>
-                Build your CSUN roadmap: switch semesters, save notes, store resources, and browse requirements.
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1.25} alignItems="flex-start" justifyContent="flex-end">
-              <Button component={Link} href="/" variant="outlined" startIcon={<ArrowBackRoundedIcon />} sx={btnGhost}>Back</Button>
-              <Button variant="contained" onClick={() => typeof window !== "undefined" && window.open(CS_PLAN_URL, "_blank", "noopener,noreferrer")} sx={btnPrimary}>
-                Degree Progress Report
-              </Button>
-            </Stack>
-          </Stack>
-          <Box sx={{ mt: 2 }}>
-            <Tabs
-              value={data.tab}
-              onChange={(_, v) => data.setTab(v)}
-              textColor="inherit"
-              TabIndicatorProps={{ style: { background: "#fff" } }}
-              sx={{
-                "& .MuiTab-root": { color: "rgba(255,255,255,0.75)", fontWeight: 900, textTransform: "none", fontSize: "0.98rem" },
-                "& .Mui-selected": { color: "#fff" },
-              }}
-            >
-              <Tab label="My Classes" />
-              <Tab label="Majors & Requirements" />
-            </Tabs>
-          </Box>
-        </Paper>
+          Dashboard
+        </Button>
 
+        {/* Navbar */}
+        <AcademicsNav tab={data.tab} setTab={data.setTab} />
+      </Box>
+
+      {/* ── Main content ── */}
+      <Container sx={{ pt: 1, pb: 6 }}>
+
+        {/* ── Tab 0: My Classes ── */}
         {data.tab === 0 && (
           <>
+            {/* Add course controls */}
             <Paper
               elevation={0}
               sx={{
-                borderRadius: 4,
-                p: { xs: 2.25, md: 3 },
-                mb: 2.5,
-                bgcolor: "rgba(0,0,0,0.18)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                backdropFilter: "blur(12px)",
+                borderRadius: "16px",
+                p: { xs: 1.75, md: 2 },
+                mb: 2,
+                bgcolor: "rgba(0,0,0,0.22)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(14px)",
               }}
             >
-              <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
-                <Box>
-                  <Typography variant="h5" fontWeight={950} sx={{ color: "#fff" }}>My Classes</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.75)", mt: 0.5 }}>
-                    Switch semesters, add courses, and click a course to manage notes/resources/prereqs.
-                  </Typography>
-                </Box>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" justifyContent="flex-end">
-                  <FormControl size="small" sx={{ minWidth: 170 }}>
-                    <InputLabel sx={{ color: "rgba(255,255,255,0.70)" }}>Semester</InputLabel>
-                    <Select value={data.selectedSemesterId} label="Semester" onChange={(e) => data.setSelectedSemesterId(String(e.target.value))} sx={selectSx}>
-                      {data.semesters.map((s) => <MenuItem key={s.id} value={s.id}>{s.id}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                  <TextField size="small" label="Add Semester" placeholder="Fall 2026" value={data.newSemName} onChange={(e) => data.setNewSemName(e.target.value)} sx={fieldSx} InputLabelProps={{ sx: { color: "rgba(255,255,255,0.7)" } }} />
-                  <Button variant="outlined" onClick={data.handleAddSemester} sx={btnGhost}>Add Semester</Button>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1.25}
+                alignItems={{ md: "flex-end" }}
+                flexWrap="wrap"
+              >
+                {/* Semester selector */}
+                <FormControl size="small" sx={{ minWidth: 155 }}>
+                  <InputLabel sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.82rem" }}>
+                    Semester
+                  </InputLabel>
+                  <Select
+                    value={data.selectedSemesterId}
+                    onChange={(e) => data.setSelectedSemesterId(e.target.value)}
+                    label="Semester"
+                    sx={selectSx}
+                  >
+                    {data.semesters.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>{s.id}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: "rgba(255,255,255,0.15)", display: { xs: "none", md: "block" } }}
+                />
+
+                {/* Add course inline */}
+                <Stack direction="row" flexWrap="wrap" gap={0.75} alignItems="flex-end" sx={{ flex: 1 }}>
+                  <TextField size="small" label="Subject" placeholder="COMP" value={data.addSubject}
+                    onChange={(e) => data.setAddSubject(e.target.value.toUpperCase())}
+                    sx={{ ...fieldSx, width: 82 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }} />
+                  <TextField size="small" label="Number" placeholder="333" value={data.addNumber}
+                    onChange={(e) => data.setAddNumber(e.target.value)}
+                    sx={{ ...fieldSx, width: 82 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }} />
+                  <TextField size="small" label="Title (optional)" value={data.addTitle}
+                    onChange={(e) => data.setAddTitle(e.target.value)}
+                    sx={{ ...fieldSx, flex: 1, minWidth: 130 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }} />
+                  <TextField size="small" label="Professor" value={data.addProfessor}
+                    onChange={(e) => data.setAddProfessor(e.target.value)}
+                    sx={{ ...fieldSx, flex: 1, minWidth: 120 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }} />
+                  <TextField size="small" label="Units" value={data.addUnits}
+                    onChange={(e) => data.setAddUnits(e.target.value)} type="number"
+                    sx={{ ...fieldSx, width: 66 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }} />
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon sx={{ fontSize: "14px !important" }} />}
+                    onClick={data.handleAddCourse}
+                    sx={{ ...btnPrimary, py: 0.85, fontSize: "0.80rem" }}
+                    size="small"
+                  >
+                    Add
+                  </Button>
+                </Stack>
+
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: "rgba(255,255,255,0.15)", display: { xs: "none", md: "block" } }}
+                />
+
+                {/* Add semester */}
+                <Stack direction="row" gap={0.75} alignItems="flex-end">
+                  <TextField
+                    size="small"
+                    label="New Semester"
+                    placeholder="Fall 2026"
+                    value={data.newSemName}
+                    onChange={(e) => data.setNewSemName(e.target.value)}
+                    sx={{ ...fieldSx, width: 135 }}
+                    InputLabelProps={{ sx: { color: "rgba(255,255,255,0.65)", fontSize: "0.80rem" } }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={data.handleAddSemester}
+                    sx={{ ...btnGhost, fontSize: "0.78rem", py: 0.85 }}
+                    size="small"
+                  >
+                    + Semester
+                  </Button>
                 </Stack>
               </Stack>
-              <Divider sx={{ my: 2.25, borderColor: "rgba(255,255,255,0.14)" }} />
-              <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 2fr 2fr auto" }, alignItems: "center" }}>
-                <TextField size="small" label="Subject" value={data.addSubject} onChange={(e) => data.setAddSubject(e.target.value.toUpperCase())} sx={fieldSx} InputLabelProps={{ sx: { color: "rgba(255,255,255,0.7)" } }} />
-                <TextField size="small" label="Number" placeholder="333" value={data.addNumber} onChange={(e) => data.setAddNumber(e.target.value.replace(/[^\d]/g, ""))} sx={fieldSx} InputLabelProps={{ sx: { color: "rgba(255,255,255,0.7)" } }} />
-                <TextField size="small" label="Title (optional)" value={data.addTitle} onChange={(e) => data.setAddTitle(e.target.value)} sx={fieldSx} InputLabelProps={{ sx: { color: "rgba(255,255,255,0.7)" } }} />
-                <TextField size="small" label="Professor (optional)" value={data.addProfessor} onChange={(e) => data.setAddProfessor(e.target.value)} sx={fieldSx} InputLabelProps={{ sx: { color: "rgba(255,255,255,0.7)" } }} />
-                <Button type="button" onClick={data.handleAddCourse} variant="contained" startIcon={<AddIcon />} sx={btnPrimary}>Add</Button>
-              </Box>
             </Paper>
-            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", alignItems: "stretch" }}>
-              {data.selectedSemester.courses.map((c) => (
-                <CourseCard
-                  key={c.id}
-                  semesterLabel={data.selectedSemester.id}
-                  course={c}
-                  onOpenNotes={() => data.openCourseDrawer(c.id, 0)}
-                  onOpenSearch={() => data.openCourseDrawer(c.id, 1)}
-                  onOpenResources={() => data.openCourseDrawer(c.id, 2)}
-                  onOpenPrereqs={() => data.openCourseDrawer(c.id, 3)}
-                />
-              ))}
-              {!data.selectedSemester.courses.length && (
-                <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.16)" }}>
-                  <Typography sx={{ color: "rgba(255,255,255,0.85)", fontWeight: 900 }}>No courses yet for {data.selectedSemester.id}.</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 0.5 }}>Add a course above (Subject + Number).</Typography>
+
+            {/* Search + filter bar */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <TextField
+                size="small"
+                placeholder="Search courses, professors…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.45)" }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  flex: 1,
+                  maxWidth: 340,
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "rgba(0,0,0,0.20)",
+                    borderRadius: 999,
+                    color: "#fff",
+                    fontSize: "0.82rem",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.15)" },
+                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.30)" },
+                    "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.50)" },
+                  },
+                  "& input::placeholder": { color: "rgba(255,255,255,0.38)", opacity: 1 },
+                }}
+              />
+              <Stack direction="row" spacing={0.5}>
+                {(["all", "online", "inperson"] as const).map((f) => (
+                  <Chip
+                    key={f}
+                    label={f === "all" ? "All" : f === "online" ? "Online" : "In-Person"}
+                    size="small"
+                    onClick={() => setFilterMode(f)}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "0.72rem",
+                      borderRadius: 999,
+                      height: 26,
+                      cursor: "pointer",
+                      bgcolor: filterMode === f ? "#fff" : "rgba(255,255,255,0.12)",
+                      color: filterMode === f ? "#A80532" : "rgba(255,255,255,0.70)",
+                      border: filterMode === f ? "none" : "1px solid rgba(255,255,255,0.15)",
+                      "&:hover": { bgcolor: filterMode === f ? "#fff" : "rgba(255,255,255,0.20)" },
+                      transition: "all 0.15s",
+                    }}
+                  />
+                ))}
+              </Stack>
+              <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.75rem", ml: "auto !important" }}>
+                {displayedCourses.length} course{displayedCourses.length !== 1 ? "s" : ""}
+              </Typography>
+            </Stack>
+
+            {/* Course list — full width, no sidebar */}
+            <Stack spacing={1}>
+              {displayedCourses.length === 0 ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    borderRadius: "16px",
+                    bgcolor: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography sx={{ color: "rgba(255,255,255,0.80)", fontWeight: 800, mb: 0.5 }}>
+                    {searchQuery
+                      ? "No courses match your search."
+                      : `No courses yet for ${data.selectedSemester?.id}.`}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(255,255,255,0.50)", fontSize: "0.85rem" }}>
+                    {searchQuery
+                      ? "Try a different query."
+                      : "Add a course above (Subject + Number required)."}
+                  </Typography>
                 </Paper>
+              ) : (
+                displayedCourses.map((c) => (
+                  <CourseCard
+                    key={c.id}
+                    semesterLabel={data.selectedSemester.id}
+                    course={c}
+                    onOpenInfo={() => data.openCourseModal(c.id, 1)}
+                    onColorChange={(color) => data.setCourseColor(c.id, color)}
+                  />
+                ))
               )}
-            </Box>
+            </Stack>
           </>
         )}
 
+        {/* ── Tab 1: Due Dates ── */}
         {data.tab === 1 && (
-          <MajorsPanel
-            majorsLoading={data.majorsLoading}
-            majorsErr={data.majorsErr}
-            majorsFiltered={data.majorsFiltered}
-            majorFilter={data.majorFilter}
-            setMajorFilter={data.setMajorFilter}
-            selectedMajor={data.selectedMajor}
-            setSelectedMajor={data.setSelectedMajor}
-            onReload={data.loadMajors}
+          <DueDateElement
+            assignments={data.upcomingAssignments}
+            exams={data.upcomingExams}
+            onToggleAssignment={data.toggleAssignment}
+            courses={data.selectedSemester?.courses ?? []}
+            expanded
           />
         )}
 
-        <Snackbar open={!!data.toast} autoHideDuration={2600} onClose={() => data.setToast(null)}>
-          <Alert severity={(data.toast?.type as "info" | "success" | "warning" | "error") ?? "info"} sx={{ width: "100%" }}>{data.toast?.text ?? ""}</Alert>
-        </Snackbar>
+        {/* ── Tab 3: Study Groups ── */}
+        {data.tab === 3 && <StudyGroupsPanel />}
 
-        <CourseDrawer
-          open={data.drawerOpen}
-          onClose={() => data.setDrawerOpen(false)}
-          tab={data.drawerTab}
-          setTab={data.setDrawerTab}
-          semesterLabel={data.selectedSemester.id}
-          course={data.activeCourse}
-          noteAuthor={data.noteAuthor}
-          noteTopic={data.noteTopic}
-          noteBody={data.noteBody}
-          setNoteAuthor={data.setNoteAuthor}
-          setNoteTopic={data.setNoteTopic}
-          setNoteBody={data.setNoteBody}
-          onPostNote={data.postNote}
-          searchQuery={data.searchQuery}
-          setSearchQuery={data.setSearchQuery}
-          searchedNotes={data.searchedNotes}
-          resourceLabel={data.resourceLabel}
-          resourceUrl={data.resourceUrl}
-          setResourceLabel={data.setResourceLabel}
-          setResourceUrl={data.setResourceUrl}
-          onAddResourceLink={data.addResourceLink}
-          onPickFile={() => fileInputRef.current?.click()}
-          onFilePicked={data.addResourceFile}
-        />
+        {/* ── Tab 4: Note Share ── */}
+        {data.tab === 4 && <NoteSharePanel />}
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) data.addResourceFile(f);
-            e.currentTarget.value = "";
-          }}
-        />
       </Container>
+
+      {/* ── Toast ── */}
+      <Snackbar
+        open={!!data.toast}
+        autoHideDuration={2600}
+        onClose={() => data.setToast(null)}
+      >
+        <Alert
+          severity={(data.toast?.type as "info" | "success" | "warning" | "error") ?? "info"}
+          sx={{ width: "100%", borderRadius: 3, fontWeight: 700 }}
+        >
+          {data.toast?.text ?? ""}
+        </Alert>
+      </Snackbar>
+
+      {/* ── Course Info Modal ── */}
+      <CourseInfoModal
+        open={data.modalOpen}
+        onClose={() => data.setModalOpen(false)}
+        tab={data.modalTab as 0 | 1}
+        setTab={(v) => data.setModalTab(v as 0 | 1)}
+        semesterLabel={data.selectedSemester?.id ?? ""}
+        course={data.activeCourse}
+        noteAuthor={data.noteAuthor}
+        noteTopic={data.noteTopic}
+        noteBody={data.noteBody}
+        setNoteAuthor={data.setNoteAuthor}
+        setNoteTopic={data.setNoteTopic}
+        setNoteBody={data.setNoteBody}
+        onPostNote={data.postNote}
+      />
     </Box>
   );
 }

@@ -1,393 +1,367 @@
 "use client";
 
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND INTEGRATION — ClubsUI (Hub / Discovery Page)
+// ═══════════════════════════════════════════════════════════════════════
+// Rendered at /clubs — the main discovery hub.
+//
+// DATA:
+//   clubs prop → pass from a Server Component via:
+//     // app/clubs/page.tsx
+//     import { getClubs } from '@/lib/api'
+//     const clubs = await getClubs()   // SELECT * FROM clubs ORDER BY name
+//     return <ClubsUI clubs={clubs} mode="hub" />
+//   Alternatively, useClubStore provides an in-memory singleton until
+//   the API is connected.
+//
+// MY CLUBS tab:
+//   myClubIds is currently driven by local state (seeded with mock data).
+//   Replace the useState seed with a real query:
+//     SELECT club_id FROM club_members WHERE user_id = :userId
+//   or use a /api/users/me/clubs endpoint.
+//
+//   After a successful leave, call:
+//     mutate('/api/users/me/clubs')         // SWR revalidation
+//     queryClient.invalidateQueries(['myClubs'])  // React Query
+//   The handleLeaveSuccess callback below handles optimistic removal from
+//   local state while that network request is in-flight.
+//
+// LEAVE CLUB:
+//   handleLeaveSuccess removes the club from myClubIds optimistically.
+//   The actual DELETE is fired inside LeaveClubDialog — see that file for
+//   full backend integration notes.
+//
+// CATEGORY FILTER:
+//   CLUB_CATEGORIES currently comes from a static array.
+//   Replace with:
+//     SELECT DISTINCT category FROM clubs ORDER BY category
+//   or keep static if categories are fixed by product design.
+//
+// SEARCH:
+//   Client-side filtering works fine for <500 clubs.
+//   For larger datasets, debounce + call:
+//     GET /api/clubs?q=:query&category=:cat&tab=mine
+//   with Postgres full-text search (to_tsvector on name, tagline, tags).
+// ═══════════════════════════════════════════════════════════════════════
+
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Club } from "./clubs.data";
+import type { Club } from "./temp(mockdata)/clubs.data";
+import { CLUB_CATEGORIES } from "./temp(mockdata)/clubs.data";
+import { Box, Button, Chip, Divider, TextField, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { btnGhost, btnPrimary } from "./ClubsStates";
+import FlipClubCard from "./FlipClubCard";
+import GlassPanel from "./GlassPanels";
+import AuroraBackground from "./AuroraBackground";
+import PanelImageGallery from "./PanelImageGallery";
 
-import {
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Chip,
-  Divider,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from "@mui/material";
+// BACKEND: clubs prop is now optional — store provides live data
+import { useClubStore } from "./useClubStore";
 
-import {
-  MAROON,
-  MAROON_DARK,
-  chipActive,
-  chipGhost,
-  chipLight,
-  btnGhost,
-  btnPrimary,
-  btnPrimaryWide,
-  btnMaroon,
-  btnBlack,
-  btnOutline,
-  inputSx,
-  selectSx,
-  safeLower,
-} from "./ClubsStates";
+type Props = { clubs?: Club[]; mode: "hub" | "club"; club?: Club };
 
-type Props = { clubs: Club[]; mode: "hub" | "club"; club?: Club };
+const CATEGORY_COLORS: Record<string, string> = {
+  STEM:        "rgba(59,130,246,0.80)",
+  Business:    "rgba(16,185,129,0.80)",
+  Arts:        "rgba(236,72,153,0.80)",
+  Cultural:    "rgba(245,158,11,0.80)",
+  Sports:      "rgba(239,68,68,0.80)",
+  Literature:  "rgba(139,92,246,0.80)",
+  Fraternity:  "rgba(20,184,166,0.80)",
+  Sorority:    "rgba(244,114,182,0.80)",
+};
 
-export default function ClubsUI({ clubs, mode, club }: Props) {
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const accent = CATEGORY_COLORS[label];
+  return (
+    <Chip
+      label={label}
+      onClick={onClick}
+      sx={{
+        cursor: "pointer",
+        fontWeight: 800,
+        fontSize: 12,
+        letterSpacing: 0.4,
+        height: 30,
+        transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "&:active": { transform: "scale(0.92)" },
+        ...(active
+          ? {
+              bgcolor: accent ?? "rgba(255,255,255,0.92)",
+              color: "white",
+              border: `1px solid ${accent ?? "rgba(255,255,255,0.6)"}`,
+              boxShadow: `0 4px 16px ${accent ?? "rgba(255,255,255,0.2)"}44`,
+              "&:hover": { filter: "brightness(1.12)", transform: "translateY(-2px)" },
+            }
+          : {
+              bgcolor: "rgba(255,255,255,0.07)",
+              color: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.13)", transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" },
+            }),
+      }}
+    />
+  );
+}
+
+export default function ClubsUI({ clubs: clubsProp, mode, club }: Props) {
   const router = useRouter();
+  const { clubs: storeClubs } = useClubStore();
+  // Use live store clubs; fall back to prop if provided (e.g. SSR initial data)
+  const clubs = clubsProp ?? storeClubs;
+  const [tab, setTab] = useState<"discover" | "mine">("discover");
+  const [search, setSearch] = useState("");
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
 
-  // HUB
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("All");
+  // ── Membership state ──────────────────────────────────────────────────────
+  // BACKEND: Seed this from a real query instead of a hardcoded Set:
+  //   const { data: myClubs } = useSWR('/api/users/me/clubs', fetcher)
+  //   const [myClubIds, setMyClubIds] = useState<Set<string>>(new Set())
+  //   useEffect(() => {
+  //     if (myClubs) setMyClubIds(new Set(myClubs.map(c => c.id)))
+  //   }, [myClubs])
+  //
+  // The optimistic removal on leave is already handled by handleLeaveSuccess.
+  const [myClubIds, setMyClubIds] = useState<Set<string>>(
+    () => new Set<string>(["club-001", "club-002"])
+  );
 
-  // CLUB tabs
-  const [tab, setTab] = useState<
-    "About" | "Profile" | "Members" | "Roles" | "Posts" | "Apply" | "Applications"
-  >("About");
+  // ── Leave club handler ────────────────────────────────────────────────────
+  // Called by LeaveClubDialog (inside FlipClubCard) after a successful leave.
+  // Optimistically removes the club from local state.
+  //
+  // BACKEND: After this runs, the real DELETE has already been fired inside
+  //   LeaveClubDialog.  If you use SWR/React Query, also call:
+  //     mutate('/api/users/me/clubs')
+  //     queryClient.invalidateQueries(['myClubs'])
+  //   here to keep server state in sync.
+  const handleLeaveSuccess = useCallback((clubId: string) => {
+    setMyClubIds((prev) => {
+      const next = new Set(prev);
+      next.delete(clubId);
+      return next;
+    });
+  }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    clubs.forEach((c) => { if (c.category) set.add(c.category); });
-    return Array.from(set).sort();
-  }, [clubs]);
+  function toggleCategory(cat: string) {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      next.has(cat) ? next.delete(cat) : next.add(cat);
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
-    const query = safeLower(q);
-    return clubs.filter((c) => {
-      const matchesQ =
-        !query ||
-        safeLower(c.name).includes(query) ||
-        safeLower(c.tagline ?? c.description ?? "").includes(query) ||
-        safeLower(c.category ?? "").includes(query);
-      const matchesCat = cat === "All" || c.category === cat;
-      return matchesQ && matchesCat;
-    });
-  }, [clubs, q, cat]);
+    const q = search.trim().toLowerCase();
+    return clubs
+      .filter((c) => (tab === "mine" ? myClubIds.has(c.id) : true))
+      .filter((c) => activeCategories.size === 0 ? true : activeCategories.has(c.category ?? ""))
+      .filter((c) => {
+        if (!q) return true;
+        return [c.name, c.tagline, c.description, c.category, ...(c.tags ?? []), c.card?.headline, c.card?.blurb, ...(c.card?.chips ?? [])]
+          .filter(Boolean).join(" ").toLowerCase().includes(q);
+      });
+  }, [clubs, tab, myClubIds, search, activeCategories]);
 
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(1200px 700px at 15% 0%, rgba(255,255,255,0.10), transparent 55%)," +
-          "radial-gradient(900px 600px at 90% 10%, rgba(255,255,255,0.08), transparent 55%)," +
-          `linear-gradient(180deg, ${MAROON} 0%, #4a0013 50%, ${MAROON_DARK} 100%)`,
-        px: { xs: 2, md: 5 },
-        py: { xs: 3, md: 5 },
-      }}
-    >
-      <Box sx={{ maxWidth: 1150, mx: "auto" }}>{children}</Box>
-    </Box>
-  );
-
-  const GlassPanel = ({ children }: { children: React.ReactNode }) => (
-    <Card
-      sx={{
-        borderRadius: 4,
-        p: { xs: 2.5, md: 3 },
-        backgroundColor: "rgba(255,255,255,0.10)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        backdropFilter: "blur(14px)",
-        boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
-      }}
-    >
-      {children}
-    </Card>
-  );
-
-  const WhiteCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <Card
-      sx={{
-        borderRadius: 4,
-        p: { xs: 2.5, md: 3 },
-        background: "rgba(255,255,255,0.95)",
-        boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
-      }}
-    >
-      <Typography sx={{ fontWeight: 800, fontSize: 20, color: MAROON_DARK }}>{title}</Typography>
-      <Box sx={{ mt: 2 }}>{children}</Box>
-    </Card>
-  );
-
-  
-  if (mode === "hub") {
+  if (mode === "club") {
     return (
-      <Shell>
-        <GlassPanel>
-          <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-            <Box>
-              <Typography sx={{ color: "white", fontSize: { xs: 36, md: 46 }, fontWeight: 900 }}>
-                Clubs Hub
-              </Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 1, maxWidth: 700 }}>
-                Discover CSUN communities — join clubs, find events, connect with members, and build your network.
-              </Typography>
+      <Box sx={{ p: 2 }}>
+        <Typography sx={{ color: "white", fontWeight: 900, fontSize: 28 }}>{club?.name ?? "Club"}</Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.75)", mt: 1 }}>This view is handled by /clubs/[id].</Typography>
+      </Box>
+    );
+  }
 
-            </Box>
+  return (
+    <AuroraBackground>
+      <Box sx={{ position: "relative", minHeight: "100vh" }}>
+        {/* ── BACK BUTTON ───────────────────────────────────────────────────── */}
+        <Box sx={{ px: { xs: 3, md: 8, lg: 14 }, pt: 3, position: "relative", zIndex: 1 }}>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              color: "white",
+              bgcolor: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              borderRadius: 999,
+              px: 2.2,
+              py: 0.8,
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: 0.3,
+              textTransform: "none",
+              backdropFilter: "blur(10px)",
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: "rgba(255,255,255,0.22)",
+                borderColor: "rgba(255,255,255,0.50)",
+                transform: "translateX(-2px)",
+              },
+            }}
+          >
+            Back to Dashboard
+          </Button>
+        </Box>
 
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button component={Link} href="/clubs?view=recommend" sx={btnPrimary}>
-                Get Recommendations →
-              </Button>
-            </Box>
+        {/* ── HERO ──────────────────────────────────────────────────────────── */}
+        <Box
+          sx={{
+            px: { xs: 3, md: 6, lg: 10 },
+            pt: { xs: 3, md: 4 },
+            pb: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {/* Title */}
+          <Typography
+            sx={{
+              color: "white",
+              fontSize: { xs: 52, md: 80 },
+              fontWeight: 900,
+              lineHeight: 0.95,
+              letterSpacing: -2,
+              textShadow: "0 4px 40px rgba(220,20,40,0.55), 0 0 80px rgba(255,0,40,0.25)",
+              fontFamily: "'Arial Black', 'Impact', sans-serif",
+            }}
+          >
+            Club Connect
+          </Typography>
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.60)",
+              mt: 2,
+              fontSize: { xs: 15, md: 18 },
+              maxWidth: 520,
+              fontWeight: 400,
+            }}
+          >
+            Discover communities, join clubs, find events, and build your network.
+          </Typography>
+
+          {/* Gallery — full width, centered below title */}
+          <Box sx={{ width: "100%", mt: 4 }}>
+            <PanelImageGallery height={420} />
           </Box>
-        </GlassPanel>
 
-        <Box sx={{ mt: 3 }}>
+          {/* Tabs — below gallery */}
+          <Box sx={{ display: "flex", gap: 1.2, mt: 3, flexWrap: "wrap", justifyContent: "center" }}>
+            <Button onClick={() => setTab("discover")} sx={tab === "discover" ? { ...btnPrimary, px: 2.8 } : { ...btnGhost, px: 2.8 }}>
+              Discover
+            </Button>
+            <Button onClick={() => setTab("mine")} sx={tab === "mine" ? { ...btnPrimary, px: 2.8 } : { ...btnGhost, px: 2.8 }}>
+              My Clubs
+            </Button>
+            <Button
+              component={Link}
+              href="/clubs/create-club"
+              sx={{
+                ...btnGhost, px: 2.8,
+                background: "rgba(180,0,46,0.18)",
+                border: "1px solid rgba(180,0,46,0.45)",
+                color: "rgba(255,180,180,0.95)",
+                "&:hover": { background: "rgba(180,0,46,0.32)", transform: "translateY(-2px)" },
+              }}
+            >
+              + Create Club
+            </Button>
+          </Box>
+        </Box>
+
+        {/* ── SEARCH + FILTERS ──────────────────────────────────────────────── */}
+        <Box sx={{ px: { xs: 2, md: 6, lg: 12 }, pb: 2, position: "relative", zIndex: 1 }}>
           <GlassPanel>
-            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-              <Box>
-                <Typography sx={{ color: "white", fontSize: 26, fontWeight: 900 }}>Find a Club</Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 0.5 }}>
-                  Search by name, category, or vibe (workshops, mentorship, etc.)
-                </Typography>
-              </Box>
-
-              
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto" }, gap: 1.5, alignItems: "center" }}>
+              <TextField
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search clubs, tags, keywords..."
+                fullWidth
+                variant="outlined"
+                InputProps={{
+                  sx: {
+                    borderRadius: 999,
+                    bgcolor: "rgba(255, 255, 255, 0.08)",
+                    color: "white",
+                    px: 1.2,
+                    "& input::placeholder": { color: "rgba(255,255,255,0.45)", opacity: 1 },
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.45)" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.95)", boxShadow: "0 0 0 3px rgba(255,255,255,0.12), 0 0 16px rgba(255,255,255,0.10)" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,1)", boxShadow: "0 0 0 3px rgba(255,255,255,0.15), 0 0 20px rgba(255,255,255,0.12)" },
+                  },
+                }}
+              />
+              <Button onClick={() => { setSearch(""); setActiveCategories(new Set()); }} sx={{ ...btnGhost, whiteSpace: "nowrap", minWidth: 80 }}>
+                Clear
+              </Button>
             </Box>
 
-            <Box sx={{ mt: 2.5, display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 170px" }, gap: 1.5, alignItems: "center" }}>
-              <TextField
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search clubs..."
-                fullWidth
-                InputProps={{ sx: inputSx }}
-              />
+            {/* Category filter chips */}
+            <Box sx={{ display: "flex", gap: 0.9, flexWrap: "wrap", mt: 1.8 }}>
+              <FilterChip label="All" active={activeCategories.size === 0} onClick={() => setActiveCategories(new Set())} />
 
-              <Select value={cat} onChange={(e) => setCat(String(e.target.value))} fullWidth sx={selectSx}>
-                <MenuItem value="All">All categories</MenuItem>
-                {categories.map((category) => (
-                  <MenuItem key={category} value={category}>{category}</MenuItem>
-                ))}
-              </Select>
+              {/* BACKEND: CLUB_CATEGORIES can be replaced with a dynamic Supabase query:
+                  SELECT DISTINCT category FROM clubs ORDER BY category */}
+              {CLUB_CATEGORIES.map((cat) => (
+                <FilterChip key={cat} label={cat} active={activeCategories.has(cat)} onClick={() => toggleCategory(cat)} />
+              ))}
+            </Box>
 
-              <Button
-                sx={btnPrimaryWide}
-                onClick={() => document.getElementById("clubs-grid")?.scrollIntoView({ behavior: "smooth" })}
-              >
-                Browse →
-              </Button>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1.5 }}>
+              <Typography sx={{ color: "rgba(255,255,255,0.55)", fontWeight: 700, fontSize: 13 }}>
+                {filtered.length} club{filtered.length !== 1 ? "s" : ""}
+              </Typography>
+              <Typography sx={{ color: "rgba(255, 255, 255, 0.35)", fontWeight: 600, fontSize: 11 }}>
+                Click a card to flip it
+              </Typography>
             </Box>
           </GlassPanel>
         </Box>
 
-        <Box sx={{ mt: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography sx={{ color: "white", fontWeight: 900, fontSize: 24 }}>Clubs</Typography>
-          <Chip label={`${filtered.length} results`} sx={chipGhost} />
-        </Box>
+        {/* ── GRID ──────────────────────────────────────────────────────────── */}
+        <Box sx={{ px: { xs: 2, md: 6, lg: 12 }, pb: 8, position: "relative", zIndex: 1 }}>
+          <Divider sx={{ borderColor: "rgba(255,255,255,0.07)", mb: 2.5 }} />
 
-        <Box id="clubs-grid" sx={{ mt: 2, display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
-          {filtered.map((c) => {
-            const clubSlug = c.slug ?? c.id;
-            return (
-            <Card
-              key={clubSlug}
+          {filtered.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 10 }}>
+              <Typography sx={{ color: "rgba(255, 0, 0, 0.4)", fontSize: 16 }}>No clubs match your search.</Typography>
+              <Button onClick={() => { setSearch(""); setActiveCategories(new Set()); }} sx={{ ...btnGhost, mt: 2 }}>Clear filters</Button>
+            </Box>
+          ) : (
+            <Box
               sx={{
-                textDecoration: "none",
-                borderRadius: 4,
-                background: "rgba(255,255,255,0.95)",
-                color: MAROON_DARK,
-                boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
-                transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                cursor: "pointer",
-                "&:hover": { transform: "translateY(-3px)", boxShadow: "0 22px 70px rgba(0,0,0,0.40)" },
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "1fr 1fr 1fr", xl: "repeat(4, 1fr)" },
+                gap: 2.5,
+                alignItems: "stretch",
               }}
             >
-              <CardActionArea component={Link} href={`/clubs?slug=${clubSlug}`} sx={{ borderRadius: 4, display: "block" }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-                    <Box>
-                      <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: MAROON }}>
-                        {(c.category ?? "").toUpperCase()}
-                      </Typography>
-                      <Typography sx={{ fontSize: 26, fontWeight: 900, mt: 0.5 }}>{c.name}</Typography>
-                      <Typography sx={{ mt: 1, color: "rgba(42,0,16,0.70)" }}>{c.tagline ?? c.description ?? ""}</Typography>
-                      {c.contact?.email && (
-                        <Typography sx={{ mt: 0.8, color: "rgba(42,0,16,0.60)", fontSize: 14 }}>
-                          {c.contact.email}
-                        </Typography>
-                      )}
-                    </Box>
-
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
-                      <Chip label="Profile" sx={{ bgcolor: MAROON, color: "white", fontWeight: 800 }} />
-                      <Chip label="View →" sx={{ border: `1px solid rgba(123,0,28,0.25)` }} />
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                    <Chip label="About" sx={chipLight} />
-                    <Chip label="Members" sx={chipLight} />
-                    <Chip label="Posts" sx={chipLight} />
-                    <Chip label="Apply" sx={chipLight} />
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-
-              <Box sx={{ px: 3, pb: 3, pt: 0.5, display: "flex", gap: 1.2, flexWrap: "wrap" }}>
-                <Button sx={btnMaroon} onClick={() => router.push(`/clubs?slug=${clubSlug}`)}>
-                  View Club
-                </Button>
-                <Button sx={btnBlack} onClick={() => alert("Join flow next (DB + roles)")}>
-                  Join
-                </Button>
-                <Button sx={btnOutline} onClick={() => alert("Contact flow next")}>
-                  Contact
-                </Button>
-              </Box>
-            </Card>
-            );
-          })}
-        </Box>
-      </Shell>
-    );
-  }
-
-  // club page 
-  if (!club) return null;
-
-  const tabs = ["About", "Profile", "Members", "Roles", "Posts", "Apply", "Applications"] as const;
-
-  return (
-    <Shell>
-      <GlassPanel>
-        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-          <Box>
-            <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: "rgba(255,255,255,0.75)" }}>
-              {(club.category ?? "").toUpperCase()}
-            </Typography>
-            <Typography sx={{ color: "white", fontSize: 40, fontWeight: 900, mt: 0.5 }}>
-              {club.name}
-            </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.70)", mt: 1, maxWidth: 760 }}>
-              {club.tagline ?? club.description ?? ""}
-            </Typography>
-
-            <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {tabs.map((t) => (
-                <Chip key={t} label={t} onClick={() => setTab(t)} sx={tab === t ? chipActive : chipGhost} />
+              {/* BACKEND: clubs come from Supabase and are passed as props from a Server Component.
+                  Example parent (page.tsx):
+                    const clubs = await getClubs()  ← replaces static import
+                    return <ClubsUI clubs={clubs} mode="hub" />
+                  
+                  isMember is passed per-card so the Leave button only shows for
+                  clubs the current user actually belongs to. */}
+              {filtered.map((c) => (
+                <FlipClubCard
+                  key={c.id}
+                  club={c}
+                  isMember={myClubIds.has(c.id)}
+                  onLeaveSuccess={handleLeaveSuccess}
+                />
               ))}
             </Box>
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button component={Link} href="/clubs" sx={btnGhost}>
-              ← Back
-            </Button>
-            <Button sx={btnPrimary} onClick={() => alert("Next: Join flow")}>
-              Join
-            </Button>
-          </Box>
+          )}
         </Box>
-      </GlassPanel>
-
-      <Box sx={{ mt: 3 }}>
-        <GlassPanel>
-          {tab === "About" && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
-              <WhiteCard title="Our story">
-                <Typography sx={{ color: "rgba(42,0,16,0.75)", lineHeight: 1.7 }}>{club.story ?? club.description ?? "No story added yet."}</Typography>
-
-                <Typography sx={{ mt: 3, fontWeight: 900, color: MAROON }}>Why join</Typography>
-                <Box sx={{ mt: 1.5, display: "grid", gap: 1 }}>
-                  {(club.whyJoin ?? []).map((w) => (
-                    <Box key={w} sx={{ display: "flex", gap: 1.2, alignItems: "flex-start" }}>
-                      <Typography sx={{ color: MAROON, fontWeight: 900 }}>•</Typography>
-                      <Typography sx={{ color: "rgba(42,0,16,0.75)" }}>{w}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </WhiteCard>
-
-              <WhiteCard title="Contact">
-                <ContactRow label="Email" value={club.contact?.email} />
-                <ContactRow label="Instagram" value={club.contact?.instagram} />
-                <ContactRow label="Website" value={club.contact?.website} />
-              </WhiteCard>
-            </Box>
-          )}
-
-          {tab === "Profile" && (
-            <WhiteCard title="Club Profile">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Profile foundation for clubs to manage their public info (bio, links, meetings). Backend + permissions next.
-              </Typography>
-            </WhiteCard>
-          )}
-
-          {tab === "Members" && (
-            <WhiteCard title="Members">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Member management foundation (invite, approve, remove). Backend + permissions next.
-              </Typography>
-            </WhiteCard>
-          )}
-
-          {tab === "Roles" && (
-            <WhiteCard title="Roles">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Appoint roles (President, VP, Treasurer). This will control permissions later.
-              </Typography>
-            </WhiteCard>
-          )}
-
-          {tab === "Posts" && (
-            <WhiteCard title="Club Posts">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Posts feed foundation (announcements, meetings, events). Next: DB + editor.
-              </Typography>
-            </WhiteCard>
-          )}
-
-          {tab === "Apply" && (
-            <WhiteCard title="Apply to Join">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Application foundation. Next: save to DB and notify club admins.
-              </Typography>
-            </WhiteCard>
-          )}
-
-          {tab === "Applications" && (
-            <WhiteCard title="Applications">
-              <Typography sx={{ color: "rgba(42,0,16,0.70)" }}>
-                Admin view foundation for reviewing applications (approve/deny). Permissions later.
-              </Typography>
-            </WhiteCard>
-          )}
-        </GlassPanel>
       </Box>
-    </Shell>
-  );
-}
-
-function ContactRow({ label, value }: { label: string; value?: string }) {
-  return (
-    <Box sx={{ mt: 2 }}>
-      <Typography sx={{ fontSize: 12, fontWeight: 900, letterSpacing: 2, color: MAROON }}>
-        {label.toUpperCase()}
-      </Typography>
-
-      <Typography sx={{ mt: 0.5, color: "rgba(42,0,16,0.75)" }}>
-        {value ? (
-          value.startsWith("http") ? (
-            <a href={value} target="_blank" rel="noreferrer" style={{ color: MAROON }}>
-              {value}
-            </a>
-          ) : (
-            value
-          )
-        ) : (
-          <span style={{ color: "rgba(42,0,16,0.35)" }}>Not added yet</span>
-        )}
-      </Typography>
-
-      <Divider sx={{ mt: 2, opacity: 0.2 }} />
-    </Box>
+    </AuroraBackground>
   );
 }

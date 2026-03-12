@@ -1,7 +1,3 @@
-/**
- * Message feature types. Backend will own and validate data; these match API contracts.
- */
-
 export type ID = string;
 
 export interface User {
@@ -24,6 +20,8 @@ export interface Thread {
   participantIds: ID[];
   updatedAt: number;
   isRequest?: boolean;
+  /** Optional display name for group chats */
+  name?: string;
 }
 
 export type AttachmentType = "image" | "audio" | "file";

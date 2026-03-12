@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../lib/axios";
 import type { PublicUser } from "../../../types/profile";
-import DarkVeil from "@/components/Homepage/DarkVeil";
+import DarkVeil from "@/components/Landingpage/DarkVeil";
 import PasswordField from "@/components/authTools/ViewFilter";
 import { registerSchema, RegisterInput } from "@/lib/validators/auth.validators";
 import { z } from "zod";
