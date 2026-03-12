@@ -619,7 +619,7 @@ export default function SocialFeedPage() {
     const filteredPosts = posts.filter(p => !blockedIds.has(p.User.id));
 
     const tabs = (
-      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10 }}>
+      <div style={{ display:"flex", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-surface)", position:"sticky", top:0, zIndex:10, borderTop: isDark ? "none" : "3px solid rgba(168,5,50,0.55)" }}>
         {(["for-you","campus","clubs","following"] as FeedTab[]).map(tab => {
           const active = feedTab === tab;
           return (
@@ -823,7 +823,7 @@ export default function SocialFeedPage() {
         </nav>
 
         {/* ── Centre ──────────────────────────────────────────────────── */}
-        <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60 }}>
+        <main style={{ minHeight:"100vh", borderRight:"1px solid var(--border-subtle)", paddingBottom:60, background: isDark ? "transparent" : "var(--bg-base)" }}>
           <div style={{ maxWidth:680, width:"100%", margin:"0 auto" }}>
             {renderCenter()}
           </div>

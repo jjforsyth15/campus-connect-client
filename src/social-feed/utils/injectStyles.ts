@@ -120,7 +120,7 @@ export const GLOBAL_CSS = `
   .feed-card:nth-child(n+6) { animation-delay: 0.12s; }
 
   .img-shimmer {
-    background: linear-gradient(90deg, #f0f2f5 25%, #e8eaed 50%, #f0f2f5 75%);
+    background: linear-gradient(90deg, #f5e3e9 25%, #eacdd5 50%, #f5e3e9 75%);
     background-size: 700px 100%;
     animation: shimmer 1.5s infinite linear;
   }
