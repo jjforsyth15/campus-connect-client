@@ -63,7 +63,7 @@ export default function ServicesPage() {
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
-      <Header value="/ToroSRC/services" />
+      <Header value="/StudentRecCenter/services" />
 
       {/* Hero */}
       <Container maxWidth="xl">
