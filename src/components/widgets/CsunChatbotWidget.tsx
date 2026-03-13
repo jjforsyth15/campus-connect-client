@@ -61,9 +61,17 @@ export function CsunChatbotWidget() {
         didDragRef.current = true;
         const dx = ev.clientX - dragRef.current.startX;
         const dy = ev.clientY - dragRef.current.startY;
+        const w = typeof window === "undefined" ? 0 : window.innerWidth;
+        const h = typeof window === "undefined" ? 0 : window.innerHeight;
+        const width = open ? PANEL_W : BUTTON_W;
+        const height = open ? PANEL_H : BUTTON_H;
+        const minLeft = 0;
+        const maxLeft = Math.max(minLeft, w - width - MARGIN);
+        const minTop = 0;
+        const maxTop = Math.max(minTop, h - height - MARGIN);
         setPosition({
-          left: Math.max(0, dragRef.current.startLeft + dx),
-          top: Math.max(0, dragRef.current.startTop + dy),
+          left: Math.min(maxLeft, Math.max(minLeft, dragRef.current.startLeft + dx)),
+          top: Math.min(maxTop, Math.max(minTop, dragRef.current.startTop + dy)),
         });
       };
       const onUp = () => {
@@ -126,15 +134,29 @@ export function CsunChatbotWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, [fullScreen]);
 
+  const clampedPosition = React.useMemo(() => {
+    if (position === null || typeof window === "undefined") return null;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const width = open ? PANEL_W : BUTTON_W;
+    const height = open ? PANEL_H : BUTTON_H;
+    const maxLeft = Math.max(0, w - width - MARGIN);
+    const maxTop = Math.max(0, h - height - MARGIN);
+    return {
+      left: Math.min(maxLeft, Math.max(0, position.left)),
+      top: Math.min(maxTop, Math.max(0, position.top)),
+    };
+  }, [position, open]);
+
   return (
     <div
       style={{
         position: "fixed",
         ...(fullScreen
           ? { left: 0, top: 0, width: "100vw", height: "100vh" }
-          : position === null
+          : clampedPosition === null
             ? { right: MARGIN, bottom: MARGIN }
-            : { left: position.left, top: position.top }),
+            : { left: clampedPosition.left, top: clampedPosition.top }),
         zIndex: 2147483647,
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',

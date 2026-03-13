@@ -18,7 +18,8 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "plugins": [
       {

@@ -1,3 +1,15 @@
+/* ── Fonts — must precede all rules including Tailwind ── */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ── Tailwind CSS v4 ── */
+@import "tailwindcss";
+
+/* ── Keyframe animations (used by livestream + other pages via inline style) ── */
+@keyframes ls-spin  { to { transform: rotate(360deg); } }
+@keyframes ls-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes ls-ping  { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes ls-dot-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.7); opacity: 0.4; } }
+
 /* Video background */
 .background-video {
   position: fixed;
@@ -75,13 +87,97 @@
   text-decoration: none;
 }
 
+/* ── Social Feed CSS custom properties ── */
+
+:root {
+  --red:          #D22030;
+  --red-dark:     #A5182A;
+  --red-light:    #FDECEA;
+  --red-muted:    rgba(210,32,48,0.07);
+  --red-glow:     0 4px 22px rgba(210,32,48,0.28);
+  --bg:           #EEF0F4;
+  --bg-card:      #FFFFFF;
+  --bg-hover:     #F8F9FB;
+  --bg-input:     #F3F5F8;
+  --border:       #E3E6EC;
+  --border-hard:  #CDD1DA;
+  --text1:        #0F1117;
+  --text2:        #525A6A;
+  --text3:        #8C95A3;
+  --blue:         #1D6EE8;
+  --green:        #0A9E6B;
+  --amber:        #D97706;
+  --purple:       #7B38ED;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:    0 4px 18px rgba(0,0,0,0.08);
+  --shadow-lg:    0 14px 44px rgba(0,0,0,0.13);
+  --shadow-xl:    0 24px 64px rgba(0,0,0,0.18);
+  --r-sm:         8px;
+  --r-md:         14px;
+  --r-lg:         20px;
+  --r-xl:         26px;
+  --r-full:       9999px;
+  --ease:         cubic-bezier(0.4, 0, 0.2, 1);
+  --spring:       cubic-bezier(0.34, 1.56, 0.64, 1);
+  --font-head:    'Sora', system-ui, sans-serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+
+  /* ── Social Feed v2 design tokens (injected by ThemeContext; defaults here) ── */
+  --csun-red:        #A80532;
+  --csun-red-glow:   rgba(168, 5, 50, 0.18);
+  --danger:          #dc2626;
+  --bg-base:         #F2F4F8;
+  --bg-surface:      #FFFFFF;
+  --bg-elevated:     #FFFFFF;
+  --bg-hover:        #F5F7FA;
+  --bg-input:        #F3F5F8;
+  --border-subtle:   #E2E5EB;
+  --border-medium:   #CDD1DA;
+  --text-primary:    #0F1117;
+  --text-secondary:  #525A6A;
+  --text-muted:      #8C95A3;
+  --radius-sm:       8px;
+  --radius-md:       14px;
+  --radius-lg:       20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: #A80532; /* or #050509 etc */
-  color: #A80532;
+  background-color: transparent;
+  color: inherit;
   min-height: 100%;
+}
+
+/* ── Keyframe animations used by social feed ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.90); }
+  100% { transform: scale(1); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* ============================================================================
@@ -155,4 +251,156 @@ body {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* ============================================================================
+   SOCIAL FEED v2 — UTILITY CLASSES
+   Used by SocialFeedPage, PostCard, PostComposer, CommentsPanel, pages/*.tsx
+   ============================================================================ */
+
+/* ── Avatar ── */
+.avatar {
+  border-radius: 50%;
+  background: var(--csun-red);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.avatar-initials {
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  background: var(--csun-red);
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 150ms, transform 80ms;
+}
+.btn-primary:hover  { filter: brightness(1.12); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 99px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+}
+.btn-secondary:hover { background: var(--bg-hover); border-color: var(--csun-red); color: var(--csun-red); }
+
+/* ── Skeleton shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0;  }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--bg-hover) 50%, var(--border-subtle) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-icon  { font-size: 48px; margin-bottom: 14px; line-height: 1; }
+.empty-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 6px; }
+.empty-sub   { font-size: 14px; margin: 0; }
+
+/* ── Form controls (used by SettingsPage) ── */
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 150ms, box-shadow 150ms;
+  box-sizing: border-box;
+}
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--csun-red);
+  box-shadow: 0 0 0 3px var(--csun-red-glow);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+
+/* ── Toggle switch ── */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-medium);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 200ms;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 200ms;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--csun-red); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* ── Char count ring (PostComposer) ── */
+.char-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
