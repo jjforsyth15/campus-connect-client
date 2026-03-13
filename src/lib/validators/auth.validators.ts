@@ -80,8 +80,19 @@ export const profileUpdateSchema = z.object({
     .optional(),
 });
 
+// Change password validation schema
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Current password is required" }),
+  newPassword: strongPassword,  
+  confirmNewPassword: z.string().min(1, { message: "Please confirm your new password" }),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords don't match",
+  path: ["confirmNewPassword"],
+});
+
 // Type exports for TypeScript
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
