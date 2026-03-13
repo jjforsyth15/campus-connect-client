@@ -138,23 +138,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             gap: 25,
           }}
         >
-          <Box
-            sx={{
-              mb: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              filter: 'drop-shadow(0 30px 50px rgba(0,0,0,0.75))',
-            }}
-          >
-            <Image
-              src="/ToroConnectLP.png"
-              alt="Toro Campus Connect Logo"
-              width={420}
-              height={420}
-              priority
-              style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxWidth: '360px' }}
-            />
+          <Box sx={{ mb: 4 }}>
+            <Box
+              sx={{
+                width: 220,
+                height: 220,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background:
+                  'radial-gradient(circle, rgba(255,255,255,0.22), transparent 60%)',
+                boxShadow: '0 20px 30px rgba(0,0,0,0.7)',
+              }}
+            >
+              <Image
+                src="/ToroConnectLP.png"
+                alt="Toro Campus Connect Logo"
+                width={400}
+                height={400}
+                priority
+                style={{ objectFit: 'contain' }}
+              />
+            </Box>
           </Box>
 
           <Button
